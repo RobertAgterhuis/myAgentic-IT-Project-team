@@ -186,6 +186,7 @@ After approval of the final report, the **GitHub Integration Agent** publishes a
 Sprint Gate (Definition of Ready + lessons-learned injection)
   → Implementation Agent → Test Agent → PR/Review Agent (secret scan)
   → KPI Agent → Documentation Agent → GitHub Integration Agent → Retrospective Agent
+  → Critic + Risk validation per sprint
   → Next sprint
 ```
 

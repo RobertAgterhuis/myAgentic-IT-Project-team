@@ -44,9 +44,10 @@ CREATE MyProject
 **4. Follow the agent pipeline:**
 - The Orchestrator runs **one agent at a time** — type **CONTINUE** after each
 - At **phase boundaries**, start a **new Copilot Chat** and type **CONTINUE** (all progress is preserved)
+- Critic + Risk Agents validate every phase and every sprint automatically
 - Track progress in the Command Center pipeline view
 
-**5. Answer questionnaires** — when agents need your input, questions appear in the Questionnaires tab. Answer them, then run `REEVALUATE` for improved results.
+**5. Answer questionnaires & decisions** — when agents need your input, questions appear in the **Questionnaires** tab. Use the **Decisions** tab to create decisions or answer open questions. Answer them, then run `REEVALUATE` for improved results.
 
 ---
 

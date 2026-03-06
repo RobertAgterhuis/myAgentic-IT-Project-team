@@ -37,6 +37,7 @@ Canonical execution order is always: BUSINESS → TECH → UX → MARKETING.
 | `HOTFIX [description]` | Emergency fix — bypasses Sprint Gate, requires abbreviated regression testing |
 | `REEVALUATE [scope]` | Re-run analysis with new information. Scopes: `ALL`, `BUSINESS`, `TECH`, `UX`, `MARKETING` |
 | `REFRESH ONBOARDING` | Rescan workspace and tooling without repeating the intake interview |
+| `CONTINUE` | Resume an active session from where it left off — use after phase boundaries or new conversations |
 
 ## How commands work
 

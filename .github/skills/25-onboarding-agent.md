@@ -154,6 +154,27 @@ Identify and catalog all available input sources based on mode.
 
 ---
 
+**Step 1b: Questionnaire Pre-generation (OPTIONAL — runs only when project brief exists)**
+
+If `BusinessDocs/project-brief.md` was found in Step 1a, perform a quick-scan of the brief to identify likely information gaps. For each gap, produce a `QUESTIONNAIRE_PREFLIGHT` item:
+
+```markdown
+### QUESTIONNAIRE_PREFLIGHT
+- QP-001: [topic] — [what is missing and which agent will need it]
+- QP-002: [topic] — ...
+```
+
+Purpose: This gives the Questionnaire Agent a head start. When the first phase completes, these preflight items are merged with agent-generated `INSUFFICIENT_DATA:` items to produce questionnaires faster.
+
+Rules:
+1. Only generate preflight items for **clearly missing** information (e.g., brief mentions "cloud hosting" but no specific provider).
+2. Do NOT speculate — if the brief is comprehensive on a topic, skip it.
+3. Maximum 15 preflight items per brief.
+4. Tag each item with the phase and agent most likely to need it (e.g., `Phase-2 / Software Architect`).
+5. Save the preflight list in the Onboarding Output Document (Step 6).
+
+---
+
 ### Step 2: Minimum Input Validation
 
 Check whether the required minimum input is present based on mode:

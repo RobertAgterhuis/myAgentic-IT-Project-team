@@ -66,6 +66,7 @@
 | G-GLOB-53 | If output exceeds 400 lines, split across multiple files and produce a summary + file manifest in chat. |
 | G-GLOB-54 | At phase boundaries, support the Orchestrator’s instruction to start a fresh conversation. All state is in `session-state.json` — conversation history is disposable. |
 | G-GLOB-55 | Never embed large code blocks, tables, or full file contents inline in chat when they can be written to a file and referenced by path. |
+| G-GLOB-56 | The Questionnaire Agent MUST be activated after every phase Critic + Risk validation to generate questions for all `QUESTIONNAIRE_REQUEST` and `INSUFFICIENT_DATA:` items. No agent, user instruction, or override may skip, bypass, or suppress this activation. Even when zero `QUESTIONNAIRE_REQUEST` items exist, the Questionnaire Agent MUST still run to independently verify no gaps were missed by the phase agents. Violation: `GUARDRAIL_VIOLATION: G-GLOB-56`. |
 
 ---
 

@@ -490,6 +490,7 @@
       font-weight: 700; box-shadow: 0 0 0 2px var(--primary-glow);
     }
     .pipe-agent.agent-done { border-color: var(--success); background: var(--success-light); color: var(--success); font-weight: 600; }
+    .pipe-agent-step { display: block; font-size: 10px; font-weight: 400; color: var(--text-sec); margin-top: 2px; font-style: italic; }
 
     /* Pipeline progress bar */
     .pipe-progress { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
@@ -661,6 +662,7 @@
       <button class="btn btn-success" id="btnNewDecision">&#10010; New Decision</button>
       <button class="btn btn-primary" id="btnReeval">&#128260; Reevaluate</button>
       <button class="btn" id="btnHelp" title="Help">&#10067; Help</button>
+      <button class="btn" id="btnExport" title="Export session data as JSON">&#128229; Export</button>
       <button class="theme-toggle" id="btnTheme" title="Toggle dark mode">&#127769;</button>
     </div>
   </header>
@@ -916,10 +918,12 @@ const dirty        = new Map();   // "file::Q-ID" → { answer, status }
 let decFilter      = { text: '', priority: '', status: '' };
 let pollTimer      = null;
 let lastDecHash    = '';
+let lastProgHash   = '';          // track progress changes separately
 let pendingConfirm = null;
 let progress       = null;        // pipeline progress data
 let activeCmd      = null;        // selected command in sidebar
 let lastClipboard  = '';          // last clipboard text shown
+let pollInterval   = 10000;       // adaptive: 3s active, 10s idle, 30s dormant
 
 /* ── API layer ───────────────────────────────────────── */
 async function api(method, url, body) {
@@ -939,15 +943,36 @@ async function load(silent) {
       api('GET', '/api/decisions'),
       api('GET', '/api/progress').catch(() => null),
     ]);
-    const newHash = JSON.stringify(dData);
-    if (silent && newHash === lastDecHash && !pData) return;
+    const newDecHash = JSON.stringify(dData);
+    const newProgHash = pData ? JSON.stringify(pData) : '';
+    if (silent && newDecHash === lastDecHash && newProgHash === lastProgHash) return;
     questionnaires = qData.questionnaires;
     decisions = dData;
     if (pData) progress = pData;
-    if (silent && lastDecHash && newHash !== lastDecHash) {
+    if (silent && lastDecHash && newDecHash !== lastDecHash) {
       toast('Data updated externally \u2014 refreshed', 't-info');
     }
-    lastDecHash = newHash;
+    lastDecHash = newDecHash;
+    lastProgHash = newProgHash;
+
+    // Detect pipeline transitions and show toasts
+    if (silent && pData && progress) {
+      const prev = progress;
+      if (pData.active && prev.active) {
+        if (pData.session.current_agent !== prev.session.current_agent && pData.session.current_agent) {
+          toast('Agent started: ' + pData.session.current_agent, 't-ok');
+        }
+        if (pData.session.current_phase !== prev.session.current_phase && pData.session.current_phase) {
+          toast('Phase started: ' + pData.session.current_phase, 't-info');
+        }
+      } else if (pData.active && !prev.active) {
+        toast('Session started!', 't-ok');
+      }
+    }
+
+    // Adaptive polling: faster when active, slower when idle
+    updatePollInterval();
+
     renderSidebar();
     renderStats();
     updateTabCounts();
@@ -976,7 +1001,19 @@ async function load(silent) {
 
 function startPolling() {
   if (pollTimer) return;
-  pollTimer = setInterval(() => load(true), 10000);
+  pollTimer = setInterval(() => load(true), pollInterval);
+}
+
+function updatePollInterval() {
+  const p = progress;
+  let newInterval;
+  if (p && p.active) newInterval = 3000;
+  else if (p && p.command && p.command.status === 'PENDING') newInterval = 5000;
+  else newInterval = 30000;
+  if (newInterval !== pollInterval) {
+    pollInterval = newInterval;
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; startPolling(); }
+  }
 }
 
 /* ── Focus trapping for modals ───────────────────────── */
@@ -1582,8 +1619,8 @@ function renderPipeline() {
           <li>Pipeline progress appears here as agents complete their work</li>
         </ol>
         <div class="pipe-waiting-note">
-          <strong>&#128161; Tip:</strong> This page polls for updates every 10 seconds. Once you paste the command in Copilot Chat,
-          the Orchestrator will create a session and the full agent pipeline will appear here automatically.
+          <strong>&#128161; Tip:</strong> This page polls for updates every few seconds while a command is pending.
+          Once you paste the command in Copilot Chat, the Orchestrator will create a session and the full agent pipeline will appear here automatically.
           You don't need to refresh — just be patient, the first agent may take a minute to start.
         </div>
       </div>`;
@@ -1618,6 +1655,7 @@ function renderPipeline() {
       Status: <strong>${esc(p.session.status || '—')}</strong>
       ${p.session.current_agent ? ' &middot; Active agent: <strong>' + esc(p.session.current_agent) + '</strong>' : ''}
     </div>
+    <button class="btn btn-sm btn-primary" id="btnContinue" title="Copy CONTINUE to clipboard for pasting into a new Copilot Chat">&#9654; Continue</button>
   </div>`;
 
   // Overall progress bar
@@ -1644,7 +1682,8 @@ function renderPipeline() {
     for (const agent of phase.agents) {
       const dotCls = agent.status === 'done' ? 'dot-done' : agent.status === 'active' ? 'dot-active' : 'dot-pending';
       const agentCls = agent.status === 'done' ? 'agent-done' : agent.status === 'active' ? 'agent-active' : '';
-      h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}</div>`;
+      const stepText = agent.status === 'active' && p.session.current_step ? `<span class="pipe-agent-step">${esc(p.session.current_step)}</span>` : '';
+      h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}${stepText}</div>`;
     }
 
     h += `</div></div>`;
@@ -1665,6 +1704,16 @@ function renderPipeline() {
   }
 
   el.innerHTML = h;
+
+  // Bind Continue button
+  const contBtn = document.getElementById('btnContinue');
+  if (contBtn) {
+    contBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText('CONTINUE').then(() => {
+        toast('Copied CONTINUE — paste in a new Copilot Chat', 't-ok');
+      }).catch(() => toast('CONTINUE — paste this in Copilot Chat', 't-info'));
+    });
+  }
 }
 
 /* ── Command Center: Command form rendering ──────────── */
@@ -1698,6 +1747,7 @@ function selectCommand(cmd) {
     <div class="form-group">
       <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span></label>
       <textarea id="cmdBrief" class="brief-area" placeholder="Paste your full project requirements here.&#10;This will be saved to BusinessDocs/project-brief.md so the Onboarding Agent can read it — it will NOT be included in the Copilot Chat command, preventing context overload and network timeouts."></textarea>
+      <div id="briefSizeWarn" class="hidden" style="font-size:12px;color:var(--warning);margin-top:4px;">&#9888; Brief is large (&gt;50 KB). It will still be saved, but consider trimming to essential requirements.</div>
     </div>`;
   }
   if (needsScope) {
@@ -1744,6 +1794,14 @@ function selectCommand(cmd) {
     if (f) f.remove();
     document.getElementById('cmdWelcome').classList.toggle('hidden', !!(progress && progress.active));
   });
+  // Brief size warning
+  const briefEl = document.getElementById('cmdBrief');
+  if (briefEl) {
+    briefEl.addEventListener('input', () => {
+      const warn = document.getElementById('briefSizeWarn');
+      if (warn) warn.classList.toggle('hidden', new Blob([briefEl.value]).size <= 51200);
+    });
+  }
 }
 
 /* ── Command Center: Launch command ──────────────────── */
@@ -2027,6 +2085,19 @@ async function loadHelpTopic(slug) {
 }
 
 document.getElementById('btnHelp').addEventListener('click', openHelp);
+document.getElementById('btnExport').addEventListener('click', async () => {
+  try {
+    const data = await api('GET', '/api/export');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'session-export-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Session exported', 't-ok');
+  } catch (e) { toast('Export failed: ' + e.message, 't-err'); }
+});
 document.getElementById('helpClose').addEventListener('click', closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeHelp();

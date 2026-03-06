@@ -592,7 +592,7 @@ async function apiPostDecision(req, res) {
 const VALID_COMMANDS = [
   'CREATE', 'CREATE BUSINESS', 'CREATE TECH', 'CREATE UX', 'CREATE MARKETING', 'CREATE SYNTHESIS',
   'AUDIT', 'AUDIT BUSINESS', 'AUDIT TECH', 'AUDIT UX', 'AUDIT MARKETING', 'AUDIT SYNTHESIS',
-  'REEVALUATE', 'FEATURE', 'SCOPE CHANGE', 'HOTFIX', 'REFRESH ONBOARDING',
+  'REEVALUATE', 'FEATURE', 'SCOPE CHANGE', 'HOTFIX', 'REFRESH ONBOARDING', 'CONTINUE',
 ];
 
 async function apiPostCommand(req, res) {
@@ -635,16 +635,27 @@ async function apiPostCommand(req, res) {
   if (entry.description) clipText += ': ' + entry.description;
   entry.clipboard_text = clipText;
 
-  safeWriteSync(COMMAND_QUEUE, JSON.stringify(entry, null, 2));
+  // Append to queue array (preserves history)
+  let queue = [];
+  if (fs.existsSync(COMMAND_QUEUE)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8'));
+      queue = Array.isArray(existing) ? existing : (existing ? [existing] : []);
+    } catch {}
+  }
+  queue.push(entry);
+  safeWriteSync(COMMAND_QUEUE, JSON.stringify(queue, null, 2));
   json(res, 200, { ok: true, clipboard_text: clipText, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${clipText}` });
 }
 
 async function apiGetCommand(_req, res) {
-  if (!fs.existsSync(COMMAND_QUEUE)) return json(res, 200, { command: null });
+  if (!fs.existsSync(COMMAND_QUEUE)) return json(res, 200, { command: null, queue: [] });
   try {
-    const data = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8'));
-    json(res, 200, { command: data });
-  } catch { json(res, 200, { command: null }); }
+    const raw = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8'));
+    const queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    const latest = queue.length ? queue[queue.length - 1] : null;
+    json(res, 200, { command: latest, queue });
+  } catch { json(res, 200, { command: null, queue: [] }); }
 }
 
 /* ── Progress API ─────────────────────────────────────────────── */
@@ -712,7 +723,11 @@ async function apiGetProgress(_req, res) {
   // Always include command queue so the UI can show waiting state
   let command = null;
   if (fs.existsSync(COMMAND_QUEUE)) {
-    try { command = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8')); } catch {}
+    try {
+      const raw = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8'));
+      const queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+      command = queue.length ? queue[queue.length - 1] : null;
+    } catch {}
   }
 
   if (!fs.existsSync(SESSION_FILE)) {
@@ -725,6 +740,7 @@ async function apiGetProgress(_req, res) {
   const completedAgents = session.completed_agents || [];
   const currentPhase    = session.current_phase || null;
   const currentAgent    = session.current_agent || null;
+  const currentStep     = session.current_step || null;
   const phaseOutputs    = session.phase_outputs || {};
 
   const phases = PHASE_ORDER.map(phaseKey => {
@@ -771,6 +787,7 @@ async function apiGetProgress(_req, res) {
       status: session.status,
       current_phase: currentPhase,
       current_agent: currentAgent,
+      current_step: currentStep,
       initiated_at: session.initiated_at,
       last_updated: session.last_updated,
       blockers: session.blockers || [],
@@ -788,6 +805,50 @@ function buildEmptyPhases() {
     agents: (PHASE_AGENTS[key] || []).map(a => ({ id: a.id, name: a.name, status: 'pending' })),
     done: 0, total: (PHASE_AGENTS[key] || []).length,
   }));
+}
+
+/* ── Export API ────────────────────────────────────────────────── */
+
+async function apiGetExport(_req, res) {
+  const bundle = { exported_at: isoNow(), session: null, command_queue: [], phase_outputs: {} };
+
+  // Session state
+  if (fs.existsSync(SESSION_FILE)) {
+    try { bundle.session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')); } catch {}
+  }
+
+  // Command queue
+  if (fs.existsSync(COMMAND_QUEUE)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8'));
+      bundle.command_queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    } catch {}
+  }
+
+  // Collect phase output files referenced in session
+  if (bundle.session && bundle.session.phase_outputs) {
+    const po = bundle.session.phase_outputs;
+    for (const [phase, val] of Object.entries(po)) {
+      if (typeof val === 'string' && val !== 'null' && val) {
+        const fp = path.join(PROJECT_ROOT, val);
+        if (fs.existsSync(fp)) {
+          try { bundle.phase_outputs[phase] = fs.readFileSync(fp, 'utf8'); } catch {}
+        }
+      } else if (val && typeof val === 'object') {
+        bundle.phase_outputs[phase] = {};
+        for (const [agentId, filePath] of Object.entries(val)) {
+          if (filePath && filePath !== 'null') {
+            const fp = path.join(PROJECT_ROOT, filePath);
+            if (fs.existsSync(fp)) {
+              try { bundle.phase_outputs[phase][agentId] = fs.readFileSync(fp, 'utf8'); } catch {}
+            }
+          }
+        }
+      }
+    }
+  }
+
+  json(res, 200, bundle);
 }
 
 /* ── Help API ─────────────────────────────────────────────────── */
@@ -847,6 +908,7 @@ const ROUTES = {
   'POST /api/command':       apiPostCommand,
   'GET /api/command':        apiGetCommand,
   'GET /api/progress':       apiGetProgress,
+  'GET /api/export':         apiGetExport,
   'GET /api/help':             apiGetHelp,
 };
 

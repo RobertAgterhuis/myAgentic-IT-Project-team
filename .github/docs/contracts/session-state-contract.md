@@ -38,6 +38,7 @@ This contract defines:
 
   "current_phase": "ONBOARDING | PHASE-1 | PHASE-2 | PHASE-3 | PHASE-4 | SYNTHESIS | PHASE-5 | null",
   "current_agent": "string — agent filename without extension | null",
+  "current_step": "string — free-text description of what the active agent is doing | null",
 
   "completed_phases": ["ONBOARDING", "PHASE-1"],
   "completed_agents": ["25-onboarding-agent", "01-business-analyst"],

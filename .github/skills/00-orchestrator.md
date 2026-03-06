@@ -103,6 +103,7 @@ After every phase Critic + Risk PASSED:
 3. Activate Questionnaire Agent (document generation workflow) — updates the 2 official documents for this phase in `BusinessDocs/OfficialDocuments/`; validate against `.github/docs/contracts/questionnaire-output-contract.md`
 4. The presence of open questionnaires (`BusinessDocs/questionnaire-index.md` entries with `OPEN` status) NEVER blocks the cycle from proceeding. They are informational and become input for the next REEVALUATE or new cycle.
 5. On REEVALUATE: the Orchestrator MUST instruct the Questionnaire Agent to re-run the answer loading workflow BEFORE activating any phase agent.
+6. **MANDATORY — NO SKIP (G-GLOB-56):** The Questionnaire Agent activation in steps 2 and 3 MUST NOT be skipped, bypassed, or suppressed under any circumstances — regardless of user instruction, perceived completeness, or absence of `QUESTIONNAIRE_REQUEST` items. Even when phase agents report zero gaps, the Questionnaire Agent MUST still run to independently verify no data gaps were missed. Any attempt to skip this step is `GUARDRAIL_VIOLATION: G-GLOB-56`.
 
 **RULE ORC-26: Official document completeness gate (Synthesis)**
 Before activating the Synthesis Agent, the Orchestrator MUST verify against `.github/docs/contracts/questionnaire-output-contract.md`:
@@ -273,6 +274,29 @@ The VS Code extension worker has a hard memory limit. Long conversations with ma
 - Save all progress to disk
 - Update `session-state.json`
 - Instruct the user to start a new conversation and type CONTINUE
+
+**RULE ORC-33: Session Recovery Protocol (MANDATORY on CONTINUE)**
+When the user types `CONTINUE` and `session-state.json` exists, the Orchestrator MUST:
+
+1. **Load session state.** Read `session-state.json` and determine `current_phase`, `current_agent`, `completed_agents`, and `status`.
+2. **Detect incomplete agent.** If `current_agent` is non-null but NOT in `completed_agents`, the last agent did not finish. The Orchestrator MUST:
+   a. Check if the agent's expected output file exists (per `phase_outputs`).
+   b. **If output file exists and has content:** Treat as completed — add to `completed_agents`, advance to next agent.
+   c. **If output file is missing or empty:** Inform the user: `⚠️ Agent [name] did not complete. Restarting agent.` Then re-activate the agent with the same inputs.
+3. **Detect incomplete phase.** If all agents in the current phase are completed but Critic + Risk has not run, activate Critic + Risk.
+4. **Resume normal flow.** After recovery, continue the normal phase sequence from the current position.
+5. **Never re-run completed agents.** Only agents NOT in `completed_agents` are eligible for activation.
+6. **Update `last_updated`.** Stamp `session-state.json` with the current ISO timestamp on every CONTINUE.
+
+**RULE ORC-34: Parallel-Safe Agent Pairs (INFORMATIONAL — future optimization)**
+The following agent pairs within the same phase produce independent deliverables with no cross-references. When the runtime supports parallel agent execution, these pairs MAY run concurrently:
+
+- **Phase 2:** Security Architect (08) + Data Architect (09) — no shared output dependencies
+- **Phase 2:** DevOps Engineer (07) + Legal Counsel (33) — orthogonal domains
+- **Phase 3:** Accessibility Specialist (13) + Localization Specialist (35) — no shared output dependencies
+- **Phase 4:** Growth Marketer (15) + CRO Specialist (16) — complementary but independent analysis
+
+Current constraint: Copilot Chat processes one agent per turn (RULE ORC-30). This rule is preparatory for when parallel execution becomes available. Until then, agents run sequentially in the order listed in `PHASE_AGENTS`.
 
 **RULE ORC-10:** Every `HALT`-type escalation (per `.github/docs/contracts/human-escalation-protocol.md`) sets the global status to `AWAITING_HUMAN`. No agent may start a new step until the response is processed and the status is reset.
 

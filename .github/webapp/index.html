@@ -538,6 +538,22 @@
     .pipe-empty-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -.3px; }
     .pipe-empty-desc { max-width: 440px; margin: 0 auto; font-size: 14px; line-height: 1.7; }
 
+    /* Waiting-for-session state (command queued, session not yet started) */
+    .pipe-waiting { padding: 40px 24px; }
+    .pipe-waiting-banner { display: flex; align-items: flex-start; gap: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--warning); border-radius: var(--radius); margin-bottom: 20px; }
+    .pipe-waiting-pulse { width: 14px; height: 14px; border-radius: 50%; background: var(--warning); flex-shrink: 0; margin-top: 3px; animation: waitPulse 1.8s ease-in-out infinite; }
+    @keyframes waitPulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245,166,35,.5); } 50% { opacity: .6; box-shadow: 0 0 0 8px rgba(245,166,35,0); } }
+    .pipe-waiting-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .pipe-waiting-text { font-size: 13px; color: var(--text-sec); line-height: 1.7; }
+    .pipe-waiting-steps { list-style: none; padding: 0; margin: 16px 0 0; counter-reset: wstep; }
+    .pipe-waiting-steps li { counter-increment: wstep; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-sec); padding: 6px 0; }
+    .pipe-waiting-steps li::before { content: counter(wstep); display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--border); color: var(--text); font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .pipe-waiting-steps li.step-active { color: var(--text); font-weight: 600; }
+    .pipe-waiting-steps li.step-active::before { background: var(--warning); color: #fff; }
+    .pipe-waiting-steps li.step-done { color: var(--text-sec); text-decoration: line-through; opacity: .6; }
+    .pipe-waiting-steps li.step-done::before { content: '\2713'; background: var(--success); color: #fff; }
+    .pipe-waiting-note { margin-top: 16px; padding: 12px 16px; background: var(--bg); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-sec); line-height: 1.6; }
+
     /* ── Help Panel ──────────────────────────────────── */
     .help-overlay {
       position: fixed; inset: 0; z-index: 9000;
@@ -1040,6 +1056,9 @@ function renderStats() {
          <span>Agent: <span class="stat-val">${esc(p.session.current_agent || '—')}</span></span>
          <span>Progress: <span class="stat-val">${donePhases}/${totalPhases} phases</span></span>`;
       document.getElementById('hSub').textContent = `Session: ${p.session.session_id || '—'} · ${p.session.cycle_type || '—'}`;
+    } else if (p && p.command && p.command.status === 'PENDING') {
+      document.getElementById('hStats').innerHTML = `<span>&#9203; Command queued: <span class="stat-val">${esc(p.command.command || '—')}</span></span><span style="color:var(--warning)">Waiting for Copilot Chat</span>`;
+      document.getElementById('hSub').textContent = 'Paste the copied command in Copilot Chat to start the Orchestrator';
     } else {
       document.getElementById('hStats').innerHTML = '<span>No active session</span>';
       document.getElementById('hSub').textContent = 'Command Center — Launch a command to begin';
@@ -1537,8 +1556,41 @@ function renderPipeline() {
   const p = progress;
 
   if (!p || !p.active) {
-    el.innerHTML = '';
-    welcome.classList.remove('hidden');
+    // Check if a command is queued but the session hasn't started yet
+    if (p && p.command && p.command.status === 'PENDING') {
+      welcome.classList.add('hidden');
+      const cmd = esc(p.command.command || '—');
+      const proj = p.command.project ? esc(p.command.project) : null;
+      const briefSaved = p.command.brief_saved;
+      const queuedAt = p.command.queued_at ? new Date(p.command.queued_at).toLocaleTimeString() : null;
+      el.innerHTML = `<div class="pipe-waiting">
+        <div class="pipe-waiting-banner">
+          <div class="pipe-waiting-pulse"></div>
+          <div>
+            <div class="pipe-waiting-title">Waiting for Copilot Chat to start processing</div>
+            <div class="pipe-waiting-text">
+              Command <strong>${cmd}</strong>${proj ? ' for <strong>' + proj + '</strong>' : ''} is queued${queuedAt ? ' (since ' + queuedAt + ')' : ''}.
+              The pipeline will appear automatically once the Orchestrator begins.
+            </div>
+          </div>
+        </div>
+        <ol class="pipe-waiting-steps">
+          <li class="step-done">Command queued via Command Center</li>
+          ${briefSaved ? '<li class="step-done">Project brief saved to <code>BusinessDocs/project-brief.md</code></li>' : ''}
+          <li class="step-active">Copy the command and paste it in <strong>Copilot Chat</strong></li>
+          <li>Orchestrator reads the command and activates the Onboarding Agent</li>
+          <li>Pipeline progress appears here as agents complete their work</li>
+        </ol>
+        <div class="pipe-waiting-note">
+          <strong>&#128161; Tip:</strong> This page polls for updates every 10 seconds. Once you paste the command in Copilot Chat,
+          the Orchestrator will create a session and the full agent pipeline will appear here automatically.
+          You don't need to refresh — just be patient, the first agent may take a minute to start.
+        </div>
+      </div>`;
+    } else {
+      el.innerHTML = '';
+      welcome.classList.remove('hidden');
+    }
     return;
   }
   welcome.classList.add('hidden');

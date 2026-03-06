@@ -22,25 +22,31 @@ A **multi-agent system** of 38 specialized AI agents that creates complete, prod
 
 **1. Open this workspace in VS Code** with Copilot enabled.
 
-**2. Start a project** — type in the Copilot Chat:
-
-```text
-CREATE MyProject
-```
-
-The Onboarding Agent will ask intake questions. Answer them completely — output quality depends on it.
-
-> Auditing existing software? Use `AUDIT MyProject` instead.
-
-**3. Track progress** — generated files appear in `.github/docs/`. A GitHub Kanban project is created automatically.
-
-**4. (Optional) Launch the web UI** for managing questionnaires and decisions:
+**2. (Recommended) Launch the Command Center web UI:**
 
 ```bash
 node .github/webapp/server.js
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) in your browser.
+
+**3. Start a project** — in the Command Center:
+- Select **CREATE** (or **AUDIT** for existing software)
+- Enter a project name
+- Optionally paste your full requirements in the **Project Brief** field (saved as a file, not sent to chat)
+- Click **Queue Command** and paste the short command into Copilot Chat
+
+Alternatively, type directly in Copilot Chat:
+```text
+CREATE MyProject
+```
+
+**4. Follow the agent pipeline:**
+- The Orchestrator runs **one agent at a time** — type **CONTINUE** after each
+- At **phase boundaries**, start a **new Copilot Chat** and type **CONTINUE** (all progress is preserved)
+- Track progress in the Command Center pipeline view
+
+**5. Answer questionnaires** — when agents need your input, questions appear in the Questionnaires tab. Answer them, then run `REEVALUATE` for improved results.
 
 ---
 
@@ -97,6 +103,21 @@ Workitems/                    ← Isolated workspaces per FEATURE command (gener
 - **`decisions.md`** is your direct communication channel — `DECIDED` entries become hard constraints; `HIGH` + `OPEN` entries block sprint start
 - **Questionnaires** are generated for missing data — answer them, then `REEVALUATE` for improved results
 - **All findings cite sources** — file, line number, or document reference (Anti-Hallucination Protocol)
+
+---
+
+## How the Agentic Team Works
+
+The system is designed to be **reliable and resumable** even for large, complex projects. Three key design principles ensure stability:
+
+### Project Brief as File
+When launching a CREATE or AUDIT command via the Command Center, you can paste your full project requirements in the **Project Brief** field. This is saved to `BusinessDocs/project-brief.md` — a file the Onboarding Agent reads from disk. The chat command stays short, preventing context overload and network timeouts.
+
+### One Agent at a Time (Checkpoint-and-Yield)
+The Orchestrator runs exactly **one agent per conversation turn**. After each agent completes, its output is saved to disk, `session-state.json` is updated, and the Orchestrator yields — prompting you to type **CONTINUE**. This prevents memory overload and makes the entire process resumable. If anything fails, just type CONTINUE to pick up where you left off.
+
+### Fresh Conversations per Phase
+At phase boundaries (after Critic + Risk validation passes), the Orchestrator instructs you to **start a new Copilot Chat conversation** and type **CONTINUE**. This resets accumulated conversation history — preventing "JS heap out of memory" crashes — while `session-state.json` preserves all progress. The Command Center pipeline view is unaffected by conversation resets.
 
 ---
 

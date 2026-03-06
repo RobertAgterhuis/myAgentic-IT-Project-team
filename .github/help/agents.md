@@ -62,6 +62,34 @@ The system uses **38 specialized AI agents**, each with a fixed role and skill f
 | 25 | Onboarding Agent | Project intake and workspace scanning |
 | 23 | Reevaluate Agent | Re-analysis with new data |
 
+## How agents work
+
+### One at a time (Checkpoint-and-Yield)
+
+Agents run **one per conversation turn**, not all at once. After each agent:
+1. Output is written to a file on disk (never left only in chat)
+2. `session-state.json` is updated with progress
+3. The Orchestrator yields and prompts you to type **CONTINUE**
+
+**Why?** Running all agents in sequence within a single conversation would exceed VS Code's memory limit and cause network timeouts or "JS heap out of memory" crashes. The checkpoint approach keeps each turn small and makes the entire process resumable.
+
+### File-first output
+
+Every agent writes its full deliverable to disk. The chat message contains only:
+- A brief summary (max 20 lines)
+- The file path where the full output was saved
+- The handoff status (READY / BLOCKED)
+
+**Why?** Large inline outputs accumulate in conversation memory. By writing to files, agents keep the conversation context lean. Subsequent agents read their predecessor's output from the file, not from chat history.
+
+### Fresh conversations per phase
+
+At phase boundaries, you'll be asked to start a new Copilot Chat conversation. All progress is preserved in `session-state.json` — type **CONTINUE** to resume. The pipeline view in the Command Center is unaffected.
+
+### Project Brief from file
+
+When you paste a project brief in the Command Center, it's saved to `BusinessDocs/project-brief.md`. The Onboarding Agent reads it from there instead of from the chat command, keeping the command small and preventing context overload.
+
 ## Anti-hallucination
 
 All agents follow strict protocols:

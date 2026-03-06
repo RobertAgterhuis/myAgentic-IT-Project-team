@@ -709,11 +709,17 @@ const PHASE_LABELS = {
 };
 
 async function apiGetProgress(_req, res) {
+  // Always include command queue so the UI can show waiting state
+  let command = null;
+  if (fs.existsSync(COMMAND_QUEUE)) {
+    try { command = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8')); } catch {}
+  }
+
   if (!fs.existsSync(SESSION_FILE)) {
-    return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command: null });
+    return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command });
   }
   let session;
-  try { session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')); } catch { return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command: null }); }
+  try { session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')); } catch { return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command }); }
 
   const completedPhases = session.completed_phases || [];
   const completedAgents = session.completed_agents || [];
@@ -755,12 +761,6 @@ async function apiGetProgress(_req, res) {
       total: session.sprint_backlog.total_sprints || 0,
       statuses: session.sprint_backlog.sprint_statuses || {},
     };
-  }
-
-  // Command queue
-  let command = null;
-  if (fs.existsSync(COMMAND_QUEUE)) {
-    try { command = JSON.parse(fs.readFileSync(COMMAND_QUEUE, 'utf8')); } catch {}
   }
 
   json(res, 200, {

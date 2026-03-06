@@ -2147,8 +2147,7 @@ function renderMarkdown(md) {
 async function openHelp() {
   const overlay = document.getElementById('helpOverlay');
   overlay.classList.add('open');
-  _previousFocus = document.activeElement;
-  _focusTrapOverlay = overlay;
+  if (!_focusTrapOverlay) { _previousFocus = document.activeElement; _focusTrapOverlay = overlay; }
   if (!helpTOC.length) {
     try {
       const r = await fetch('/api/help');
@@ -2160,7 +2159,6 @@ async function openHelp() {
   if (helpTOC.length && !helpActiveTopic) loadHelpTopic(helpTOC[0].slug);
 }
 
-let _previousFocus = null;
 function closeHelp() {
   const overlay = document.getElementById('helpOverlay');
   overlay.classList.remove('open');

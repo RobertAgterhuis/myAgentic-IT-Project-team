@@ -58,6 +58,7 @@ function json(res, status, data) {
   res.writeHead(status, {
     'Content-Type':  'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store',
   });
   res.end(body);
 }
@@ -79,6 +80,10 @@ function readBody(req) {
 function escRx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function today() { return new Date().toISOString().split('T')[0]; }
 function isoNow() { return new Date().toISOString(); }
+function literalReplace(str, search, replacement) { return str.replace(search, () => replacement); }
+function escPipe(s) { return (s || '').replace(/\|/g, '\\|'); }
+const Q_ID_RE = /^Q-\d{1,3}-\d{1,4}$/;
+const DEC_ID_RE = /^DEC-[\w-]{1,30}$/;
 
 function log(method, url, status, ms) {
   const ts = new Date().toISOString();
@@ -277,7 +282,7 @@ async function apiSave(req, res) {
   if (!fs.existsSync(filePath)) return json(res, 404, { error: 'File not found' });
 
   for (const u of body.updates) {
-    if (!/^Q-\d{2}-\d{3}$/.test(u.questionId)) return json(res, 400, { error: `Invalid Q-ID: ${u.questionId}` });
+    if (!Q_ID_RE.test(u.questionId)) return json(res, 400, { error: `Invalid Q-ID: ${u.questionId}` });
     if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return json(res, 400, { error: `Invalid status: ${u.status}` });
   }
 
@@ -365,9 +370,9 @@ function nextDecisionId(content, prefix) {
 function addOpenQuestion(content, entry) {
   // Insert row before the empty-state row or at end of Open Questions table
   const marker = /\|\s*\|\s*\|\s*\|\s*\*\(No open questions\)\*\s*\|\s*\|\s*\|/;
-  const row = `| ${entry.id} | ${entry.priority} | ${entry.scope} | ${entry.question} | ${entry.answer || ''} | ${entry.date} |`;
+  const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.question)} | ${escPipe(entry.answer || '')} | ${escPipe(entry.date)} |`;
   if (marker.test(content)) {
-    return content.replace(marker, row);
+    return content.replace(marker, () => row);
   }
   // Append after last row in Open Questions table (before the ---)
   const secEnd = content.match(/(## Open Questions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
@@ -380,9 +385,9 @@ function addOpenQuestion(content, entry) {
 function addOperationalDecision(content, entry) {
   // Insert row before the placeholder row or append
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
-  const row = `| ${entry.id} | ${entry.priority} | ${entry.scope} | ${entry.decision} | ${entry.notes || ''} | ${entry.date} |`;
+  const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes || '')} | ${escPipe(entry.date)} |`;
   if (marker.test(content)) {
-    return content.replace(marker, row);
+    return content.replace(marker, () => row);
   }
   // Append after last row in Operational Decisions table
   const secEnd = content.match(/(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
@@ -398,7 +403,8 @@ function answerOpenQuestion(content, id, answer) {
   const re = new RegExp(`(\\|\\s*${esc}\\s*\\|\\s*(?:HIGH|MEDIUM|LOW)\\s*\\|\\s*[^|]*\\|\\s*[^|]*\\|)\\s*[^|]*\\|\\s*[\\d-]*\\s*\\|`);
   const m = content.match(re);
   if (!m) return content;
-  return content.replace(m[0], `${m[1]} ${answer} | ${today()} |`);
+  const replacement = `${m[1]} ${escPipe(answer)} | ${today()} |`;
+  return literalReplace(content, m[0], replacement);
 }
 
 function moveToDecided(content, id) {
@@ -418,9 +424,9 @@ function moveToDecided(content, id) {
   // Add as operational decision
   const entry = { id, priority, scope, decision: question, notes: answer, date: today() };
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
-  const row = `| ${entry.id} | ${entry.priority} | ${entry.scope} | ${entry.decision} | ${entry.notes} | ${entry.date} |`;
+  const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes)} | ${escPipe(entry.date)} |`;
   if (marker.test(content)) {
-    content = content.replace(marker, row);
+    content = content.replace(marker, () => row);
   } else {
     const secEnd = content.match(/(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
     if (secEnd) content = content.replace(secEnd[0], secEnd[1] + '\n' + row + '\n\n---');
@@ -478,10 +484,12 @@ function editDecidedRow(content, id, fields) {
   const m = content.match(rowRe);
   if (!m) return content;
   const p = fields.priority || m[1].trim();
+  if (p && !['HIGH', 'MEDIUM', 'LOW', '—'].includes(p)) return content;
   const s = fields.scope !== undefined ? fields.scope : m[2].trim();
   const t = fields.text  !== undefined ? fields.text  : m[3].trim();
   const n = fields.notes !== undefined ? fields.notes : m[4].trim();
-  return content.replace(m[0], `| ${id} | ${p} | ${s} | ${t} | ${n} | ${today()} |`);
+  const replacement = `| ${escPipe(id)} | ${escPipe(p)} | ${escPipe(s)} | ${escPipe(t)} | ${escPipe(n)} | ${today()} |`;
+  return literalReplace(content, m[0], replacement);
 }
 
 function restoreOpenPlaceholderIfEmpty(content) {
@@ -495,7 +503,7 @@ function restoreOpenPlaceholderIfEmpty(content) {
 }
 
 function insertDeferredRow(content, id, status, scope, subject, reason) {
-  const row = `| ${id} | ${status} | ${scope} | ${subject} | ${reason} | ${today()} |`;
+  const row = `| ${escPipe(id)} | ${escPipe(status)} | ${escPipe(scope)} | ${escPipe(subject)} | ${escPipe(reason)} | ${today()} |`;
   const defIdx = content.indexOf('## Deferred & Expired');
   if (defIdx === -1) return content;
   // Scope to just this section (up to next ## heading or end)
@@ -551,6 +559,7 @@ async function apiGetDecisions(_req, res) {
 async function apiPostDecision(req, res) {
   const body = await parseBody(req);
   if (!body.action) return json(res, 400, { error: 'Missing action' });
+  if (body.id && !DEC_ID_RE.test(body.id)) return json(res, 400, { error: 'Invalid decision ID format' });
 
   if (!fs.existsSync(DECISIONS_FILE)) return json(res, 404, { error: 'decisions.md not found' });
   let content = fs.readFileSync(DECISIONS_FILE, 'utf8');
@@ -861,19 +870,33 @@ async function apiGetExport(_req, res) {
   // Collect phase output files referenced in session
   if (bundle.session && bundle.session.phase_outputs) {
     const po = bundle.session.phase_outputs;
+    let cumSize = 0;
+    const MAX_EXPORT_SIZE = 10 * 1024 * 1024; // 10 MB
     for (const [phase, val] of Object.entries(po)) {
+      if (cumSize > MAX_EXPORT_SIZE) break;
       if (typeof val === 'string' && val !== 'null' && val) {
-        const fp = path.join(PROJECT_ROOT, val);
+        let fp;
+        try { fp = safePath(PROJECT_ROOT, val); } catch { continue; }
         if (fs.existsSync(fp)) {
-          try { bundle.phase_outputs[phase] = fs.readFileSync(fp, 'utf8'); } catch {}
+          try {
+            const txt = fs.readFileSync(fp, 'utf8');
+            cumSize += Buffer.byteLength(txt);
+            if (cumSize <= MAX_EXPORT_SIZE) bundle.phase_outputs[phase] = txt;
+          } catch {}
         }
       } else if (val && typeof val === 'object') {
         bundle.phase_outputs[phase] = {};
         for (const [agentId, filePath] of Object.entries(val)) {
+          if (cumSize > MAX_EXPORT_SIZE) break;
           if (filePath && filePath !== 'null') {
-            const fp = path.join(PROJECT_ROOT, filePath);
+            let fp;
+            try { fp = safePath(PROJECT_ROOT, filePath); } catch { continue; }
             if (fs.existsSync(fp)) {
-              try { bundle.phase_outputs[phase][agentId] = fs.readFileSync(fp, 'utf8'); } catch {}
+              try {
+                const txt = fs.readFileSync(fp, 'utf8');
+                cumSize += Buffer.byteLength(txt);
+                if (cumSize <= MAX_EXPORT_SIZE) bundle.phase_outputs[phase][agentId] = txt;
+              } catch {}
             }
           }
         }
@@ -920,13 +943,15 @@ async function apiGetHelp(req, res) {
 
 /* ── Static file serving ──────────────────────────────────────── */
 
+const cachedHtml = fs.existsSync(path.join(WEBAPP_DIR, 'index.html'))
+  ? fs.readFileSync(path.join(WEBAPP_DIR, 'index.html'))
+  : null;
+
 function serveStatic(_req, res) {
-  const filePath = path.join(WEBAPP_DIR, 'index.html');
-  if (!fs.existsSync(filePath)) { res.writeHead(404); return res.end('Not found'); }
-  const data = fs.readFileSync(filePath);
+  if (!cachedHtml) { res.writeHead(404); return res.end('Not found'); }
   setSecurityHeaders(res);
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': data.length });
-  res.end(data);
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': cachedHtml.length });
+  res.end(cachedHtml);
 }
 
 /* ── Router ───────────────────────────────────────────────────── */
@@ -952,11 +977,21 @@ const server = http.createServer(async (req, res) => {
   const key = `${req.method} ${pathname}`;
   if (ROUTES[key]) {
     try { await ROUTES[key](req, res); }
-    catch (err) { json(res, err.status || 500, { error: err.message }); }
+    catch (err) {
+      if (!res.headersSent) { json(res, err.status || 500, { error: err.message }); }
+      else { res.end(); }
+    }
   } else if (req.method === 'GET' && !pathname.startsWith('/api')) {
     serveStatic(req, res);
   } else {
-    json(res, 404, { error: 'Not found' });
+    // S2-008: Check if path exists with different method → 405
+    const altKey = (req.method === 'GET' ? 'POST' : 'GET') + ' ' + pathname;
+    if (ROUTES[altKey]) {
+      res.writeHead(405, { 'Allow': altKey.split(' ')[0] });
+      res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+    } else {
+      json(res, 404, { error: 'Not found' });
+    }
   }
   log(req.method, pathname, res.statusCode, Date.now() - start);
 });
@@ -988,7 +1023,10 @@ server.listen(PORT, HOST, () => {
 function shutdown() {
   console.log('\n  Shutting down gracefully...');
   server.close(() => { console.log('  Server closed.'); process.exit(0); });
-  setTimeout(() => { console.error('  Forced shutdown after timeout.'); process.exit(1); }, 5000);
+  const forceTimer = setTimeout(() => { console.error('  Forced shutdown after timeout.'); process.exit(1); }, 5000);
+  forceTimer.unref();
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+process.on('unhandledRejection', (reason) => { console.error('  Unhandled rejection:', reason); });
+process.on('uncaughtException', (err) => { console.error('  Uncaught exception:', err); shutdown(); });

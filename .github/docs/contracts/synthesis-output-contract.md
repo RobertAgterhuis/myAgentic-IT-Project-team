@@ -63,6 +63,9 @@ The Orchestrator checks (per ORC-35):
 - [ ] Sprint Plan Items reference valid sprint IDs
 - [ ] All findings include source references to phase outputs
 
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
 ---
 
 ## HANDOFF STATUS VALUES

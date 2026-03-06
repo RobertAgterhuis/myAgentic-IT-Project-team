@@ -79,7 +79,8 @@ This contract defines:
       "critic_risk": "null"
     },
     "synthesis": "null",
-    "sprintplan": "null"
+    "sprintplan": "null",
+    "phase_5": {}
   },
 
   "sprint_backlog": {
@@ -93,7 +94,7 @@ This contract defines:
       "escalation_id": "ESC-001",
       "raised_by": "agent name",
       "raised_at": "ISO 8601",
-      "type": "ONBOARDING_BLOCKED | TOOL_INSTALL_REQUEST | SPRINT_IMPACT_FLAG | SCOPE_DECISION | OTHER",
+      "type": "ONBOARDING_BLOCKED | TOOL_INSTALL_REQUEST | SPRINT_IMPACT_FLAG | SCOPE_DECISION | SPRINT_GATE | SCOPE_CHANGE_DECISION | AGENT_CONFLICT | SECURITY_DECISION | DESTRUCTIVE_GIT_OP | OTHER",
       "question": "string — exact question to the user",
       "timeout_action": "PAUSE | CONTINUE_WITH_ASSUMPTION | HALT",
       "timeout_at": "ISO 8601 | null",
@@ -258,6 +259,8 @@ Every status → AWAITING_HUMAN   (on open human escalation)
 AWAITING_HUMAN → [previous status]  (after answer received)
 Every status → BLOCKED          (on unresolvable blocker)
 BLOCKED → [previous status]     (after blocker resolved)
+Every status → REEVALUATE       (triggered by REEVALUATE command or reevaluate-trigger.json)
+REEVALUATE → [previous status]  (after reevaluation completes)
 Every status → SCOPE_CHANGE     (on SCOPE CHANGE command — Sprint Gate PAUSED for affected dimension)
 SCOPE_CHANGE → [previous status]   (after Sprint Gate Reconciliation APPROVED by user)
 ```
@@ -365,7 +368,9 @@ Story statuses flow through the system across multiple agents. This table define
 | `REVIEW_FAILED` | PR/Review Agent | Review rejected — returned to Implementation Agent |
 | `COMPLETED` | Orchestrator | Story passed all gates, PR merged, documented |
 | `BLOCKED` | Any agent | Story cannot proceed — escalation raised |
-| `BACKLOG` | Orchestrator | Story deferred (sprint-level BACKLOG or cascade) |
+| `BACKLOG` | Orchestrator | Story deferred (sprint-level BACKLOG) |
+| `BACKLOG_CASCADE` | Orchestrator | Story deferred due to cascade from another sprint (e.g., `BACKLOG (CASCADE from SP-N)`) |
+| `REQUEUED` | Scope Change Agent | Story restored from `SCOPE_CHANGE_HOLD` back into the backlog |
 | `CANCELLED` | Scope Change Agent | Story invalidated by scope change |
 
 ### Valid transitions
@@ -375,13 +380,16 @@ QUEUED → IN_PROGRESS | NOT_READY | BLOCKED | BACKLOG | CANCELLED
 NOT_READY → QUEUED (moved to next sprint, max 2×) | BLOCKED (after 2× NOT_READY)
 IN_PROGRESS → IMPLEMENTED | BLOCKED
 IMPLEMENTED → TESTING
-TESTING → COMPLETED (tests pass) | TEST_FAILED
+TESTING → REVIEW (tests pass and PR review follows) | COMPLETED (edge case: no PR review) | TEST_FAILED
 TEST_FAILED → IN_PROGRESS (rework)
 IN_PROGRESS → REVIEW (when tests pass and PR created)
 REVIEW → COMPLETED | REVIEW_FAILED
 REVIEW_FAILED → IN_PROGRESS (rework)
 BLOCKED → IN_PROGRESS (blocker resolved) | CANCELLED
 BACKLOG → QUEUED (re-presented at Sprint Gate)
+BACKLOG_CASCADE → QUEUED (re-presented at Sprint Gate when dependency resolved)
+SCOPE_CHANGE_HOLD → REQUEUED → QUEUED (story restored after scope change reconciliation)
+CANCELLED → (terminal state)
 ```
 
 ### Mapping from legacy/agent-specific statuses
@@ -429,5 +437,60 @@ After `COMPLETE`:
 - Rename `session-state.json` to `session-state-[session_id]-complete.json`
 - Store in `.github/docs/session/archive/`
 - For feature cycles: also store in `Workitems/[FEATURENAME]/session/`
+
+---
+
+## Decisions Schema
+
+The file `BusinessDocs/decisions.md` (or `.github/docs/decisions.md`) tracks all project decisions. The Questionnaire & Decisions Manager web UI writes to this file directly.
+
+### Sections
+
+| Section | Purpose |
+|---------|--------|
+| **Open Questions** | Unresolved questions awaiting stakeholder input |
+| **Decided Items** | Questions that have been answered with a binding decision |
+| **Deferred Items** | Questions explicitly postponed (with reason and revisit date) |
+| **Operational Decisions** | Runtime/process decisions made by the Orchestrator or agents |
+
+### Column Structure (per table)
+
+| Column | Description |
+|--------|------------|
+| `ID` | Decision ID (e.g., `DEC-001`) |
+| `Question` | The question or decision point |
+| `Source` | Questionnaire Q-ID (e.g., `Q-P1-003`), agent name, or `USER` |
+| `Decision` | The answer / chosen option (empty if Open) |
+| `Decided By` | Stakeholder, agent, or `ORCHESTRATOR` |
+| `Date` | ISO 8601 date of decision |
+| `Impact` | Which phases/agents/stories are affected |
+
+### Relationship to Questionnaire Q-IDs
+- Each questionnaire question has a `Q-ID` (e.g., `Q-P1-003`)
+- When a questionnaire answer leads to a decision, the `Source` column references the Q-ID
+- The Orchestrator picks up decisions at Sprint Gate Step 0 and injects them into agent context
+
+---
+
+## Phase 5 Schema Extension
+
+The `phase_outputs` object in session-state.json includes a `phase_5` section keyed by sprint ID:
+
+```json
+"phase_5": {
+  "SP-1": {
+    "stories_completed": ["SP-1-001", "SP-1-002"],
+    "stories_blocked": ["SP-1-003"],
+    "kpi_report": ".github/docs/metrics/sprint-SP-1-kpi.json",
+    "retrospective": ".github/docs/retrospectives/sprint-SP-1-retrospective.md"
+  },
+  "SP-2": {
+    "stories_completed": [],
+    "stories_blocked": [],
+    "kpi_report": null,
+    "retrospective": null
+  }
+}
+```
 
 ````

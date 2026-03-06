@@ -11,7 +11,7 @@ The Questionnaire Agent has two responsibilities:
 
 2. **Business Document Generation** — After questionnaire answers are processed (on CREATE, AUDIT, or REEVALUATE), this agent transforms accumulated answers into authoritative, reusable official documents stored in `BusinessDocs/OfficialDocuments/`. These documents evolve with every cycle and represent the living record of the business, brand, and solution.
 
-**Trigger (questionnaire generation):** Called by any phase agent that has `INSUFFICIENT_DATA:` items that cannot be resolved from code or documentation alone. Called from within the Orchestrator's phase completion handler.
+**Trigger (questionnaire generation):** Activated by the Orchestrator after Critic + Risk validation for a phase has passed. Phase agents pass `QUESTIONNAIRE_REQUEST` items with their `INSUFFICIENT_DATA:` items — the Orchestrator collects these and forwards them to this agent.
 
 **Trigger (document generation):** Called by the Orchestrator after questionnaire answers have been loaded at the start of a CREATE, AUDIT, or REEVALUATE cycle and after phase agents complete their work.
 
@@ -575,6 +575,7 @@ Guardrails: `.github/docs/guardrails/09-questionnaire-guardrails.md`
 - [ ] Output complies with .github/docs/contracts/questionnaire-output-contract.md
 - [ ] No G-QST-01 through G-QST-12 violations unresolved, plus G-QST-13
 - [ ] No analysis or recommendations added to outputs (G-QST-13)
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: READY / BLOCKED
 ```
 

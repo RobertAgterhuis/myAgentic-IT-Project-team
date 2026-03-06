@@ -33,10 +33,8 @@ Produce the handoff checklist as the last section of your output:
 ## HANDOFF CHECKLIST – [Agent name] – [Date]
 
 ### Deliverables Completeness
-- [ ] Analysis document present and per analysis-output-contract.md
-- [ ] Recommendations document present and per recommendations-output-contract.md
-- [ ] Sprint Plan present and per sprintplan-output-contract.md
-- [ ] Guardrails present and per guardrails-output-contract.md
+- [ ] All required deliverables present per the applicable output contract(s)
+- [ ] Each deliverable references its contract_ref (contract filename)
 
 ### Quality Control
 - [ ] All findings have a concrete source citation
@@ -47,6 +45,7 @@ Produce the handoff checklist as the last section of your output:
 - [ ] All INSUFFICIENT_DATA: items tagged with QUESTIONNAIRE_REQUEST in handoff message
 - [ ] Step 0 questionnaire context acknowledged (CONSUMED or NOT_INJECTED documented)
 - [ ] Internal consistency verified (no contradictory statements)
+- [ ] mode_consistent: verify deliverable mode matches metadata.mode
 
 ### Input for Next Agent
 - [ ] JSON export available and syntactically valid
@@ -81,17 +80,13 @@ If one or more items in the checklist are NOT checked:
   "handoff": {
     "from_agent": "string",
     "to_agent": "string | orchestrator",
-    "phase_completed": "1 | 2 | 3 | 4",
+    "phase_completed": "string — e.g. 1 | 2 | 3 | 4 | 5 | SYNTHESIS | REEVALUATE",
     "date": "ISO 8601",
     "status": "READY | BLOCKED",
     "blocked_reason": "string | null",
-    "deliverables": {
-      "analysis": "path/to/analysis.md",
-      "recommendations": "path/to/recommendations.md",
-      "sprintplan": "path/to/sprintplan.md",
-      "guardrails": "path/to/guardrails.md",
-      "json_export": "path/to/export.json"
-    },
+    "deliverables": [
+      { "type": "string — e.g. analysis | recommendations | sprintplan | guardrails | json_export | test_report | sprint_completion | custom", "path": "string — file path", "contract_ref": "string — contract filename" }
+    ],
     "uncertain_items": ["UNC-001"],
     "insufficient_data_items": ["IND-001"],
     "questionnaire_requests": ["IND-001"],
@@ -113,6 +108,12 @@ If one or more items in the checklist are NOT checked:
 | Phase 3 → Phase 4 | Brand Strategist | Critic Agent + Risk Agent validation MANDATORY |
 | Phase 4 → Synthesis | Synthesis Agent | Critic Agent + Risk Agent validation MANDATORY |
 | Every agent → Next in phase | Next agent | Handoff checklist MANDATORY |
+
+---
+
+## JSON Export
+
+The handoff message JSON (Step 4 above) serves as the JSON export for this contract. No separate JSON export file is produced.
 
 ---
 

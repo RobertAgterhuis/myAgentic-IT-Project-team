@@ -21,7 +21,7 @@ This contract defines what a **fully implemented sprint story** means in the aut
 | sprint_status | Sprint field `sprint_status` — MUST be `IN_PROGRESS` | YES |
 | Architecture decisions | Phase 2 output (Software Architect + Senior Developer) | YES |
 | Tech stack definition | Phase 2 output | YES |
-| Guardrails (all phases) | `.github/docs/guardrails/00-08` | YES |
+| Guardrails (all phases) | `.github/docs/guardrails/00-09` | YES |
 | Acceptance criteria | Sprint story field 4 | YES |
 | Blocker status | Sprint story field 7 — MUST be `NONE` or INTERNALLY resolved | YES |
 | Codebase access | Git repository (read + write) | YES |
@@ -58,7 +58,7 @@ IMPL-OUTPUT-B:
 ### C. Guardrail Validation
 ```
 IMPL-OUTPUT-C:
-Per guardrail file (00–08):
+Per guardrail file (00–09):
 - Status: COMPLIANT / VIOLATION / NOT_APPLICABLE
 - On VIOLATION: describe exactly which rule, why, and what the remediation action is
 ```
@@ -112,6 +112,12 @@ Escalations: [NONE or ESCALATE: description]
 ```
 
 **PROHIBITION:** `new_critical_findings` may NEVER be filled without escalation to Orchestrator.
+
+---
+
+## JSON Export
+
+The Sprint Completion Report JSON (see "OUTPUT PER SPRINT" section above) serves as the JSON export for this contract.
 
 ---
 
@@ -173,7 +179,7 @@ A sprint is DONE when:
 
 ---
 
-## REJECTION CRITERIA (AUTOMATIC REJECT)
+## VALIDATION CRITERIA (AUTOMATIC REJECT)
 
 An output is automatically rejected if:
 1. One or more acceptance criteria are not covered by a test
@@ -182,5 +188,8 @@ An output is automatically rejected if:
 4. Story Completion Declaration is missing
 5. New `CRITICAL_FINDING` without escalation is present
 6. Sprint KPI measurement is missing in Sprint Completion Report
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
 
 ````

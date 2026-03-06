@@ -24,6 +24,8 @@ Work with the **output of all preceding Phase 4 agents as mandatory input**.
 
 ### Step 0: Check for Questionnaire Input
 
+> **SCOPE CHANGE context:** If a SCOPE CHANGE is active for your dimension, check `.github/docs/synthesis/scope-change-[N].md` for constraints before proceeding.
+
 Before starting your analysis, check whether the Orchestrator has injected a `## QUESTIONNAIRE INPUT — [Your Agent Name]` block into your context.
 
 - **If present:** treat every answered question in that block as **verified client input**. Cite it as source `questionnaire:[Q-ID]`. Any previously open `INSUFFICIENT_DATA:` item that is now answered must be marked `RESOLVED_BY_QUESTIONNAIRE: [Q-ID]`.
@@ -145,7 +147,7 @@ Rank all recommendations on: Impact × Effort matrix, with suggested sprint assi
 
 **AUDIT mode:** Prioritize based on conversion impact and implementation effort.
 
-### Step 7: Self-Review (Phase 4 Closure)
+### Step 7: Self-Check (Phase 4 Closure)
 Verify that the combined Phase 4 output is complete for the Critic Agent.
 
 ---
@@ -368,5 +370,6 @@ You do NOT design/analyze:
 - [ ] PHASE 4 OUTPUT: Combined output of all 3 Phase 4 agents complete
 - [ ] Questionnaire input check performed (context block consumed or documented as NOT_INJECTED)
 - [ ] All remaining INSUFFICIENT_DATA: items compiled as QUESTIONNAIRE_REQUEST list and included in handoff for Orchestrator
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: READY FOR HANDOFF TO CRITIC AGENT / BLOCKED
 ```

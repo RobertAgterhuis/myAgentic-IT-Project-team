@@ -107,5 +107,6 @@ For NEEDS_REVIEW or BLOCKED: formulate concrete mitigation requirements.
 - [ ] Phase risk verdict determined
 - [ ] Mitigation requirements formulated (if NEEDS_REVIEW or BLOCKED)
 - [ ] If cycle_type is SCOPE_CHANGE: SCOPE_CHANGE_INVALIDATED sections NOT used as strategic baseline — SC-[N] new_premise and PARTIALLY_VALID surviving findings used as sole reference frame per Step 2 (or `NOT_APPLICABLE — normal cycle`)
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: PHASE [N] APPROVED / NEEDS_REVIEW / BLOCKED
 ```

@@ -136,6 +136,11 @@ The following events trigger a mandatory `LESSON_CANDIDATE`:
 | `OFF_TRACK` KPI for 2+ consecutive sprints | KPI Agent |
 | `BRAND_VIOLATION` in Sprint Completion Report (brand_review: VIOLATION) | PR/Review Agent |
 | `BRAND_MISS` (brand_violations_count > 0 for 2+ consecutive sprints) | KPI Agent |
+| `AGENT_FAILURE` (3 attempts exhausted per ORC-37) | Orchestrator |
+| `PERSISTENT_CONTRACT_FAILURE` (3× contract validation failure per ORC-35) | Orchestrator |
+| HOTFIX completion (every hotfix per ORC-23) | Retrospective Agent |
+| `SCOPE_CHANGE_HOLD` affecting >5 stories (per ORC-27) | Scope Change Agent |
+| `READY_OVERRIDE` (force-accepted story per ORC-14) | Orchestrator |
 
 Required format (append to bottom of `lessons-learned.md`):
 ```markdown
@@ -186,6 +191,14 @@ HOTFIX bookkeeping (mandatory):
 - A `DECIDED` item in `.github/docs/decisions.md` if the hotfix implies a structural constraint (per RULE ORC-21)
 - Orchestrator informs the running regular sprint (if any) about impact and any necessary story adjustments
 
+**RULE ORC-23b: HOTFIX concurrency with active regular sprint**
+When a HOTFIX runs concurrently with a regular sprint:
+1. The regular sprint is NOT paused unless the HOTFIX touches files overlapping with `IN_PROGRESS` stories.
+2. On overlap detected: affected stories move to `BLOCKED` with reason `HOTFIX_OVERLAP: HOTFIX-[N]`.
+3. After HOTFIX merge: re-run tests (Test Agent) for all affected `IN_PROGRESS` stories that were BLOCKED by the overlap.
+4. HOTFIX PRs always have merge priority over regular sprint PRs.
+5. `scope: []` in a HOTFIX means the HOTFIX affects the entire codebase — all `IN_PROGRESS` stories may need regression testing.
+
 **RULE ORC-24: Onboarding refresh**
 The Onboarding Output and session-state.json can become stale as the codebase evolves. The Orchestrator triggers an **Onboarding Refresh** — a surface-level scan per Step 3 of the Onboarding Agent, without new intake questions — in the following situations:
 1. After a `REEVALUATE` where the delta scan reports significant code changes: **≥ 10% of total files in the project source directories** (count new files + removed files; directories: `src/`, `lib/`, `app/`, or project-specific source roots defined in `onboarding-output.md` tooling section; exclude `node_modules/`, `dist/`, `.git/`, test fixtures)
@@ -224,6 +237,11 @@ An Onboarding Refresh:
 4. If no valid archive exists: inform the user: `⚠️ Session state was corrupted and no archive is available. Starting fresh session.` Initialize new session via Onboarding Agent.
 
 **RULE ORC-28: Questionnaire & Decisions Web UI integration**
+
+**Signal file priority ordering:** When multiple signal files are pending at the same checkpoint, process in this order: (1) SCOPE CHANGE files (highest), (2) REEVALUATE triggers, (3) FEATURE requests, (4) other signals. If a REEVALUATE trigger is superseded by a simultaneous SCOPE CHANGE affecting the same dimension, set `reevaluate-trigger.json` status to `CONSUMED` with `reason: "SUPERSEDED_BY_SCOPE_CHANGE"`.
+
+**Signal file corruption handling:** If a signal file (`reevaluate-trigger.json`, `command-queue.json`) contains invalid JSON: log `SIGNAL_FILE_CORRUPTED: [filename]` in the Orchestrator Log, delete the corrupted file, inform the user via console output (`⚠️ Signal file [filename] was corrupted and has been removed. Please re-submit the command.`). Do NOT block the session.
+
 1. At every session start and before every Sprint Gate, check whether `.github/docs/session/reevaluate-trigger.json` exists with `status: "PENDING"`. If found:
    a. Read the `scope` field (valid values: `ALL`, `BUSINESS`, `TECH`, `UX`, `MARKETING`)
    b. Treat it as equivalent to a `REEVALUATE [scope]` command — activate the Reevaluate Agent per normal workflow
@@ -245,7 +263,7 @@ An Onboarding Refresh:
 The Orchestrator MUST complete exactly **one agent per conversation turn**. After each agent completes its handoff, the Orchestrator:
 1. Writes the agent output to disk (per phase_outputs in session-state.json)
 2. Updates `session-state.json` with `current_agent`, `completed_agents`, and `last_updated`
-3. Updates `.github/docs/session/pipeline-progress.json` for the web UI
+3. Updates `.github/docs/session/pipeline-progress.json` for the web UI. Schema: `{ "active": boolean, "command": string, "phases": [{ "name": string, "status": string, "agents": [{ "name": string, "status": string }] }] }`. Written by Orchestrator, consumed by web UI `/api/progress` endpoint.
 4. **Yields back to the user** with a concise status message:
    ```
    ✅ [Agent Name] complete — output saved to [path]
@@ -260,6 +278,7 @@ The Orchestrator MUST complete exactly **one agent per conversation turn**. Afte
 - Critic + Risk validation runs as a pair in one turn (they are lightweight validators, not producers)
 - Questionnaire Agent generation runs in the same turn as the Critic + Risk that triggered it
 - The Onboarding Agent always completes in one turn (it is the first agent and has no predecessor output to carry)
+- Post-merge bookkeeping agents (KPI, Documentation, GitHub Integration, Retrospective) may batch in a single turn when each output is <100 lines and no BLOCKED handoff occurs
 
 **RULE ORC-31: Project Brief File Protocol (MANDATORY for CREATE and AUDIT)**
 1. When `command-queue.json` contains `brief_saved: true` and `brief_path`, the Orchestrator MUST inform the Onboarding Agent that the project brief is available at `BusinessDocs/project-brief.md`.
@@ -306,6 +325,8 @@ When the user types `CONTINUE` and `session-state.json` exists, the Orchestrator
 4. **Resume normal flow.** After recovery, continue the normal phase sequence from the current position.
 5. **Never re-run completed agents.** Only agents NOT in `completed_agents` are eligible for activation.
 6. **Update `last_updated`.** Stamp `session-state.json` with the current ISO timestamp on every CONTINUE.
+
+> **NOTE (ORC-33 vs G-GLOB-16 clarification):** G-GLOB-16 (redo on input change) applies within a running agent's own steps. For completed agents, input changes are handled via the REEVALUATE command. ORC-33 takes precedence within a running session — re-running completed agents requires an explicit REEVALUATE trigger.
 
 **RULE ORC-34: Parallel-Safe Agent Pairs (INFORMATIONAL — future optimization)**
 The following agent pairs within the same phase produce independent deliverables with no cross-references. When the runtime supports parallel agent execution, these pairs MAY run concurrently:
@@ -371,6 +392,8 @@ If a phase agent fails to produce a valid handoff after 3 consecutive attempts (
 4. Activate the Risk Agent with phase report + Critic output as input
 5. Wait for Risk Agent output
 6. If one validation FAILED: return to relevant agent for remediation
+6b. **Maximum 3 Critic/Risk cycles per phase.** If the same phase fails Critic/Risk validation 3 times: escalate to user with options: `ACCEPT_WITH_RISK` (proceed with documented gaps), `MANUAL_OVERRIDE` (user edits the deliverable), `RETRY_SIMPLIFIED` (re-run the failing agent with reduced scope). Document choice in Orchestrator Log.
+6c. **Critic meta-validation:** If the Critic Agent returns PASSED with zero findings despite the phase having open `UNCERTAIN:` or `INSUFFICIENT_DATA:` items, flag `CRITIC_REVIEW_SUSPICIOUS` and require the Critic to provide explicit justification for each unreferenced open item before accepting the PASSED result.
 7. If both validations PASSED:
    a. **Collect all `QUESTIONNAIRE_REQUEST` items** from every agent in this phase (listed in their handoff checklists)
    b. If any `QUESTIONNAIRE_REQUEST` items exist: activate Questionnaire Agent — questionnaire generation workflow
@@ -461,13 +484,14 @@ Choose an action:
    - Are all dependencies resolved or explicitly accepted?
    - Is the story completable in one sprint (not larger than 8 story points)?
    - If NOT READY: mark story as `NOT_READY: [reason]`, move to next sprint, document in log
-6. **Lessons learned injection (mandatory if `.github/docs/retrospectives/lessons-learned.md` exists):**
+   - **For non-CODE stories (DOCS, INFRA, CONFIG):** Lightweight DoR requires (1) at least one acceptance criterion, (2) a deliverable path (file or artifact location), (3) an assigned owner. Failure → `NOT_READY` per ORC-14.
+7. **Lessons learned injection (mandatory if `.github/docs/retrospectives/lessons-learned.md` exists):**
    - Read top-3 from `lessons-learned.md`
    - Inject as context for Implementation Agent (QUALITY/BLOCKER lessons)
    - Inject as context for PR/Review Agent (QUALITY lessons)
    - Adjust story point estimates based on `velocity-log.json` (if velocity ratio < 0.8 for 2+ sprints: warn at Sprint Gate)
-7. Activate Implementation Agent instances only for stories with type `CODE` or `INFRA` (parallel where possible)
-8. Document sprint start in Orchestrator Log including injected decisions (DEC-IDs)
+8. Activate Implementation Agent instances only for stories with type `CODE` or `INFRA` (parallel where possible)
+9. Document sprint start in Orchestrator Log including injected decisions (DEC-IDs)
 
 ### On Implementation Agent handoff:
 1. Check IMPL-OUTPUT-D status: IMPLEMENTED / PARTIAL / BLOCKED
@@ -477,8 +501,8 @@ Choose an action:
 
 ### On Test Agent handoff:
 1. Check TEST-REPORT per story: APPROVED / REJECTED
-2. On REJECTED: return to Implementation Agent with return reason
-3. On APPROVED for all stories: activate PR/Review Agent
+2. On REJECTED: return to Implementation Agent with return reason; set story status to `TEST_FAILED`
+3. On APPROVED: set story status to `REVIEW` and activate PR/Review Agent. The transition is `TESTING → REVIEW` (not `TESTING → COMPLETED`). Direct `TESTING → COMPLETED` is permitted ONLY for edge cases where no PR review is required (e.g., documentation-only hotfixes).
 
 ### On PR/Review Agent handoff:
 1. Receive Sprint Completion Report JSON
@@ -781,6 +805,31 @@ CREATE|AUDIT [DISC1] [DISC2] [project]
 | Story NOT_READY after Definition of Ready check | Move to next sprint; document reason; after 2x NOT_READY same story: Human Escalation Protocol type `SCOPE_DECISION` |
 | KPI_ALERT (OFF_TRACK) received from KPI Agent | Add to Sprint Gate context for next sprint; inject into relevant phase agent; no halting unless security KPI OFF_TRACK |
 | Retrospective Agent: velocity ratio < 0.8 for 2+ sprints | Warn user at Sprint Gate; suggest reducing sprint size |
+
+---
+
+## ADDITIONAL RULES (ORC-38+)
+
+**RULE ORC-38: Phase 5 eligibility for PARTIAL / COMBO cycles**
+Phase 5 is eligible when: (a) scope includes TECH, or (b) the user explicitly provides a `component-inventory.md`. For analysis-only scopes (BUSINESS, UX, MARKETING without TECH), Phase 5 is skipped unless the user explicitly opts in. PARTIAL cycles without TECH produce analysis-only sprints (documentation deliverables, no code implementation). The Orchestrator informs the user at the end of analysis phases: `ℹ️ Phase 5 (implementation) requires TECH scope or an explicit component-inventory.md. Current scope: [scope]. Type CREATE TECH [project] to add implementation capability, or provide a component-inventory.md and type CONTINUE to proceed.`
+
+**RULE ORC-39: Session-state REEVALUATE transitions**
+The REEVALUATE status is a valid session-state status with the following transitions:
+- Any status → `REEVALUATE` (triggered by `REEVALUATE` command or `reevaluate-trigger.json` with `status: "PENDING"`)
+- `REEVALUATE` → [previous status] (after reevaluation completes and the Reevaluate Agent hands off its Delta Report)
+The Orchestrator MUST store `previous_status` in `session-state.json` before transitioning to `REEVALUATE`, and restore it after the reevaluation cycle completes.
+
+**RULE ORC-40: SCOPE CHANGE → FEATURE cycle interaction**
+Scope change scanning includes feature backlogs (`Workitems/[FEATURENAME]/`). Feature sprints in the affected dimension move to `SCOPE_CHANGE_HOLD`. The Feature Agent reassesses feature viability after scope change reconciliation completes. If a feature becomes unviable due to the scope change, it is marked `CANCELLED` with reason `SCOPE_CHANGE_INVALIDATED: SC-[N]`.
+
+**RULE ORC-41: Maximum sprint duration and early-termination**
+Maximum 5 test-fix cycles per story per sprint. After 5 cycles: story moves to `BLOCKED` with reason `MAX_TEST_CYCLES`. The Orchestrator force-closes a sprint if >50% of stories are `BLOCKED` — remaining `IN_PROGRESS` stories are moved to `BACKLOG` for the next sprint, and a `LESSON_CANDIDATE` is generated for the force-close event.
+
+**RULE ORC-42: Scope change history bounds**
+The `scope_change_history` array in `session-state.json` is unbounded but monitored. Warn the user at 5 cumulative scope changes: `⚠️ 5 scope changes recorded — frequent pivots may indicate requirements instability. Consider stabilizing before proceeding.` Require explicit confirmation at 10 scope changes before accepting additional scope changes. This protects against unbounded re-analysis loops.
+
+**RULE ORC-43: Sprint capacity ownership**
+Sprint capacity is set by the Orchestrator prompting the user at the first Sprint Gate: `How many story points per sprint? (Recommended: 20–30 for a small team)`. After 2+ completed sprints, the Orchestrator suggests capacity based on `velocity-log.json` actual velocity: `ℹ️ Based on velocity data, recommended capacity for next sprint: [calculated] story points.` The user may accept or override.
 
 ---
 

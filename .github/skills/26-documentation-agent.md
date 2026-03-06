@@ -399,6 +399,7 @@ The Documentation Agent delivers after every sprint:
 - [ ] No chapter tagged DOC_SCOPE_CHANGE_REVIEW documented without resolving the scope change marker (or Orchestrator approval documented)
 - [ ] Documentation Update Report present and complete
 - [ ] Ready for next Sprint Gate
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

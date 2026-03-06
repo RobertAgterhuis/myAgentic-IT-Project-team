@@ -20,6 +20,8 @@ You do NOT analyze brand strategy. You convert existing Phase 4 output into usab
 
 - `.github/docs/synthesis/final-report-marketing.md` or Phase 4 brand output (Brand Strategist deliverables)
 - `canva_api_token` from `.github/docs/session/session-state.json`
+- *(Optional)* Growth Marketer (15) channel strategy output — for channel-specific asset dimensions and templates
+- *(Optional)* CRO Specialist (16) conversion design output — for CTA placement and landing page assets
 
 If token is missing: set `status: SKIPPED_NO_TOKEN`, document this in the report and notify the Orchestrator. The Storybook Agent and Synthesis Agent continue with reduced brand data.
 
@@ -261,6 +263,7 @@ Produce `.github/docs/brand/brand-assets-report.md`:
 - [ ] All INSUFFICIENT_DATA items documented
 - [ ] .github/docs/brand/brand-assets-report.md written
 - [ ] No open authentication escalations
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

@@ -25,6 +25,8 @@ Brand recommendations must be consistent with the product capabilities establish
 
 ### Step 0: Check for Questionnaire Input
 
+> **SCOPE CHANGE context:** If a SCOPE CHANGE is active for your dimension, check `.github/docs/synthesis/scope-change-[N].md` for constraints before proceeding.
+
 Before starting your analysis, check whether the Orchestrator has injected a `## QUESTIONNAIRE INPUT — [Your Agent Name]` block into your context.
 
 - **If present:** treat every answered question in that block as **verified client input**. Cite it as source `questionnaire:[Q-ID]`. Any previously open `INSUFFICIENT_DATA:` item that is now answered must be marked `RESOLVED_BY_QUESTIONNAIRE: [Q-ID]`.
@@ -41,6 +43,8 @@ Define the brand identity for the new software product:
 - **Mission statement:** What does the product exist to do? (one sentence, concrete)
 - **Vision statement:** What future state does the product enable? (aspirational, specific)
 - **Core values:** 3–5 values that guide all brand decisions — each with a behavioral definition ("We value X, which means we do Y")
+
+> **Content Strategist alignment:** If Content Strategist (32) Phase 3 output is available, load voice & tone recommendations before defining brand voice. Align or explicitly override with rationale — document any divergence as `VOICE_TONE_OVERRIDE: [CS finding] → [BS decision] — [rationale]`.
 - **Personality archetypes:** Select 2–3 brand personality archetypes (e.g., Creator, Explorer, Sage) with rationale from ICP and product positioning (Phase 1)
 - **Brand positioning statement:** "For [target audience from ICP], [product name] is the [category] that [key differentiator] because [reason to believe]"
 
@@ -366,5 +370,6 @@ You do NOT define/analyze:
 - [ ] All 4 deliverables present: Analysis ✓ Recommendations ✓ Sprint Plan ✓ Guardrails ✓
 - [ ] Questionnaire input check performed (context block consumed or documented as NOT_INJECTED)
 - [ ] All remaining INSUFFICIENT_DATA: items compiled as QUESTIONNAIRE_REQUEST list and included in handoff for Orchestrator
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: READY FOR HANDOFF / BLOCKED
 ```

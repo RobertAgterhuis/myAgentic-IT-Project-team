@@ -219,13 +219,17 @@ Actual implementation of the designed software product per the approved sprint s
 3. **PR/Review Agent** (skill: `22-pr-review-agent.md`) — final review, create PR, close sprint
 4. ↓ **Critic Agent** (skill: `18-critic-agent.md`) — validate sprint output
 5. ↓ **Risk Agent** (skill: `19-risk-agent.md`) — risk assessment per sprint
+6. **KPI Agent** (skill: `29-kpi-agent.md`) — measure sprint KPIs and emit alerts
+7. **Documentation Agent** (skill: `26-documentation-agent.md`) — update user/technical manuals and changelog
+8. **GitHub Integration Agent** (skill: `27-github-integration-agent.md`) — update project board and close issues
+9. **Retrospective Agent** (skill: `28-retrospective-agent.md`) — sprint retrospective, velocity log, lessons learned
 
 ### Required Input
 - Synthesis Final Report (complete, Critic + Risk APPROVED)
 - Approved sprint plans from all specialist agents
 - Architecture decisions from Phase 2 (Software Architect + Senior Developer output)
 - Design system from Phase 3 (UI Designer + Storybook Agent output)
-- Guardrails (`.github/docs/guardrails/00–08`)
+- Guardrails (`.github/docs/guardrails/00–09`)
 - Implementation Output Contract (`.github/docs/contracts/implementation-output-contract.md`)
 
 **HALT:** Phase 5 NEVER starts without a fully APPROVED Synthesis Final Report and validated sprint plans (Critic + Risk PASSED per phase).
@@ -245,7 +249,7 @@ For each sprint (SP-1, SP-2, ...):
 
 ### Parallel Tracks
 
-Stories in the same sprint that have NO mutual dependencies (identified in Step F2 of the sprint plans) are picked up **simultaneously** by multiple Implementation Agent instances. The PR/Review Agent assembles all story outputs into one sprint PR after all stories are APPROVED.
+Stories in the same sprint that have NO mutual dependencies (identified in the Parallel Tracks section of the sprint plans) are picked up **simultaneously** by multiple Implementation Agent instances. The PR/Review Agent assembles all story outputs into one sprint PR after all stories are APPROVED.
 
 ### Required Output (Per Sprint)
 ```json
@@ -297,9 +301,12 @@ Re-analyzes one or more phases after requirements or context has changed — dir
 
 | Scope | What is re-analyzed |
 |-------|---------------------|
-| `PHASE-1` through `PHASE-4` | The specified phase only |
+| `BUSINESS` | Phase 1 only |
+| `TECH` | Phase 2 only |
+| `UX` | Phase 3 only |
+| `MARKETING` | Phase 4 only |
 | `ALL` | All four phases |
-| `DELTA-ONLY` | Detect what changed, no full re-analysis |
+| `DELTA-ONLY` | Valid modifier: detect what changed, no full re-analysis |
 
 Agent: `23-reevaluate-agent.md` → Critic + Risk → Re-evaluation Report → Orchestrator (Sprint Gate impact)
 

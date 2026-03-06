@@ -201,6 +201,7 @@ Use CRITICAL_FINDING if during testing you discover a new security or data probl
 - [ ] No CRITICAL_FINDING unresolved
 - [ ] LESSON_CANDIDATE written to lessons-learned.md on PERSISTENT_FAILURE or CRITICAL_FINDING (or NEITHER DETECTED)
 - [ ] All 4 deliverables produced per the contract
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **A HANDOFF WITH AN UNCHECKED CHECKBOX IS INVALID.**

@@ -200,6 +200,8 @@ Produce per `.github/docs/contracts/sprintplan-output-contract.md`:
 - Sprints are by default `QUEUED` — Sprint Gate applies here too
 - `depends_on_sprints` may reference sprints from the **main backlog** if the feature depends on work planned there
 
+> **Handoff:** After Synthesis APPROVED, hand off the feature sprint plan at `Workitems/[FEATURENAME]/sprintplan/sprintplan.md` to the Orchestrator for Phase 5 execution. The Orchestrator applies the standard Sprint Gate and sprint loop (Implementation → Test → PR/Review → KPI → Documentation → GitHub Integration → Retrospective) using the feature sprint plan as input.
+
 ---
 
 ### Step 6: Implementation (Phase 5)
@@ -256,6 +258,7 @@ On name conflict: `FEATURENAME-v2`, `FEATURENAME-[date]`.
 - [ ] Feature Executive Summary is present in synthesis report
 - [ ] KPI baseline + target are defined
 - [ ] No open UNCERTAIN: or INSUFFICIENT_DATA: without resolution or escalation
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

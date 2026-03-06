@@ -268,7 +268,7 @@ Verify:
 
 ---
 
-## DEFINITION OF DONE (SYNTHESIS)
+## HANDOFF CHECKLIST — Synthesis Agent — [Date]
 - [ ] Mode indicator documented (CREATE or AUDIT)
 - [ ] `.github/docs/decisions.md` loaded as guardrail (Step 0) — all recommendations verified or file absence documented
 - [ ] `BusinessDocs/OfficialDocuments/` checked (Step 0) — official documents loaded as context or `OFFICIAL_DOCS_N/A` documented
@@ -283,3 +283,4 @@ Verify:
 - [ ] All BLOCKING blockers are present as `BLOCKED` in the corresponding sprint plan item
 - [ ] Master report internally consistent (no contradictory statements)
 - [ ] All claims traceable to agent output
+- [ ] Output complies with agent-handoff-contract.md

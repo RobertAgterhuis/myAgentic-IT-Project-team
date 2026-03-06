@@ -31,6 +31,8 @@ You work with the **complete Phase 2 output (to date) as mandatory input**.
 
 ### Step 0: Check for Questionnaire Input
 
+> **SCOPE CHANGE context:** If a SCOPE CHANGE is active for your dimension, check `.github/docs/synthesis/scope-change-[N].md` for constraints before proceeding.
+
 Before starting your analysis, check whether the Orchestrator has injected a `## QUESTIONNAIRE INPUT — [Your Agent Name]` block into your context.
 
 - **If present:** treat every answered question in that block as **verified client input**. Cite it as source `questionnaire:[Q-ID]`. Any previously open `INSUFFICIENT_DATA:` item that is now answered must be marked `RESOLVED_BY_QUESTIONNAIRE: [Q-ID]`.
@@ -361,6 +363,7 @@ Check overlap with existing guardrails in `.github/docs/guardrails/`. Document p
 ## GUARDRAILS
 - `.github/docs/guardrails/00-global-guardrails.md`
 - `.github/docs/guardrails/02-architecture-guardrails.md` (G-ARCH-08)
+- `.github/docs/guardrails/07-legal-guardrails.md`
 
 ---
 
@@ -403,5 +406,6 @@ Check overlap with existing guardrails in `.github/docs/guardrails/`. Document p
 - [ ] PHASE 2 OUTPUT: Data fully available as input for Legal Counsel (33)
 - [ ] Questionnaire input check performed (context block consumed or documented as NOT_INJECTED)
 - [ ] All remaining INSUFFICIENT_DATA: items compiled as QUESTIONNAIRE_REQUEST list and included in handoff for Orchestrator
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: READY FOR HANDOFF TO CRITIC AGENT / BLOCKED
 ```

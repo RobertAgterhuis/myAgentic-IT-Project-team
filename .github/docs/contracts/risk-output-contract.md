@@ -54,12 +54,21 @@ Standard handoff checklist per Universal Agent Rules.
 
 ## VALIDATION CRITERIA
 The Orchestrator checks (per ORC-35):
-- [ ] All four risk categories are explicitly assessed (technical, business, security, operational)
+- [ ] All six risk categories are explicitly assessed: `TECHNICAL`, `BUSINESS`, `SECURITY`, `OPERATIONAL`, `LEGAL`, `COMPLIANCE`
 - [ ] Every risk has a unique Risk ID, severity, likelihood, and source reference
 - [ ] No CRITICAL risk is left without a mitigation recommendation or `INSUFFICIENT_DATA:` escalation
 - [ ] Risk Summary Matrix totals are consistent with Risk Inventory
 - [ ] Cross-phase dependencies are identified and tagged for Synthesis
 - [ ] Verdict is present and consistent with findings
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
+---
+
+## JSON Export
+
+> No standalone JSON export for this contract. The Risk Agent's output is Markdown-only; risk items are consumed by the Synthesis Agent from the structured Markdown sections.
 
 ---
 

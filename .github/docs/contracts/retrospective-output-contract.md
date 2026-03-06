@@ -84,6 +84,15 @@ The Orchestrator checks (per ORC-35):
 - [ ] Sprint goal outcome is explicitly stated (met / partially met / not met)
 - [ ] Action items have owners and priorities
 
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
+---
+
+## JSON Export
+
+The `velocity-log.json` entry (see schema above) serves as the JSON export for this contract. The retrospective narrative is Markdown-only.
+
 ---
 
 ## HANDOFF STATUS VALUES

@@ -10,6 +10,14 @@ A guardrail is a TESTABLE, BINDING decision rule — NOT a vague guideline.
 
 ---
 
+## Output File Path
+
+`.github/docs/phases/phase-N-[discipline]-guardrails.md`
+
+Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discipline name (e.g., `phase-4-marketing-guardrails.md`).
+
+---
+
 ## DEFINITION OF A GUARDRAIL
 A guardrail:
 - Formulates a **prohibition** or **obligation** in concrete terms
@@ -35,6 +43,7 @@ A guardrail:
 - Phase: [1 / 2 / 3 / 4]
 - Date: [ISO 8601]
 - Based on analysis: [reference]
+- Mode: [CREATE | AUDIT]
 
 ## Scope Change Impact *(SCOPE_CHANGE mode only — omit in normal cycles)*
 > Required as the FIRST section when `cycle_type: SCOPE_CHANGE` in session state.
@@ -95,7 +104,8 @@ A guardrail:
     "agent": "string",
     "phase": "1 | 2 | 3 | 4",
     "date": "ISO 8601",
-    "based_on_analysis": "string"
+    "based_on_analysis": "string",
+    "mode": "CREATE | AUDIT"
   },
   "guardrails": [
     {
@@ -129,11 +139,14 @@ A guardrail:
 
 ---
 
-## REJECTION CRITERIA
+## VALIDATION CRITERIA
 A guardrail document is REJECTED if:
 - A guardrail is not formulated as testable
 - A violation action is missing
 - A rationale does not reference an analysis finding
 - A verification method is missing
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
 
 ````

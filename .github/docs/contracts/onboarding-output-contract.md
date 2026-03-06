@@ -45,22 +45,23 @@ Ensures the Onboarding Agent produces a complete project intake that captures pr
 - Environment configuration status
 
 ### session-state.json
-- `projectName`: string
-- `projectType`: "NEW" | "AUDIT"
-- `scope`: array of disciplines
-- `currentPhase`: "ONBOARDING_COMPLETE"
-- `completedPhases`: []
-- `activeSprint`: null
-- `onboardingFile`: path to onboarding-output.md
-- `timestamp`: ISO 8601
+> The full session-state schema is defined in `session-state-contract.md`. Onboarding must set **at minimum** the following fields:
+
+| Field | Value set by Onboarding |
+|-------|-------------------------|
+| `project_name` | Project name from intake |
+| `mode` | `CREATE` or `AUDIT` |
+| `scope` | Array of disciplines (e.g., `["BUSINESS","TECH","UX","MARKETING"]`) |
+| `current_phase` | `ONBOARDING` (Orchestrator transitions to `PHASE-1` on COMPLETE) |
+| `status` | `ONBOARDING` |
 
 ---
 
 ## VALIDATION CRITERIA
 The Orchestrator checks (per ORC-35):
 - [ ] `onboarding-output.md` exists and contains all 4 mandatory sections
-- [ ] `session-state.json` exists and is valid JSON with all required fields
-- [ ] `currentPhase` is set to `ONBOARDING_COMPLETE`
+- [ ] `session-state.json` exists and is valid JSON with minimum required fields (`project_name`, `mode`, `scope`, `current_phase`, `status`)
+- [ ] `current_phase` is set to `ONBOARDING` (Orchestrator transitions to `PHASE-1` after handoff)
 - [ ] Project type and scope are explicitly stated
 - [ ] Codebase Structure Scan has been performed (not skipped)
 - [ ] All unanswered intake questions are marked `INSUFFICIENT_DATA:` (not left blank)

@@ -32,7 +32,7 @@ Ensures that fundamental project premise changes (business model pivots, core ar
 For each affected work item:
 - **Story/Task ID**
 - **Current Status:** (e.g., TODO, IN_PROGRESS, DONE)
-- **New Status:** `SCOPE_CHANGE_HOLD` | `CANCELLED` | `REQUEUED`
+- **New Status:** `SCOPE_CHANGE_HOLD SC-[N]` | `CANCELLED` | `REQUEUED`
 - **Reason:** Why this ticket is affected
 - **Re-analysis Required:** YES / NO
 
@@ -66,11 +66,17 @@ Standard handoff checklist per Universal Agent Rules.
 The Orchestrator checks (per ORC-35):
 - [ ] Dimension is explicitly stated (BUSINESS, TECH, UX, MARKETING, or ALL)
 - [ ] Old premise and new premise are both documented (not left blank)
-- [ ] Every affected ticket has a status transition (SCOPE_CHANGE_HOLD, CANCELLED, or REQUEUED)
+- [ ] Every affected ticket has a status transition (`SCOPE_CHANGE_HOLD SC-[N]`, `CANCELLED`, or `REQUEUED`)
 - [ ] Backlog Hold Report totals match the Affected Tickets list
 - [ ] Re-Analysis Plan identifies at least one agent for re-execution
 - [ ] Sprint Gate Reconciliation is present with recommended action
 - [ ] Master Synthesis update instructions are present
+
+---
+
+## JSON Export
+
+> No standalone JSON export for this contract. Scope change output is Markdown-only; affected ticket lists and reconciliation data are consumed from the structured Markdown sections.
 
 ---
 

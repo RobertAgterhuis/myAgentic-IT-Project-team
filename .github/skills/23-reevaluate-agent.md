@@ -294,6 +294,7 @@ See `.github/skills/37-scope-change-agent.md` for the full workflow.
 - [ ] Re-evaluation Report is complete and machine-readable
 - [ ] Version history is updated
 - [ ] Output delivered to Orchestrator for Sprint Gate decision
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

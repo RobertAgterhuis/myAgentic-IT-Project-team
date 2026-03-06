@@ -62,6 +62,15 @@ The Orchestrator checks (per ORC-35):
 - [ ] All `DOC_MISSING` signals specify what documentation is needed
 - [ ] Documentation references match actual implemented features (no stale docs)
 
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
+---
+
+## JSON Export
+
+> No standalone JSON export for this contract. Documentation output is Markdown-only.
+
 ---
 
 ## HANDOFF STATUS VALUES

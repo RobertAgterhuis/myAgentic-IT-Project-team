@@ -270,6 +270,7 @@ npm run storybook
 - [ ] .github/docs/storybook/storybook-setup-report.md written
 - [ ] Guardrail for Implementation Agent documented in component-inventory.md
 - [ ] DESIGN_TOKEN_MISSING items counted and reported
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

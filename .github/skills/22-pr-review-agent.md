@@ -254,6 +254,7 @@ Use KPI_MISS for any KPI not achieved after the sprint — NEVER hide this.
 - [ ] Revert check performed — intentional reverts documented in .github/docs/decisions.md as DECIDED item (or NO REVERTS DETECTED)
 - [ ] LESSON_CANDIDATE written on SECURITY_VIOLATION or revert (or NEITHER DETECTED)
 - [ ] All 4 deliverables produced per the contract
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **A HANDOFF WITH AN UNCHECKED CHECKBOX IS INVALID.**

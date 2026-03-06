@@ -10,6 +10,14 @@ An analysis that does not comply with this contract is **returned** by the Criti
 
 ---
 
+## Output File Path
+
+`.github/docs/phases/phase-N-[discipline]-analysis.md`
+
+Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discipline name (e.g., `phase-1-business-analysis.md`).
+
+---
+
 ## MANDATORY SCHEMA (Markdown + JSON)
 
 Every analysis deliverable consists of two parts:
@@ -199,9 +207,12 @@ Every analysis deliverable consists of two parts:
 | JSON validation | Valid JSON without syntax errors |
 | Handoff checklist | All items checked (`true`) or escalation documented |
 
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
 ---
 
-## REJECTION CRITERIA (Critic Agent uses these)
+## VALIDATION CRITERIA (Critic Agent uses these)
 An analysis is REJECTED if:
 - One or more sections are empty or contain placeholders
 - A finding has no source citation

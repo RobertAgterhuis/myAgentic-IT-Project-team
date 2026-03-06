@@ -10,6 +10,14 @@ Every recommendation must be substantiated, measurable, and dependency-aware.
 
 ---
 
+## Output File Path
+
+`.github/docs/phases/phase-N-[discipline]-recommendations.md`
+
+Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discipline name (e.g., `phase-2-tech-recommendations.md`).
+
+---
+
 ## MANDATORY SCHEMA
 
 ### MARKDOWN STRUCTURE
@@ -22,6 +30,7 @@ Every recommendation must be substantiated, measurable, and dependency-aware.
 - Phase: [1 / 2 / 3 / 4]
 - Based on analysis: [reference to analysis document]
 - Date: [ISO 8601]
+- Mode: [CREATE | AUDIT]
 
 ## Scope Change Impact — Recommendations *(SCOPE_CHANGE mode only — omit in normal cycles)*
 > Required as the FIRST section (directly after Metadata) when `cycle_type: SCOPE_CHANGE` in session state. Used by Synthesis Agent (17) for SC-[N] impact summaries in department reports.
@@ -103,7 +112,8 @@ Impact and Effort: High / Medium / Low (with explicit rationale in appendix)
     "agent": "string",
     "phase": "1 | 2 | 3 | 4",
     "date": "ISO 8601",
-    "based_on_analysis": "string"
+    "based_on_analysis": "string",
+    "mode": "CREATE | AUDIT"
   },
   "recommendations": [
     {
@@ -167,12 +177,15 @@ Impact and Effort: High / Medium / Low (with explicit rationale in appendix)
 
 ---
 
-## REJECTION CRITERIA
+## VALIDATION CRITERIA
 A recommendations document is REJECTED if:
 - A recommendation has no reference to an analysis finding
 - Impact fields are empty without `INSUFFICIENT_DATA:` marking
 - Measurement criteria are missing or not SMART
 - The priority matrix is missing
 - A recommendation falls outside the competence domain
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
 
 ````

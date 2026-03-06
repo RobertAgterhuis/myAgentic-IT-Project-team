@@ -62,6 +62,15 @@ The Orchestrator checks (per ORC-35):
 - [ ] Sprint Impact Flags are set for any `IN_PROGRESS` items
 - [ ] Critic + Risk validation is referenced or scheduled
 
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
+---
+
+## JSON Export
+
+> No standalone JSON export for this contract. The Reevaluate Agent's output is Markdown-only; delta items are consumed by the Orchestrator from the structured Markdown sections.
+
 ---
 
 ## HANDOFF STATUS VALUES

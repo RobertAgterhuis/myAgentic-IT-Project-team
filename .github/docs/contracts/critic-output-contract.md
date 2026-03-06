@@ -35,6 +35,14 @@ For each agent output in the phase:
 - Findings by severity: CRITICAL, MAJOR, MINOR, INFO
 - Each finding must include: agent name, section, description, source reference
 
+> **Severity Mapping to Standard Scale:**
+>
+> | Critic Severity | Standard Severity |
+> |-----------------|-------------------|
+> | `MAJOR` | `CRITICAL` or `HIGH` |
+> | `MINOR` | `MEDIUM` |
+> | `INFO` | `LOW` |
+
 ### 4. Verdict
 - Overall phase verdict: `APPROVED` or `FAILED`
 - Per-agent verdict: `APPROVED` or `FAILED`
@@ -53,6 +61,15 @@ The Orchestrator checks (per ORC-35):
 - [ ] Anti-hallucination compliance is explicitly checked per agent
 - [ ] No CRITICAL findings remain unaddressed when overall verdict is APPROVED
 - [ ] Findings Summary totals are consistent with Per-Agent sections
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
+
+---
+
+## JSON Export
+
+> No standalone JSON export for this contract. The Critic Agent's output is Markdown-only; findings are consumed by the Orchestrator from the structured Markdown sections.
 
 ---
 

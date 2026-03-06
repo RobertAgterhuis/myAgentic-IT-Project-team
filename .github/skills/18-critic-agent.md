@@ -20,6 +20,9 @@ Assess EXCLUSIVELY against:
 
 ## MANDATORY EXECUTION
 
+### Step 0: Load Decision Register
+Load `.github/docs/decisions.md` and verify no recommendation contradicts a DECIDED item. Flag any conflicts as `CRITIC_DECISION_CONFLICT`.
+
 ### Step 1: Receive Input
 Receive the complete phase output from the Orchestrator.  
 Verify that you have received the output of ALL agents in the phase.
@@ -124,5 +127,6 @@ For NEEDS_REVISION: send specific remediation instructions back via Orchestrator
 - [ ] QUESTIONNAIRE_REQUEST items collected from all phase agent handoffs and forwarded to Orchestrator
 - [ ] Phase verdict determined
 - [ ] Remediation instructions formulated (if NEEDS_REVISION)
+- [ ] Output complies with agent-handoff-contract.md
 - STATUS: PHASE [N] APPROVED / PHASE [N] NEEDS_REVISION
 ```

@@ -44,9 +44,11 @@ Ensures every implemented story is validated through unit tests, integration tes
 - If NO: list of regressions introduced with details
 
 ### 6. Verdict
-- Overall test verdict: `APPROVED` or `REJECTED`
-- If REJECTED: itemized list of failures that must be fixed
+- Overall test verdict: `APPROVED` or `FAILED`
+- If FAILED: itemized list of failures that must be fixed
 - Recommendation: `READY_FOR_REVIEW` | `NEEDS_REWORK`
+
+> **Note:** Test Agent uses `APPROVED` / `FAILED`. `REJECTED` is deprecated — map any legacy `REJECTED` values to `FAILED`.
 
 ### 7. Handoff Checklist
 Standard handoff checklist per Universal Agent Rules.
@@ -61,6 +63,9 @@ The Orchestrator checks (per ORC-35):
 - [ ] No `NOT_MET` acceptance criterion when verdict is APPROVED
 - [ ] Regression check is explicitly performed
 - [ ] Failed tests include failure reasons (not just "FAILED")
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
 
 ---
 

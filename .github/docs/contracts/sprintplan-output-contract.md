@@ -10,6 +10,14 @@ A sprint plan without capacity assumption, team assignment, story type classific
 
 ---
 
+## Output File Path
+
+`.github/docs/phases/phase-N-[discipline]-sprintplan.md`
+
+Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discipline name (e.g., `phase-3-ux-sprintplan.md`).
+
+---
+
 ## FUNDAMENTAL PRINCIPLE: TRACK INDEPENDENCE
 
 **CRITICAL RULE:** A blocker in a CONTENT-, DESIGN-, or ANALYSIS-story may NEVER block a CODE-story in the same sprint, and vice versa.
@@ -63,6 +71,7 @@ If these assumptions are NOT available: mark as `INSUFFICIENT_DATA:` and do NOT 
 - Based on recommendations: [reference document]
 - Date: [ISO 8601]
 - Total scope: [n sprints]
+- Mode: [CREATE | AUDIT]
 
 ## Assumptions
 [See mandatory assumptions above]
@@ -170,7 +179,8 @@ All blockers across all sprints:
     "phase": "1 | 2 | 3 | 4",
     "date": "ISO 8601",
     "based_on_recommendations": "string",
-    "total_sprints": 0
+    "total_sprints": 0,
+    "mode": "CREATE | AUDIT"
   },
   "assumptions": {
     "teams": [
@@ -291,7 +301,7 @@ All blockers across all sprints:
 
 ---
 
-## REJECTION CRITERIA
+## VALIDATION CRITERIA
 A sprint plan is REJECTED if:
 - Capacity assumptions per team are missing (not marked as INSUFFICIENT_DATA:)
 - Stories have no team assignment
@@ -304,5 +314,8 @@ A sprint plan is REJECTED if:
 - Blocker field is missing on a story (even NONE must be explicitly stated)
 - EXTERN blockers have no owner or escalation route
 - Parallel tracks are not identified (or absent without motivation)
+
+### Cross-reference: ORC-35
+**ORC-35**: If this contract's output fails validation 3 consecutive times in the same session, the Orchestrator escalates to the user with options: ACCEPT_PARTIAL, RETRY_SIMPLIFIED, or MANUAL_OVERRIDE.
 
 ````

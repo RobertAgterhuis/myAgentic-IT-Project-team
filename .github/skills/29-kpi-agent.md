@@ -48,7 +48,7 @@ On first activation (after Synthesis Final Report, before sprint 1) the agent re
     {
       "id": "KPI-001",
       "name": "string",
-      "category": "PERFORMANCE | QUALITY | BUSINESS | UX | SECURITY | TECHNICAL",
+      "category": "PERFORMANCE | QUALITY | BUSINESS | UX | SECURITY | TECHNICAL | BRAND",
       "baseline_value": "string | number | null",
       "target_value": "string | number",
       "unit": "string",
@@ -199,6 +199,7 @@ The Orchestrator includes `KPI_ALERT` items in the Sprint Gate context for the n
 - [ ] `brand_violations_count` included in sprint-kpi.json summary
 - [ ] LESSON_CANDIDATE written for brand_violations_count > 0 over 2+ consecutive sprints (or NOT APPLICABLE)
 - [ ] Ready for next step (Documentation Agent)
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

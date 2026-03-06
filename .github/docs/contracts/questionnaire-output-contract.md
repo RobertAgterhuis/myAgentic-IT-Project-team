@@ -121,7 +121,7 @@ MUST be present at the end of every questionnaire file.
 Valid status values: `OPEN`, `ANSWERED`, `DEFERRED`.  
 `DEFERRED` is set only by the Orchestrator, never by the Questionnaire Agent.
 
-### REJECTION CRITERIA (Orchestrator uses these)
+### VALIDATION CRITERIA (Orchestrator uses these)
 
 A questionnaire file is INVALID if:
 - Q-IDs are absent or do not follow the `Q-[NN]-[NNN]` format
@@ -150,7 +150,7 @@ Valid `Status` values:
 - `PARTIAL` — at least 1 but not all questions answered
 - `COMPLETE` — all questions answered
 
-### REJECTION CRITERIA
+### VALIDATION CRITERIA
 
 Index is INVALID if:
 - File is missing when at least one questionnaire exists
@@ -240,7 +240,7 @@ Context blocks are ONLY generated for agents that have at least one ANSWERED que
 
 The Questionnaire Agent MUST update `questionnaire_answer_summary` in the session state after answer loading (see `.github/docs/contracts/session-state-contract.md`).
 
-### REJECTION CRITERIA
+### VALIDATION CRITERIA
 
 Answer loading output is INVALID if:
 - `coverage_pct` is missing or mathematically incorrect
@@ -290,7 +290,7 @@ Answer loading output is INVALID if:
 - Previous version content MUST be preserved as a collapsible `<details>` block at the bottom of the file
 - Sections with no new data since the last version are marked `*(unchanged — v[N-1])*`
 
-### REJECTION CRITERIA (Orchestrator uses these for ORC-26)
+### VALIDATION CRITERIA (Orchestrator uses these for ORC-26)
 
 An official document is REJECTED if:
 - Version header is absent
@@ -329,7 +329,7 @@ An official document is REJECTED if:
 
 All 8 rows MUST be present. Missing rows = `MISSING_DOCUMENT` flag to Orchestrator.
 
-### REJECTION CRITERIA
+### VALIDATION CRITERIA
 
 Registry is INVALID if:
 - Fewer than 8 rows present

@@ -322,6 +322,7 @@ After every sprint the agent updates the existing issues based on the Sprint Com
 - [ ] `sync-board` job has `needs: secret-scan` so board sync is blocked on secret scan failure
 - [ ] GitHub Sync Report present and complete
 - [ ] No open authentication escalations
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

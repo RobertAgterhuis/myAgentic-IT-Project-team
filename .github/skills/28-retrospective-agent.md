@@ -243,6 +243,7 @@ And injects as context into the following agents:
 - [ ] sprint-[SP-N]-retrospective.md written (immutable)
 - [ ] velocity-log.json updated (existing entries unchanged)
 - [ ] Ready for next Sprint Gate
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

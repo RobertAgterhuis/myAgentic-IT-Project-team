@@ -28,6 +28,8 @@ You produce NO new analyses. You translate and prioritize the findings of all Ph
 
 ### Step 0: Check for Questionnaire Input
 
+> **SCOPE CHANGE context:** If a SCOPE CHANGE is active for your dimension, check `.github/docs/synthesis/scope-change-[N].md` for constraints before proceeding.
+
 Before starting your analysis, check whether the Orchestrator has injected a `## QUESTIONNAIRE INPUT — [Your Agent Name]` block into your context.
 
 - **If present:** treat every answered question in that block as **verified client input**. Cite it as source `questionnaire:[Q-ID]`. Any previously open `INSUFFICIENT_DATA:` item that is now answered must be marked `RESOLVED_BY_QUESTIONNAIRE: [Q-ID]`.
@@ -259,10 +261,11 @@ You do NOT define/analyze:
 - [ ] All UNCERTAIN: items documented and escalated
 - [ ] All INSUFFICIENT_DATA: items documented and escalated
 - [ ] Output complies with contracts in /.github/docs/contracts/
-- [ ] Guardrails from /.github/docs/guardrails/ have been checked
+- [ ] Guardrails from /.github/docs/guardrails/ have been checked (domain-specific: `.github/docs/guardrails/01-business-guardrails.md`)
 - [ ] All findings include a source reference
 - [ ] Questionnaire input check performed (context block consumed or documented as NOT_INJECTED)
 - [ ] All remaining INSUFFICIENT_DATA: items compiled as QUESTIONNAIRE_REQUEST list and included in handoff for Orchestrator
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

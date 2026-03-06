@@ -130,8 +130,8 @@ Activate phase agents **only for the affected DIMENSION(s)**. Each agent receive
 | `BUSINESS` | Business Analyst → Domain Expert → Sales Strategist → Financial Analyst → Product Manager (34) → Critic + Risk |
 | `TECH` | Software Architect → Senior Developer → DevOps Engineer → Security Architect → Data Architect → Legal Counsel (33) → Critic + Risk |
 | `UX` | UX Researcher → UX Designer → UI Designer → Accessibility Specialist → Content Strategist (32) → Localization Specialist (35) → Critic + Risk |
-| `MARKETING` | Brand Strategist → Growth Marketer → CRO Specialist → Critic + Risk |
-| `ALL` | All agents in order: BUSINESS → TECH → UX → MARKETING, each with Critic + Risk |
+| `MARKETING` | Brand Strategist → Growth Marketer → CRO Specialist → Critic + Risk → Brand Assets Agent (30) → Storybook Agent (31) |
+| `ALL` | All agents in order: BUSINESS → TECH → UX → MARKETING, each with Critic + Risk; after MARKETING: Brand Assets Agent (30) → Storybook Agent (31) |
 
 Each agent produces output to: `.github/docs/synthesis/scope-change-[N]/phase-[N]/[agent-file].md`
 
@@ -260,6 +260,7 @@ When the Feature Agent detects `ARCH_CONFLICT` or marks findings as `OUT_OF_SCOP
 - [ ] No open UNCERTAIN: or INSUFFICIENT_DATA: without escalation
 - [ ] Questionnaire Agent activated for stale answers relating to changed dimension
 - [ ] If DIMENSION is `MARKETING` or `ALL`: Orchestrator notified to re-activate Brand & Assets Agent (30) per ORC-27 step 6b after Phase 4 re-analysis output is available; Storybook Agent (31) queued for re-activation after Agent 30 handoff (or `NOT_APPLICABLE — dimension does not include MARKETING`)
+- [ ] Output complies with agent-handoff-contract.md
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

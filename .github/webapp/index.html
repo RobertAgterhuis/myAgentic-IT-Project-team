@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic System — Command Center</title>
+  <style>
+    /* ── Theme: Light (default) ───────────────────── */
+    :root, [data-theme="light"] {
+      --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: rgba(99,102,241,.1);
+      --primary-glow: rgba(99,102,241,.25);
+      --accent: #8b5cf6; --accent-light: rgba(139,92,246,.1);
+      --success: #10b981; --success-light: rgba(16,185,129,.1);
+      --warning: #f59e0b; --warning-light: rgba(245,158,11,.1);
+      --danger: #ef4444; --danger-light: rgba(239,68,68,.1);
+      --bg: #f4f6fb; --bg-subtle: #eef1f8;
+      --surface: #ffffff; --surface-raised: #ffffff;
+      --surface-overlay: rgba(255,255,255,.85);
+      --text: #1e293b; --text-sec: #64748b; --text-muted: #627389;
+      --border: #e2e8f0; --border-hover: #cbd5e1; --border-subtle: #f1f5f9;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+      --radius: 10px; --radius-sm: 6px; --radius-lg: 16px;
+      --header-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+      --header-text: #ffffff;
+      --tab-bg: #ffffff;
+      --input-bg: #ffffff;
+      --code-bg: #f1f5f9;
+      --glass: rgba(255,255,255,.6);
+      --glass-border: rgba(255,255,255,.3);
+      --scrollbar-track: #f1f5f9;
+      --scrollbar-thumb: #cbd5e1;
+      --terminal-bg: #0f172a; --terminal-text: #e2e8f0;
+      --terminal-border: #1e293b;
+      --terminal-btn: #334155; --terminal-btn-border: #475569; --terminal-btn-hover: #475569;
+      color-scheme: light;
+    }
+
+    /* ── Theme: Dark ──────────────────────────────── */
+    [data-theme="dark"] {
+      --primary: #818cf8; --primary-dark: #6366f1; --primary-light: rgba(129,140,248,.12);
+      --primary-glow: rgba(129,140,248,.2);
+      --accent: #a78bfa; --accent-light: rgba(167,139,250,.1);
+      --success: #34d399; --success-light: rgba(52,211,153,.12);
+      --warning: #fbbf24; --warning-light: rgba(251,191,36,.12);
+      --danger: #f87171; --danger-light: rgba(248,113,113,.12);
+      --bg: #0f1117; --bg-subtle: #151823;
+      --surface: #1a1d2e; --surface-raised: #1e2235;
+      --surface-overlay: rgba(26,29,46,.9);
+      --text: #e2e8f0; --text-sec: #94a3b8; --text-muted: #7b8da1;
+      --border: #2a2f45; --border-hover: #3b4168; --border-subtle: #1e2235;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+      --shadow: 0 1px 3px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.15);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.25);
+      --header-bg: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #3b0764 100%);
+      --header-text: #e2e8f0;
+      --tab-bg: #1a1d2e;
+      --input-bg: #151823;
+      --code-bg: #151823;
+      --glass: rgba(26,29,46,.7);
+      --glass-border: rgba(255,255,255,.06);
+      --scrollbar-track: #151823;
+      --scrollbar-thumb: #2a2f45;
+      --terminal-bg: #0a0c14; --terminal-text: #c8d0e0;
+      --terminal-border: #1a1d2e;
+      --terminal-btn: #1e2235; --terminal-btn-border: #2a2f45; --terminal-btn-hover: #2a2f45;
+      color-scheme: dark;
+    }
+
+    /* ── Base reset ───────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text); background: var(--bg);
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+      transition: background .3s ease, color .3s ease;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Scrollbar styling ─────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Header ─────────────────────────────────────── */
+    .header {
+      background: var(--header-bg);
+      padding: 0 24px; height: 60px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0; gap: 16px;
+      box-shadow: 0 4px 20px rgba(99,102,241,.15);
+      position: relative; z-index: 10;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .header-logo { font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
+    .header-title { font-size: 16px; font-weight: 700; white-space: nowrap; color: var(--header-text); letter-spacing: -.2px; }
+    .header-subtitle { font-size: 12px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-stats { display: flex; gap: 18px; font-size: 12px; color: rgba(255,255,255,.8); flex-shrink: 0; }
+    .stat-val { font-weight: 700; color: #ffffff; }
+    .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* Header buttons override */
+    .header .btn {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+      color: #fff; backdrop-filter: blur(8px);
+    }
+    .header .btn:hover { background: rgba(255,255,255,.25); border-color: rgba(255,255,255,.35); }
+    .header .btn-primary { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); }
+    .header .btn-primary:hover { background: rgba(255,255,255,.3); }
+    .header .btn-success { background: rgba(16,185,129,.4); border-color: rgba(16,185,129,.5); }
+    .header .btn-success:hover { background: rgba(16,185,129,.55); }
+
+    /* ── Theme toggle ──────────────────────────────── */
+    .theme-toggle {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+      color: #fff; cursor: pointer; font-size: 18px;
+      transition: all .25s ease; flex-shrink: 0;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,.25); transform: rotate(30deg); }
+
+    /* ── Buttons ────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); cursor: pointer;
+      transition: all .2s ease; white-space: nowrap;
+      letter-spacing: -.1px;
+    }
+    .btn:hover { border-color: var(--border-hover); background: var(--bg-subtle); box-shadow: var(--shadow-sm); }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 12px var(--primary-glow); }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover { background: var(--success); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(16,185,129,.25); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); filter: brightness(1.1); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .container { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ────────────────────────────────────── */
+    .sidebar {
+      width: 280px; background: var(--surface); border-right: 1px solid var(--border);
+      overflow-y: auto; flex-shrink: 0; transition: background .3s ease;
+    }
+    .sb-phase {
+      padding: 16px 16px 6px; font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted);
+    }
+    .sb-item {
+      padding: 10px 16px; cursor: pointer; font-size: 13px;
+      border-left: 3px solid transparent; transition: all .15s ease;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sb-item:hover { background: var(--bg-subtle); }
+    .sb-item.active { background: var(--primary-light); border-left-color: var(--primary); }
+    .sb-item-name { font-weight: 600; }
+    .sb-progress { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); }
+    .prog-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); border-radius: 2px; transition: width .4s ease; }
+
+    /* ── Main ───────────────────────────────────────── */
+    .main { flex: 1; overflow-y: auto; padding: 24px; transition: background .3s ease; }
+    .main-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+    .main-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
+    .main-meta { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+
+    /* ── Section divider ───────────────────────────── */
+    .section-divider { font-size: 13px; font-weight: 700; color: var(--text-sec); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -.1px; }
+
+    /* ── Card ───────────────────────────────────────── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+      box-shadow: var(--shadow); transition: all .2s ease;
+    }
+    .card:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); }
+    .card.dirty { border-left: 3px solid var(--warning); }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .card-id { font-weight: 700; font-size: 14px; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; color: var(--primary); }
+    .badges { display: flex; gap: 6px; align-items: center; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .b-req { background: var(--danger-light); color: var(--danger); }
+    .b-opt { background: var(--bg-subtle); color: var(--text-sec); }
+    .b-open { background: var(--warning-light); color: var(--warning); }
+    .b-ans  { background: var(--success-light); color: var(--success); }
+    .b-def  { background: var(--bg-subtle); color: var(--text-muted); }
+    .card-q { font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+    .card-meta { font-size: 12px; color: var(--text-sec); margin-bottom: 16px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+    .card-meta dt { font-weight: 700; }
+    .card-ans label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-sec); text-transform: uppercase; letter-spacing: .3px; }
+    .card-ans textarea {
+      width: 100%; min-height: 72px; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical;
+      transition: all .2s ease; background: var(--input-bg); color: var(--text);
+    }
+    .card-ans textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 8px; }
+    .card-foot .status-group { display: flex; align-items: center; gap: 8px; }
+    .card-foot .status-group label { font-size: 12px; font-weight: 700; color: var(--text-sec); }
+    .card-foot .status-group select {
+      padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 13px; background: var(--input-bg); color: var(--text); transition: all .2s ease;
+    }
+    .card-foot .status-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+    /* ── Empty state ───────────────────────────────── */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--text-sec); padding: 40px; }
+    .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: .5; }
+    .empty-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .empty-desc { max-width: 440px; line-height: 1.7; font-size: 14px; }
+    .empty-desc code { background: var(--code-bg); padding: 2px 8px; border-radius: 4px; font-size: 13px; color: var(--primary); }
+
+    /* ── Toast ──────────────────────────────────────── */
+    .toast-box { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+      color: #fff; box-shadow: var(--shadow-lg); animation: tslide .3s cubic-bezier(.34,1.56,.64,1);
+      max-width: 420px; backdrop-filter: blur(12px);
+    }
+    .t-ok { background: linear-gradient(135deg, #10b981, #059669); }
+    .t-err { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .t-info { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    @keyframes tslide { from { transform: translateY(20px) scale(.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+    /* ── Modal ──────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center; z-index: 500;
+      backdrop-filter: blur(4px); animation: overlay-in .2s ease;
+    }
+    @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px; max-width: 500px; width: 92%;
+      box-shadow: var(--shadow-lg); animation: modal-in .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes modal-in { from { transform: scale(.95) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .modal p { font-size: 14px; color: var(--text-sec); line-height: 1.6; margin-bottom: 16px; }
+    .modal p code { background: var(--code-bg); padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--primary); }
+    .modal .scope-pick { margin-bottom: 16px; }
+    .modal .scope-pick label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .modal .scope-pick select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: var(--input-bg); color: var(--text); }
+    .modal .scope-pick select:focus { outline: none; border-color: var(--primary); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .hidden { display: none !important; }
+
+    /* ── Loading ────────────────────────────────────── */
+    .loading { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 14px; }
+
+    /* ── Tabs ───────────────────────────────────── */
+    .tabs {
+      display: flex; border-bottom: 1px solid var(--border); padding: 0;
+      background: var(--tab-bg); flex-shrink: 0; position: relative;
+    }
+    .tab {
+      padding: 12px 24px; font-size: 13px; font-weight: 700; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--text-muted);
+      transition: all .2s ease; user-select: none; letter-spacing: -.1px;
+    }
+    .tab:hover { color: var(--text); background: var(--bg-subtle); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: transparent; }
+    .tab .tab-count {
+      font-size: 11px; font-weight: 800; background: var(--border); color: var(--text-sec);
+      border-radius: 10px; padding: 2px 8px; margin-left: 6px;
+    }
+    .tab.active .tab-count { background: var(--primary-light); color: var(--primary); }
+
+    /* ── Decision cards ────────────────────────────── */
+    .dec-cards { padding: 24px; }
+    .dec-group-title {
+      font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: .6px; margin: 24px 0 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dec-group-title:first-child { margin-top: 0; }
+    .dec-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px;
+      box-shadow: var(--shadow); transition: all .2s ease;
+    }
+    .dec-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-md); }
+    .dec-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .dec-card-id { font-weight: 800; font-size: 13px; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; color: var(--primary); }
+    .b-high { background: var(--danger-light); color: var(--danger); }
+    .b-med  { background: var(--warning-light); color: var(--warning); }
+    .b-low  { background: var(--bg-subtle); color: var(--text-sec); }
+    .b-decided { background: var(--success-light); color: var(--success); }
+    .b-expired { background: var(--bg-subtle); color: var(--text-muted); }
+    .b-deferred { background: var(--warning-light); color: var(--warning); }
+    .dec-card-text { font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+    .dec-card-meta { font-size: 12px; color: var(--text-sec); display: flex; gap: 16px; flex-wrap: wrap; }
+    .dec-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .dec-card-notes {
+      font-size: 13px; color: var(--text-sec); margin-top: 10px; padding: 10px 14px;
+      background: var(--bg-subtle); border-radius: var(--radius-sm);
+      border-left: 3px solid var(--primary); line-height: 1.6;
+    }
+    .dec-answer-form { margin-top: 12px; }
+    .dec-answer-form textarea {
+      width: 100%; min-height: 60px; padding: 10px 12px; margin-bottom: 8px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 13px; line-height: 1.6; resize: vertical;
+      background: var(--input-bg); color: var(--text); transition: all .2s ease;
+    }
+    .dec-answer-form textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .dec-answer-actions { display: flex; gap: 8px; }
+    .dec-empty { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+
+    /* ── New Decision form in modal ─────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; color: var(--text-sec); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 14px; font-family: inherit;
+      background: var(--input-bg); color: var(--text); transition: all .2s ease;
+    }
+    .form-group textarea { min-height: 72px; resize: vertical; line-height: 1.6; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+
+    /* ── Blocking badge ─────────────────────────── */
+    .badge-blocking {
+      background: linear-gradient(135deg, var(--danger), #dc2626); color: #fff;
+      animation: pulse-block 2s ease-in-out infinite; padding: 3px 12px; font-size: 11px;
+      box-shadow: 0 2px 8px var(--danger-light);
+    }
+    @keyframes pulse-block { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    .dec-card.blocking { border-left: 3px solid var(--danger); }
+
+    /* ── Decision filter bar ────────────────────── */
+    .dec-filter-bar {
+      display: flex; gap: 10px; align-items: center; padding: 12px 24px;
+      flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+    .dec-filter-bar input {
+      flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 13px; font-family: inherit;
+      background: var(--input-bg); color: var(--text); transition: all .2s ease;
+    }
+    .dec-filter-bar input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .dec-filter-bar select {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 13px; background: var(--input-bg); color: var(--text);
+    }
+    .dec-filter-bar select:focus { outline: none; border-color: var(--primary); }
+
+    /* ── Decision stats bar ─────────────────────── */
+    .dec-stats-bar { display: flex; gap: 16px; padding: 12px 24px 0; font-size: 12px; color: var(--text-sec); flex-wrap: wrap; align-items: center; }
+    .stat-blocking { color: var(--danger); font-weight: 800; }
+
+    /* ── Decision action buttons ────────────────── */
+    .dec-card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+    /* ── Cross-reference badge ──────────────────── */
+    .xref-badge {
+      display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+      color: var(--primary); background: var(--primary-light); padding: 2px 10px;
+      border-radius: 12px; cursor: default; margin-left: 4px; font-weight: 600;
+    }
+
+    /* ── Command Center ─────────────────────────────── */
+    .cmd-layout { display: flex; flex: 1; overflow: hidden; }
+    .cmd-sidebar {
+      width: 300px; background: var(--surface); border-right: 1px solid var(--border);
+      overflow-y: auto; flex-shrink: 0; padding: 16px; transition: background .3s ease;
+    }
+    .cmd-main { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* Command launcher cards */
+    .cmd-section-title {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--text-muted); margin: 18px 0 8px;
+    }
+    .cmd-section-title:first-child { margin-top: 0; }
+    .cmd-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 12px; margin-bottom: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      transition: all .2s ease; text-align: left;
+    }
+    .cmd-btn:hover { border-color: var(--primary); background: var(--primary-light); transform: translateX(2px); }
+    .cmd-btn.active {
+      border-color: var(--primary); background: var(--primary-light);
+      box-shadow: 0 0 0 2px var(--primary-glow), var(--shadow-sm);
+    }
+    .cmd-btn-icon { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+    .cmd-btn-label { flex: 1; }
+    .cmd-btn-sub { font-size: 11px; color: var(--text-sec); font-weight: 400; }
+
+    /* Command form */
+    .cmd-form {
+      margin-top: 20px; padding: 20px; background: var(--surface-raised);
+      border-radius: var(--radius); border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .cmd-form h3 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .cmd-form .form-group { margin-bottom: 12px; }
+    .cmd-form .form-group label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--text-sec); }
+    .cmd-form .form-group input, .cmd-form .form-group select, .cmd-form .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--text);
+    }
+    .cmd-form .form-group textarea { min-height: 60px; resize: vertical; }
+    .cmd-form .form-group input:focus, .cmd-form .form-group select:focus, .cmd-form .form-group textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .cmd-submit-row { display: flex; gap: 8px; margin-top: 16px; }
+
+    /* Clipboard box */
+    .cmd-clipboard {
+      margin-top: 12px; padding: 12px 14px;
+      background: var(--terminal-bg); color: var(--terminal-text); border-radius: var(--radius-sm);
+      font-family: 'SF Mono','Cascadia Code','Consolas', monospace; font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      border: 1px solid var(--terminal-border); transition: all .3s ease;
+    }
+    .cmd-clipboard code { flex: 1; word-break: break-all; }
+    .cmd-clipboard button {
+      padding: 5px 12px; background: var(--terminal-btn); color: var(--terminal-text); border: 1px solid var(--terminal-btn-border);
+      border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; white-space: nowrap;
+      transition: all .15s ease;
+    }
+    .cmd-clipboard button:hover { background: var(--terminal-btn-hover); }
+
+    /* Pipeline visualization */
+    .pipe-header { margin-bottom: 24px; }
+    .pipe-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.3px; }
+    .pipe-header .pipe-status { font-size: 13px; color: var(--text-sec); }
+    .pipe-phase {
+      margin-bottom: 12px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+      transition: all .2s ease;
+    }
+    .pipe-phase:hover { box-shadow: var(--shadow-md); }
+    .pipe-phase-head {
+      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+      border-bottom: 1px solid var(--border); background: var(--bg-subtle);
+      transition: background .3s ease;
+    }
+    .pipe-phase-icon { font-size: 22px; flex-shrink: 0; }
+    .pipe-phase-label { flex: 1; font-weight: 700; font-size: 14px; }
+    .pipe-phase-count { font-size: 12px; color: var(--text-sec); font-weight: 600; }
+    .pipe-phase-badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .pipe-badge-pending { background: var(--border); color: var(--text-muted); }
+    .pipe-badge-active  {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; box-shadow: 0 2px 8px var(--primary-glow);
+      animation: pulse-pipe 2s ease-in-out infinite;
+    }
+    .pipe-badge-done { background: linear-gradient(135deg, var(--success), #059669); color: #fff; }
+    @keyframes pulse-pipe { 0%, 100% { opacity: 1; box-shadow: 0 2px 8px var(--primary-glow); } 50% { opacity: .8; box-shadow: 0 2px 16px var(--primary-glow); } }
+
+    .pipe-agents { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px; }
+    .pipe-agent {
+      display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+      border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border); background: var(--surface);
+      transition: all .25s ease;
+    }
+    .pipe-agent-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: all .25s ease; }
+    .dot-pending { background: var(--border); }
+    .dot-active  { background: var(--primary); box-shadow: 0 0 8px var(--primary-glow); animation: pulse-dot 1.5s ease-in-out infinite; }
+    .dot-done    { background: var(--success); }
+    @keyframes pulse-dot { 0%, 100% { transform: scale(1); box-shadow: 0 0 8px var(--primary-glow); } 50% { transform: scale(1.4); box-shadow: 0 0 14px var(--primary-glow); } }
+
+    .pipe-agent.agent-active {
+      border-color: var(--primary); background: var(--primary-light);
+      font-weight: 700; box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+    .pipe-agent.agent-done { border-color: var(--success); background: var(--success-light); color: var(--success); font-weight: 600; }
+
+    /* Pipeline progress bar */
+    .pipe-progress { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .pipe-progress-bar { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .pipe-progress-fill {
+      height: 100%; border-radius: 5px; transition: width .6s cubic-bezier(.34,1.56,.64,1);
+      background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
+      background-size: 200% 100%; animation: shimmer 3s ease infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    .pipe-progress-label { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+
+    /* Sprint tracker */
+    .pipe-sprints { margin-top: 16px; }
+    .pipe-sprint-card {
+      padding: 14px 18px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+      transition: all .2s ease;
+    }
+    .pipe-sprint-card:hover { box-shadow: var(--shadow-md); }
+    .pipe-sprint-id { font-weight: 800; font-size: 13px; font-family: 'SF Mono','Cascadia Code','Consolas', monospace; color: var(--primary); }
+
+    /* Command pending box */
+    .cmd-pending {
+      padding: 16px 18px; background: var(--warning-light); border: 1px solid var(--warning);
+      border-radius: var(--radius); margin-bottom: 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .cmd-pending-icon { font-size: 22px; }
+    .cmd-pending-text { flex: 1; font-size: 13px; }
+    .cmd-pending-cmd { font-weight: 800; font-family: 'SF Mono','Cascadia Code','Consolas', monospace; }
+
+    /* Empty pipeline state */
+    .pipe-empty { text-align: center; padding: 80px 20px; color: var(--text-sec); }
+    .pipe-empty-icon { font-size: 64px; opacity: .35; margin-bottom: 20px; }
+    .pipe-empty-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -.3px; }
+    .pipe-empty-desc { max-width: 440px; margin: 0 auto; font-size: 14px; line-height: 1.7; }
+
+    /* ── Help Panel ──────────────────────────────────── */
+    .help-overlay {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+      display: flex; justify-content: flex-end;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .help-overlay.open { opacity: 1; pointer-events: auto; }
+    .help-panel {
+      width: min(780px, 92vw); height: 100vh;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: row;
+      box-shadow: var(--shadow-lg);
+      transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .help-overlay.open .help-panel { transform: translateX(0); }
+    .help-nav {
+      width: 220px; min-width: 220px; border-right: 1px solid var(--border);
+      background: var(--bg-subtle); overflow-y: auto; padding: 16px 0;
+    }
+    .help-nav-title {
+      padding: 8px 20px; font-size: 11px; text-transform: uppercase; font-weight: 700;
+      color: var(--text-muted); letter-spacing: .6px;
+    }
+    .help-nav-item {
+      padding: 10px 20px; cursor: pointer; font-size: 13px;
+      color: var(--text-sec); transition: all .15s ease; display: flex; align-items: center; gap: 8px;
+    }
+    .help-nav-item:hover { background: var(--primary-light); color: var(--text); }
+    .help-nav-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    .help-content {
+      flex: 1; overflow-y: auto; padding: 32px 36px;
+      font-size: 14px; line-height: 1.75; color: var(--text);
+    }
+    .help-close {
+      position: absolute; top: 12px; right: 16px; background: none; border: none;
+      font-size: 22px; cursor: pointer; color: var(--text-sec); width: 36px; height: 36px;
+      border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+      transition: all .15s ease;
+    }
+    .help-close:hover { background: var(--primary-light); color: var(--text); }
+    /* Help markdown rendering */
+    .help-content h1 { font-size: 24px; font-weight: 800; margin: 0 0 16px; letter-spacing: -.4px; }
+    .help-content h2 { font-size: 19px; font-weight: 700; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .help-content h3 { font-size: 16px; font-weight: 700; margin: 22px 0 8px; }
+    .help-content h4 { font-size: 14px; font-weight: 700; margin: 18px 0 6px; }
+    .help-content p { margin: 0 0 12px; }
+    .help-content ul, .help-content ol { margin: 0 0 12px; padding-left: 22px; }
+    .help-content li { margin-bottom: 4px; }
+    .help-content code {
+      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+      font-family: 'SF Mono','Cascadia Code','Consolas', monospace; font-size: 12.5px;
+    }
+    .help-content pre {
+      background: var(--code-bg); padding: 14px 18px; border-radius: var(--radius);
+      overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--border);
+    }
+    .help-content pre code { background: none; padding: 0; font-size: 12.5px; }
+    .help-content table {
+      width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 13px;
+    }
+    .help-content th, .help-content td {
+      padding: 8px 12px; border: 1px solid var(--border); text-align: left;
+    }
+    .help-content th { background: var(--bg-subtle); font-weight: 700; }
+    .help-content blockquote {
+      margin: 0 0 14px; padding: 10px 16px; border-left: 3px solid var(--primary);
+      background: var(--primary-light); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      color: var(--text-sec);
+    }
+    .help-content a { color: var(--primary); text-decoration: none; }
+    .help-content a:hover { text-decoration: underline; }
+    .help-content strong { font-weight: 700; }
+    .help-content em { font-style: italic; }
+    .help-content hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    @media (max-width: 600px) {
+      .help-nav { width: 160px; min-width: 160px; }
+      .help-content { padding: 20px; }
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 700px) {
+      .sidebar { width: 220px; }
+      .cmd-sidebar { width: 240px; }
+      .header-stats { display: none; }
+    }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <span class="header-logo">&#128203;</span>
+      <div>
+        <div class="header-title">Agentic System — Command Center</div>
+        <div class="header-subtitle" id="hSub">Loading&hellip;</div>
+      </div>
+    </div>
+    <div class="header-stats" id="hStats"></div>
+    <div class="header-actions">
+      <button class="btn" id="btnSaveAll" disabled>&#128190; Save All</button>
+      <button class="btn btn-success" id="btnNewDecision">&#10010; New Decision</button>
+      <button class="btn btn-primary" id="btnReeval">&#128260; Reevaluate</button>
+      <button class="btn" id="btnHelp" title="Help">&#10067; Help</button>
+      <button class="theme-toggle" id="btnTheme" title="Toggle dark mode">&#127769;</button>
+    </div>
+  </header>
+
+  <!-- ── Tabs ───────────────────────────────── -->
+  <div class="tabs" id="tabBar">
+    <div class="tab active" data-tab="commandcenter">&#128640; Command Center</div>
+    <div class="tab" data-tab="questionnaires">&#128221; Questionnaires <span class="tab-count" id="tabCountQ">0</span></div>
+    <div class="tab" data-tab="decisions">&#9878; Decisions <span class="tab-count" id="tabCountD">0</span></div>
+  </div>
+
+  <!-- ── Body ──────────────────────────────── -->
+  <div class="container hidden" id="panelQuestionnaires">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main" id="main">
+      <div class="loading" id="loader">Loading questionnaires&hellip;</div>
+    </main>
+  </div>
+
+  <div class="container hidden" id="panelDecisions">
+    <main class="main" style="padding:0;overflow-y:auto;">
+      <div class="dec-stats-bar" id="decStats"></div>
+      <div class="dec-filter-bar">
+        <label for="decFilterText" class="sr-only">Search decisions</label>
+        <input type="text" id="decFilterText" placeholder="&#128269; Search decisions...">
+        <label for="decFilterPriority" class="sr-only">Filter by priority</label>
+        <select id="decFilterPriority"><option value="">All priorities</option><option value="HIGH">HIGH</option><option value="MEDIUM">MEDIUM</option><option value="LOW">LOW</option></select>
+        <label for="decFilterStatus" class="sr-only">Filter by status</label>
+        <select id="decFilterStatus"><option value="">All statuses</option><option value="OPEN">OPEN</option><option value="DECIDED">DECIDED</option><option value="DEFERRED">DEFERRED</option><option value="EXPIRED">EXPIRED</option></select>
+      </div>
+      <div class="dec-cards" id="decMain">
+        <div class="loading" id="decLoader">Loading decisions&hellip;</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Command Center panel ──────────────── -->
+  <div class="cmd-layout" id="panelCommandCenter">
+    <nav class="cmd-sidebar" id="cmdSidebar">
+      <div class="cmd-section-title">Create New Solution</div>
+      <button class="cmd-btn" data-cmd="CREATE">
+        <span class="cmd-btn-icon">&#128640;</span>
+        <div><div class="cmd-btn-label">CREATE</div><div class="cmd-btn-sub">Full solution — all 4 phases</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="CREATE BUSINESS">
+        <span class="cmd-btn-icon">&#128188;</span>
+        <div><div class="cmd-btn-label">CREATE BUSINESS</div><div class="cmd-btn-sub">Phase 1 — Requirements &amp; Strategy</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="CREATE TECH">
+        <span class="cmd-btn-icon">&#9881;</span>
+        <div><div class="cmd-btn-label">CREATE TECH</div><div class="cmd-btn-sub">Phase 2 — Architecture &amp; Design</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="CREATE UX">
+        <span class="cmd-btn-icon">&#127912;</span>
+        <div><div class="cmd-btn-label">CREATE UX</div><div class="cmd-btn-sub">Phase 3 — Experience Design</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="CREATE MARKETING">
+        <span class="cmd-btn-icon">&#128227;</span>
+        <div><div class="cmd-btn-label">CREATE MARKETING</div><div class="cmd-btn-sub">Phase 4 — Brand &amp; Growth</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="CREATE SYNTHESIS">
+        <span class="cmd-btn-icon">&#128209;</span>
+        <div><div class="cmd-btn-label">CREATE SYNTHESIS</div><div class="cmd-btn-sub">Combine all phase outputs</div></div>
+      </button>
+
+      <div class="cmd-section-title">Audit Existing Software</div>
+      <button class="cmd-btn" data-cmd="AUDIT">
+        <span class="cmd-btn-icon">&#128270;</span>
+        <div><div class="cmd-btn-label">AUDIT</div><div class="cmd-btn-sub">Full audit — all 4 phases</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="AUDIT BUSINESS">
+        <span class="cmd-btn-icon">&#128188;</span>
+        <div><div class="cmd-btn-label">AUDIT BUSINESS</div><div class="cmd-btn-sub">Phase 1 only</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="AUDIT TECH">
+        <span class="cmd-btn-icon">&#9881;</span>
+        <div><div class="cmd-btn-label">AUDIT TECH</div><div class="cmd-btn-sub">Phase 2 only</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="AUDIT UX">
+        <span class="cmd-btn-icon">&#127912;</span>
+        <div><div class="cmd-btn-label">AUDIT UX</div><div class="cmd-btn-sub">Phase 3 only</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="AUDIT MARKETING">
+        <span class="cmd-btn-icon">&#128227;</span>
+        <div><div class="cmd-btn-label">AUDIT MARKETING</div><div class="cmd-btn-sub">Phase 4 only</div></div>
+      </button>
+
+      <div class="cmd-section-title">On-Demand Commands</div>
+      <button class="cmd-btn" data-cmd="FEATURE">
+        <span class="cmd-btn-icon">&#10024;</span>
+        <div><div class="cmd-btn-label">FEATURE</div><div class="cmd-btn-sub">New feature — full cycle</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="SCOPE CHANGE">
+        <span class="cmd-btn-icon">&#128260;</span>
+        <div><div class="cmd-btn-label">SCOPE CHANGE</div><div class="cmd-btn-sub">Pivot or major direction change</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="HOTFIX">
+        <span class="cmd-btn-icon">&#128293;</span>
+        <div><div class="cmd-btn-label">HOTFIX</div><div class="cmd-btn-sub">Emergency fix — bypass Sprint Gate</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="REEVALUATE">
+        <span class="cmd-btn-icon">&#128257;</span>
+        <div><div class="cmd-btn-label">REEVALUATE</div><div class="cmd-btn-sub">Re-run analysis with new info</div></div>
+      </button>
+      <button class="cmd-btn" data-cmd="REFRESH ONBOARDING">
+        <span class="cmd-btn-icon">&#128259;</span>
+        <div><div class="cmd-btn-label">REFRESH ONBOARDING</div><div class="cmd-btn-sub">Rescan workspace &amp; tooling</div></div>
+      </button>
+    </nav>
+    <main class="cmd-main" id="cmdMain">
+      <div class="pipe-empty" id="cmdWelcome">
+        <div class="pipe-empty-icon">&#128640;</div>
+        <div class="pipe-empty-title">Command Center</div>
+        <div class="pipe-empty-desc">
+          Select a command from the sidebar to launch the agentic team.<br>
+          The pipeline below will show real-time progress once a session is active.
+        </div>
+      </div>
+      <div id="cmdPipeline"></div>
+    </main>
+  </div>
+
+  <!-- ── Toast container ───────────────────── -->
+  <div class="toast-box" id="toasts" role="status" aria-live="polite"></div>
+
+  <!-- ── Reevaluate modal ──────────────────── -->
+  <div class="overlay hidden" id="reevalOverlay" role="dialog" aria-modal="true" aria-labelledby="reevalTitle">
+    <div class="modal">
+      <h2 id="reevalTitle">&#128260; Trigger Reevaluation</h2>
+      <p>This will save all pending changes and write a reevaluation trigger file.
+         After clicking <strong>Reevaluate</strong>, type <code>REEVALUATE [SCOPE]</code>
+         in the Copilot chat to start processing your updated answers.</p>
+      <div class="scope-pick">
+        <label for="reevalScope">Scope</label>
+        <select id="reevalScope">
+          <option value="ALL">ALL &mdash; Full reevaluation</option>
+          <option value="BUSINESS">BUSINESS &mdash; Phase 1 only</option>
+          <option value="TECH">TECH &mdash; Phase 2 only</option>
+          <option value="UX">UX &mdash; Phase 3 only</option>
+          <option value="MARKETING">MARKETING &mdash; Phase 4 only</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btnCancelReeval">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmReeval">&#128260; Reevaluate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New Decision modal ────────────────── -->
+  <div class="overlay hidden" id="newDecOverlay" role="dialog" aria-modal="true" aria-labelledby="newDecTitle">
+    <div class="modal">
+      <h2 id="newDecTitle">&#10010; New Decision</h2>
+      <p>Create a new decision or open question for the agentic team. The Orchestrator will pick it up at the next Sprint Gate.</p>
+      <div class="form-group">
+        <label for="ndType">Type</label>
+        <select id="ndType">
+          <option value="DECIDED">DECIDED &mdash; You have already decided</option>
+          <option value="OPEN_QUESTION">OPEN QUESTION &mdash; Needs team input</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="ndPriority">Priority</label>
+          <select id="ndPriority">
+            <option value="HIGH">HIGH</option>
+            <option value="MEDIUM" selected>MEDIUM</option>
+            <option value="LOW">LOW</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="ndScope">Scope</label>
+          <input type="text" id="ndScope" placeholder="e.g. Phase 2, SP-3, All sprints">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="ndText">Decision / Question</label>
+        <textarea id="ndText" placeholder="What has been decided or what needs to be answered?"></textarea>
+      </div>
+      <div class="form-group" id="ndNotesGroup">
+        <label for="ndNotes">Notes (optional)</label>
+        <textarea id="ndNotes" style="min-height: 48px;" placeholder="Additional context or rationale"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btnCancelNewDec">Cancel</button>
+        <button class="btn btn-success" id="btnConfirmNewDec">&#10010; Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Confirmation modal ────────────────── -->
+  <div class="overlay hidden" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal">
+      <h2 id="confirmTitle">Confirm Action</h2>
+      <p id="confirmText">Are you sure?</p>
+      <div class="form-group hidden" id="confirmReasonGroup">
+        <label for="confirmReason">Reason (optional)</label>
+        <input type="text" id="confirmReason" placeholder="Why?">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btnCancelConfirm">Cancel</button>
+        <button class="btn btn-primary" id="btnDoConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Edit Decision modal ───────────────── -->
+  <div class="overlay hidden" id="editDecOverlay" role="dialog" aria-modal="true" aria-labelledby="editDecTitle">
+    <div class="modal">
+      <h2 id="editDecTitle">&#9998; Edit Decision</h2>
+      <input type="hidden" id="edId">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="edPriority">Priority</label>
+          <select id="edPriority"><option value="HIGH">HIGH</option><option value="MEDIUM">MEDIUM</option><option value="LOW">LOW</option></select>
+        </div>
+        <div class="form-group">
+          <label for="edScope">Scope</label>
+          <input type="text" id="edScope">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="edText">Decision</label>
+        <textarea id="edText"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="edNotes">Notes</label>
+        <textarea id="edNotes" style="min-height: 48px;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btnCancelEditDec">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmEditDec">&#128190; Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Help Panel ─────────────────────────── -->
+  <div class="help-overlay" id="helpOverlay">
+    <div class="help-panel">
+      <button class="help-close" id="helpClose">&times;</button>
+      <div class="help-nav" id="helpNav"></div>
+      <div class="help-content" id="helpContent"><p style="color:var(--text-muted)">Loading help&hellip;</p></div>
+    </div>
+  </div>
+
+<script>
+/* ── State ───────────────────────────────────────────── */
+let questionnaires = [];
+let decisions      = { open: [], decided: [], deferred: [] };
+let activeFile     = null;
+let activeTab      = 'commandcenter';
+const dirty        = new Map();   // "file::Q-ID" → { answer, status }
+let decFilter      = { text: '', priority: '', status: '' };
+let pollTimer      = null;
+let lastDecHash    = '';
+let pendingConfirm = null;
+let progress       = null;        // pipeline progress data
+let activeCmd      = null;        // selected command in sidebar
+let lastClipboard  = '';          // last clipboard text shown
+
+/* ── API layer ───────────────────────────────────────── */
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Request failed');
+  return d;
+}
+
+/* ── Load ────────────────────────────────────────────── */
+async function load(silent) {
+  try {
+    const [qData, dData, pData] = await Promise.all([
+      api('GET', '/api/questionnaires'),
+      api('GET', '/api/decisions'),
+      api('GET', '/api/progress').catch(() => null),
+    ]);
+    const newHash = JSON.stringify(dData);
+    if (silent && newHash === lastDecHash && !pData) return;
+    questionnaires = qData.questionnaires;
+    decisions = dData;
+    if (pData) progress = pData;
+    if (silent && lastDecHash && newHash !== lastDecHash) {
+      toast('Data updated externally \u2014 refreshed', 't-info');
+    }
+    lastDecHash = newHash;
+    renderSidebar();
+    renderStats();
+    updateTabCounts();
+    if (activeTab === 'questionnaires') {
+      if (questionnaires.length > 0 && !activeFile) selectQ(questionnaires[0].file);
+      else if (activeFile) selectQ(activeFile);
+      else renderEmpty();
+    } else if (activeTab === 'decisions') {
+      renderDecisions();
+    } else if (activeTab === 'commandcenter') {
+      renderPipeline();
+    }
+    const loader = document.getElementById('loader');
+    if (loader) loader.classList.add('hidden');
+    const decLoader = document.getElementById('decLoader');
+    if (decLoader) decLoader.classList.add('hidden');
+  } catch (e) {
+    if (!silent) {
+      const loader = document.getElementById('loader');
+      if (loader) loader.textContent = 'Error: ' + e.message;
+      const decLoader = document.getElementById('decLoader');
+      if (decLoader) decLoader.textContent = 'Error: ' + e.message;
+    }
+  }
+}
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => load(true), 10000);
+}
+
+/* ── Focus trapping for modals ───────────────────────── */
+let _focusTrapOverlay = null;
+let _previousFocus = null;
+
+function openModal(overlayId) {
+  _previousFocus = document.activeElement;
+  const overlay = document.getElementById(overlayId);
+  overlay.classList.remove('hidden');
+  _focusTrapOverlay = overlay;
+  const first = overlay.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (first) first.focus();
+}
+
+function closeModal(overlayId) {
+  const overlay = document.getElementById(overlayId);
+  overlay.classList.add('hidden');
+  if (_focusTrapOverlay === overlay) _focusTrapOverlay = null;
+  if (_previousFocus) { _previousFocus.focus(); _previousFocus = null; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Tab' && _focusTrapOverlay) {
+    const focusable = Array.from(_focusTrapOverlay.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+});
+
+/* ── Escape helpers ──────────────────────────────────── */
+const _esc = document.createElement('span');
+function esc(s) { _esc.textContent = s || ''; return _esc.innerHTML; }
+function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Sidebar ─────────────────────────────────────────── */
+function renderSidebar() {
+  const el = document.getElementById('sidebar');
+  if (!questionnaires.length) {
+    el.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-muted)">No questionnaires found.</div>';
+    return;
+  }
+  const phases = {};
+  questionnaires.forEach(q => { (phases[q.phase || 'Unknown'] ||= []).push(q); });
+
+  let h = '';
+  for (const [phase, qs] of Object.entries(phases)) {
+    h += `<div class="sb-phase">${esc(phase)}</div>`;
+    for (const q of qs) {
+      const total = q.questions.length;
+      const ans   = q.questions.filter(x => x.status === 'ANSWERED').length;
+      const pct   = total ? Math.round(ans / total * 100) : 0;
+      h += `<div class="sb-item${q.file === activeFile ? ' active' : ''}" data-file="${escAttr(q.file)}">
+        <span class="sb-item-name">${esc(q.agent)}</span>
+        <div class="sb-progress"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div><span>${ans}/${total}</span></div>
+      </div>`;
+    }
+  }
+  el.innerHTML = h;
+}
+
+/* ── Stats ───────────────────────────────────────────── */
+function renderStats() {
+  if (activeTab === 'commandcenter') {
+    const p = progress;
+    if (p && p.active) {
+      const donePhases = p.phases.filter(ph => ph.status === 'done').length;
+      const totalPhases = p.phases.length;
+      document.getElementById('hStats').innerHTML =
+        `<span>Phase: <span class="stat-val">${esc(p.session.current_phase || '—')}</span></span>
+         <span>Agent: <span class="stat-val">${esc(p.session.current_agent || '—')}</span></span>
+         <span>Progress: <span class="stat-val">${donePhases}/${totalPhases} phases</span></span>`;
+      document.getElementById('hSub').textContent = `Session: ${p.session.session_id || '—'} · ${p.session.cycle_type || '—'}`;
+    } else {
+      document.getElementById('hStats').innerHTML = '<span>No active session</span>';
+      document.getElementById('hSub').textContent = 'Command Center — Launch a command to begin';
+    }
+    return;
+  }
+  if (activeTab === 'decisions') {
+    const blocking = decisions.open.filter(d => d.priority === 'HIGH').length;
+    document.getElementById('hStats').innerHTML =
+      `<span>Open: <span class="stat-val" style="color:var(--warning)">${decisions.open.length}</span></span>
+       <span>Decided: <span class="stat-val" style="color:var(--success)">${decisions.decided.length}</span></span>
+       <span>Deferred: <span class="stat-val">${decisions.deferred.length}</span></span>
+       ${blocking ? `<span style="color:var(--danger)">&#9888; Blocking: <span class="stat-val">${blocking}</span></span>` : ''}`;
+    document.getElementById('hSub').textContent =
+      `${decisions.open.length + decisions.decided.length + decisions.deferred.length} decision(s)`;
+    return;
+  }
+  const total = questionnaires.reduce((s, q) => s + q.questions.length, 0);
+  const ans   = questionnaires.reduce((s, q) => s + q.questions.filter(x => x.status === 'ANSWERED').length, 0);
+  const pct   = total ? Math.round(ans / total * 100) : 0;
+  document.getElementById('hStats').innerHTML =
+    `<span>Total: <span class="stat-val">${total}</span></span>
+     <span>Answered: <span class="stat-val" style="color:var(--success)">${ans}</span></span>
+     <span>Open: <span class="stat-val" style="color:var(--warning)">${total - ans}</span></span>
+     <span>Coverage: <span class="stat-val">${pct}%</span></span>`;
+  document.getElementById('hSub').textContent =
+    questionnaires.length ? `${questionnaires.length} questionnaire(s) across ${new Set(questionnaires.map(q => q.phase)).size} phase(s)` : 'No questionnaires generated yet';
+}
+
+/* ── Select questionnaire ────────────────────────────── */
+function selectQ(file) {
+  activeFile = file;
+  renderSidebar();
+  const q = questionnaires.find(x => x.file === file);
+  q ? renderQ(q) : renderEmpty();
+}
+
+/* ── Render questions ────────────────────────────────── */
+function renderQ(q) {
+  const main = document.getElementById('main');
+  let h = `<div class="main-header">
+    <div><div class="main-title">${esc(q.agent)}</div>
+    <div class="main-meta">${esc(q.phase)} &middot; ${esc(q.version)} &middot; Generated: ${esc(q.generated)}</div></div>
+    <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}">&#128190; Save All Changes</button>
+  </div>`;
+
+  let currentSection = '';
+  for (const x of q.questions) {
+    if (x.section && x.section !== currentSection) {
+      currentSection = x.section;
+      h += `<div class="section-divider">${esc(currentSection)}</div>`;
+    }
+    const k  = q.file + '::' + x.id;
+    const d  = dirty.get(k);
+    const av = d ? d.answer : x.answer;
+    const sv = d ? d.status : x.status;
+    const bc = x.classification === 'REQUIRED' ? 'b-req' : 'b-opt';
+    const sc = sv === 'ANSWERED' ? 'b-ans' : sv === 'DEFERRED' ? 'b-def' : 'b-open';
+
+    h += `<div class="card${dirty.has(k) ? ' dirty' : ''}" id="c-${x.id}">
+      <div class="card-top">
+        <div class="badges"><span class="card-id">${x.id}</span> <span class="badge ${bc}">${x.classification}</span></div>
+        <span class="badge ${sc}">${esc(sv)}</span>
+      </div>
+      <div class="card-q">${esc(x.question)}</div>
+      <dl class="card-meta">
+        ${x.whyNeeded ? `<dt>Why needed</dt><dd>${esc(x.whyNeeded)}</dd>` : ''}
+        ${x.expectedFormat ? `<dt>Format</dt><dd>${esc(x.expectedFormat)}</dd>` : ''}
+        ${x.example ? `<dt>Example</dt><dd>${esc(x.example)}</dd>` : ''}
+      </dl>
+      <div class="card-ans">
+        <label for="a-${x.id}">Your Answer</label>
+        <textarea id="a-${x.id}" data-file="${escAttr(q.file)}" data-qid="${x.id}">${esc(av)}</textarea>
+      </div>
+      <div class="card-foot">
+        <div class="status-group">
+          <label>Status</label>
+          <select data-file="${escAttr(q.file)}" data-qid="${x.id}" data-role="status">
+            <option value="OPEN"${sv === 'OPEN' ? ' selected' : ''}>OPEN</option>
+            <option value="ANSWERED"${sv === 'ANSWERED' ? ' selected' : ''}>ANSWERED</option>
+            <option value="DEFERRED"${sv === 'DEFERRED' ? ' selected' : ''}>DEFERRED</option>
+          </select>
+        </div>
+        <button class="btn btn-sm" data-save="${x.id}" data-file="${escAttr(q.file)}">&#128190; Save</button>
+      </div>
+    </div>`;
+  }
+  main.innerHTML = h;
+
+  // auto-resize textareas
+  main.querySelectorAll('.card-ans textarea').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(72, ta.scrollHeight) + 'px';
+  });
+}
+
+/* ── Empty state ─────────────────────────────────────── */
+function renderEmpty() {
+  document.getElementById('main').innerHTML = `
+    <div class="empty">
+      <div class="empty-icon">&#128221;</div>
+      <div class="empty-title">No questionnaires yet</div>
+      <div class="empty-desc">
+        Questionnaires are generated during the analysis phases (Phase 1&ndash;4) when agents
+        encounter items they need your input on.<br><br>
+        Run <code>CREATE [project]</code> or <code>AUDIT [project]</code> in the Copilot chat to start.
+      </div>
+    </div>`;
+}
+
+/* ── Tab switching ───────────────────────────────────── */
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('panelQuestionnaires').classList.toggle('hidden', tab !== 'questionnaires');
+  document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
+  document.getElementById('panelCommandCenter').classList.toggle('hidden', tab !== 'commandcenter');
+  document.getElementById('btnSaveAll').classList.toggle('hidden', tab !== 'questionnaires');
+  document.getElementById('btnNewDecision').classList.toggle('hidden', tab !== 'decisions' && tab !== 'questionnaires');
+  document.getElementById('btnReeval').classList.toggle('hidden', tab === 'commandcenter');
+  renderStats();
+  if (tab === 'decisions') renderDecisions();
+  if (tab === 'commandcenter') renderPipeline();
+}
+
+function updateTabCounts() {
+  const qTotal = questionnaires.reduce((n, q) => n + q.questions.length, 0);
+  const dTotal = decisions.open.length + decisions.decided.length + decisions.deferred.length;
+  document.getElementById('tabCountQ').textContent = qTotal;
+  document.getElementById('tabCountD').textContent = dTotal;
+}
+
+/* ── Cross-reference helper ───────────────────────────── */
+function findCrossRefs(decision) {
+  const scope = (decision.scope || '').toLowerCase();
+  if (!scope || !questionnaires.length) return '';
+  const matches = questionnaires.filter(q => {
+    const ph = (q.phase || '').toLowerCase();
+    return (ph && scope.includes(ph)) || (ph && ph.includes(scope)) || scope.includes('all');
+  });
+  if (matches.length === 0) return '';
+  const total = matches.reduce((n, q) => n + q.questions.length, 0);
+  return ` <span class="xref-badge" title="Related: ${matches.map(q => q.agent).join(', ')}">&#128203; ${total} Q</span>`;
+}
+
+/* ── Decision stats bar ──────────────────────────────── */
+function renderDecisionStats() {
+  const blocking = decisions.open.filter(d => d.priority === 'HIGH').length;
+  const el = document.getElementById('decStats');
+  if (blocking > 0) {
+    el.innerHTML = `<span class="stat-blocking">&#9888; ${blocking} HIGH-priority open question(s) are BLOCKING the Sprint Gate until answered</span>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+/* ── Decisions renderer ──────────────────────────────── */
+function prioBadge(p) {
+  const cls = p === 'HIGH' ? 'b-high' : p === 'MEDIUM' ? 'b-med' : 'b-low';
+  return `<span class="badge ${cls}">${esc(p)}</span>`;
+}
+
+function renderDecisions() {
+  renderDecisionStats();
+  const el = document.getElementById('decMain');
+
+  // Apply filters
+  const ft = decFilter.text.toLowerCase();
+  const fp = decFilter.priority;
+  const fs = decFilter.status;
+  function matches(d) {
+    if (ft) {
+      const hay = ((d.question || '') + (d.decision || '') + (d.notes || '') + (d.scope || '') + (d.subject || '') + (d.reason || '') + d.id).toLowerCase();
+      if (!hay.includes(ft)) return false;
+    }
+    if (fp && (d.priority || '') !== fp) return false;
+    if (fs && (d.status || '') !== fs) return false;
+    return true;
+  }
+
+  const openF    = decisions.open.filter(matches);
+  const decidedF = decisions.decided.filter(matches);
+  const deferrF  = decisions.deferred.filter(matches);
+  const all      = [...openF, ...decidedF, ...deferrF];
+
+  if (all.length === 0) {
+    const total = decisions.open.length + decisions.decided.length + decisions.deferred.length;
+    el.innerHTML = `<div class="dec-empty">
+      <div class="empty-icon" style="font-size:48px;opacity:.4;">&#9878;</div>
+      <div class="empty-title" style="margin:12px 0 6px;font-size:16px;font-weight:600;color:var(--text);">${total ? 'No decisions match filters' : 'No decisions yet'}</div>
+      <div style="color:var(--text-sec);font-size:14px;">${total ? 'Try adjusting the search or filter criteria.' : 'Click <strong>+ New Decision</strong> to create one, or agents will add open questions during analysis.'}</div>
+    </div>`;
+    return;
+  }
+
+  let h = '';
+
+  // Open Questions
+  if (openF.length > 0) {
+    h += `<div class="dec-group-title">&#9888; Open Questions (${openF.length})</div>`;
+    for (const d of openF) {
+      const isBlocking = d.priority === 'HIGH';
+      const xref = findCrossRefs(d);
+      h += `<div class="dec-card${isBlocking ? ' blocking' : ''}" id="dec-${escAttr(d.id)}">
+        <div class="dec-card-top">
+          <span class="dec-card-id">${esc(d.id)}</span>
+          <div class="badges">
+            ${isBlocking ? '<span class="badge badge-blocking">&#9888; BLOCKS SPRINT GATE</span>' : ''}
+            ${prioBadge(d.priority)} <span class="badge b-open">OPEN</span>${xref}
+          </div>
+        </div>
+        <div class="dec-card-text">${esc(d.question)}</div>
+        <div class="dec-card-meta">
+          <span>&#128205; ${esc(d.scope)}</span>
+          <span>&#128197; ${esc(d.date)}</span>
+        </div>
+        ${d.answer ? `<div class="dec-card-notes">${esc(d.answer)}</div>` : ''}
+        <div class="dec-answer-form">
+          <textarea id="decAns-${escAttr(d.id)}" placeholder="Type your answer here...">${esc(d.answer)}</textarea>
+          <div class="dec-answer-actions">
+            <button class="btn btn-sm btn-primary" data-dec-answer="${escAttr(d.id)}">&#128190; Save Answer</button>
+            <button class="btn btn-sm btn-success" data-dec-decide="${escAttr(d.id)}" data-priority="${escAttr(d.priority)}">&#10004; Decide &amp; Close</button>
+            <button class="btn btn-sm" data-dec-defer="${escAttr(d.id)}">&#9208; Defer</button>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
+  // Decided Items
+  if (decidedF.length > 0) {
+    h += `<div class="dec-group-title">&#10004; Decided Items (${decidedF.length})</div>`;
+    for (const d of decidedF) {
+      const xref = findCrossRefs(d);
+      h += `<div class="dec-card">
+        <div class="dec-card-top">
+          <span class="dec-card-id">${esc(d.id)}</span>
+          <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">DECIDED</span>${xref}</div>
+        </div>
+        <div class="dec-card-text">${esc(d.decision)}</div>
+        <div class="dec-card-meta">
+          <span>&#128205; ${esc(d.scope)}</span>
+          <span>&#128197; ${esc(d.date)}</span>
+        </div>
+        ${d.notes ? `<div class="dec-card-notes">${esc(d.notes)}</div>` : ''}
+        <div class="dec-card-actions">
+          <button class="btn btn-sm" data-dec-edit="${escAttr(d.id)}">&#9998; Edit</button>
+          <button class="btn btn-sm" data-dec-expire="${escAttr(d.id)}">Expire</button>
+          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}">&#8617; Reopen</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  // Deferred & Expired
+  if (deferrF.length > 0) {
+    h += `<div class="dec-group-title">&#128336; Deferred &amp; Expired (${deferrF.length})</div>`;
+    for (const d of deferrF) {
+      const cls = d.status === 'EXPIRED' ? 'b-expired' : 'b-deferred';
+      h += `<div class="dec-card">
+        <div class="dec-card-top">
+          <span class="dec-card-id">${esc(d.id)}</span>
+          <div class="badges"><span class="badge ${cls}">${esc(d.status)}</span></div>
+        </div>
+        <div class="dec-card-text">${esc(d.subject)}</div>
+        <div class="dec-card-meta">
+          <span>&#128205; ${esc(d.scope)}</span>
+          <span>&#128197; ${esc(d.date)}</span>
+        </div>
+        ${d.reason ? `<div class="dec-card-notes">${esc(d.reason)}</div>` : ''}
+        <div class="dec-card-actions">
+          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}">&#8617; Reopen as Open Question</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  el.innerHTML = h;
+}
+
+/* ── Confirmation flow ────────────────────────────────── */
+function confirmAction(title, text, showReason) {
+  return new Promise(resolve => {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    document.getElementById('confirmReasonGroup').classList.toggle('hidden', !showReason);
+    document.getElementById('confirmReason').value = '';
+    openModal('confirmOverlay');
+    pendingConfirm = resolve;
+  });
+}
+
+/* ── Decision actions ────────────────────────────────── */
+async function answerDecision(id) {
+  const ta = document.getElementById('decAns-' + id);
+  if (!ta || !ta.value.trim()) { toast('Enter an answer first', 't-info'); return; }
+  try {
+    await api('POST', '/api/decisions', { action: 'answer', id, answer: ta.value.trim() });
+    toast(`Answer saved for ${id}`, 't-ok');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+async function decideDecision(id) {
+  const ta = document.getElementById('decAns-' + id);
+  if (!ta || !ta.value.trim()) { toast('Enter an answer first before deciding', 't-info'); return; }
+  const decision = decisions.open.find(d => d.id === id);
+  const r = await confirmAction('Decide & Close', `Move ${id} to Decided Items? This action is visible to all agents.`, false);
+  if (!r.confirmed) return;
+  try {
+    await api('POST', '/api/decisions', { action: 'decide', id, answer: ta.value.trim() });
+    toast(`${id} decided and moved to Decided Items`, 't-ok');
+    await load();
+    if (decision && decision.priority === 'HIGH') {
+      const re = await confirmAction('Trigger Reevaluation?', `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`, false);
+      if (re.confirmed) openModal('reevalOverlay');
+    }
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+async function deferDecision(id) {
+  const r = await confirmAction('Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, true);
+  if (!r.confirmed) return;
+  try {
+    await api('POST', '/api/decisions', { action: 'defer', id, reason: r.reason });
+    toast(`${id} deferred`, 't-ok');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+async function expireDecision(id) {
+  const r = await confirmAction('Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, true);
+  if (!r.confirmed) return;
+  try {
+    await api('POST', '/api/decisions', { action: 'expire', id, reason: r.reason });
+    toast(`${id} expired`, 't-ok');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+async function reopenDecision(id) {
+  const r = await confirmAction('Reopen Decision', `Reopen ${id} as an open question?`, false);
+  if (!r.confirmed) return;
+  try {
+    await api('POST', '/api/decisions', { action: 'reopen', id });
+    toast(`${id} reopened as open question`, 't-ok');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+function openEditDecision(id) {
+  const d = decisions.decided.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('edId').value = id;
+  document.getElementById('edPriority').value = d.priority;
+  document.getElementById('edScope').value = d.scope;
+  document.getElementById('edText').value = d.decision;
+  document.getElementById('edNotes').value = d.notes || '';
+  openModal('editDecOverlay');
+}
+
+async function saveEditDecision() {
+  const id       = document.getElementById('edId').value;
+  const priority = document.getElementById('edPriority').value;
+  const scope    = document.getElementById('edScope').value.trim();
+  const text     = document.getElementById('edText').value.trim();
+  const notes    = document.getElementById('edNotes').value.trim();
+  if (!scope || !text) { toast('Scope and text are required', 't-info'); return; }
+  try {
+    await api('POST', '/api/decisions', { action: 'edit', id, priority, scope, text, notes });
+    closeModal('editDecOverlay');
+    toast(`${id} updated`, 't-ok');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+async function createDecision() {
+  const type     = document.getElementById('ndType').value;
+  const priority = document.getElementById('ndPriority').value;
+  const scope    = document.getElementById('ndScope').value.trim();
+  const text     = document.getElementById('ndText').value.trim();
+  const notes    = document.getElementById('ndNotes').value.trim();
+  if (!scope || !text) { toast('Scope and text are required', 't-info'); return; }
+  try {
+    const r = await api('POST', '/api/decisions', { action: 'create', type, priority, scope, text, notes });
+    closeModal('newDecOverlay');
+    document.getElementById('ndScope').value = '';
+    document.getElementById('ndText').value = '';
+    document.getElementById('ndNotes').value = '';
+    toast(`Created ${r.id}`, 't-ok');
+    switchTab('decisions');
+    await load();
+  } catch (e) { toast('Failed: ' + e.message, 't-err'); }
+}
+
+/* ── Dirty tracking ──────────────────────────────────── */
+function markDirty(file, qId) {
+  const answer = document.getElementById('a-' + qId).value;
+  const sel    = document.querySelector(`select[data-qid="${qId}"][data-role="status"]`);
+  const status = sel ? sel.value : 'OPEN';
+  dirty.set(file + '::' + qId, { answer, status });
+  const card = document.getElementById('c-' + qId);
+  if (card) card.classList.add('dirty');
+  document.getElementById('btnSaveAll').disabled = dirty.size === 0;
+}
+
+/* ── Save single question ────────────────────────────── */
+async function saveOne(file, qId) {
+  const answer = document.getElementById('a-' + qId).value;
+  const sel    = document.querySelector(`select[data-qid="${qId}"][data-role="status"]`);
+  const status = sel ? sel.value : 'OPEN';
+
+  if (status === 'ANSWERED' && !answer.trim()) {
+    toast('Answer is empty — consider filling it in before marking ANSWERED', 't-info');
+  }
+  try {
+    await api('POST', '/api/save', { file, updates: [{ questionId: qId, answer, status }] });
+    dirty.delete(file + '::' + qId);
+    toast('Saved ' + qId, 't-ok');
+    await load();
+  } catch (e) { toast('Save failed: ' + e.message, 't-err'); }
+}
+
+/* ── Save all for file ───────────────────────────────── */
+async function saveFileAll(file) {
+  const q = questionnaires.find(x => x.file === file);
+  if (!q) return;
+  const updates = [];
+  for (const x of q.questions) {
+    const k = file + '::' + x.id;
+    if (dirty.has(k)) {
+      const d = dirty.get(k);
+      updates.push({ questionId: x.id, answer: d.answer, status: d.status });
+    }
+  }
+  if (!updates.length) { toast('No changes to save', 't-info'); return; }
+  try {
+    await api('POST', '/api/save', { file, updates });
+    updates.forEach(u => dirty.delete(file + '::' + u.questionId));
+    toast(`Saved ${updates.length} answer(s)`, 't-ok');
+    await load();
+  } catch (e) { toast('Save failed: ' + e.message, 't-err'); }
+}
+
+/* ── Global Save All ─────────────────────────────────── */
+async function saveAll() {
+  const byFile = {};
+  for (const [key, val] of dirty) {
+    const idx = key.indexOf('::');
+    const file = key.slice(0, idx), qId = key.slice(idx + 2);
+    (byFile[file] ||= []).push({ questionId: qId, answer: val.answer, status: val.status });
+  }
+  let n = 0;
+  for (const [file, updates] of Object.entries(byFile)) {
+    try {
+      await api('POST', '/api/save', { file, updates });
+      updates.forEach(u => dirty.delete(file + '::' + u.questionId));
+      n += updates.length;
+    } catch (e) { toast('Save failed for ' + file + ': ' + e.message, 't-err'); return; }
+  }
+  if (n) toast(`Saved ${n} answer(s)`, 't-ok');
+  await load();
+}
+
+/* ── Reevaluate ──────────────────────────────────────── */
+async function doReeval() {
+  closeModal('reevalOverlay');
+  if (dirty.size > 0) await saveAll();
+  const scope = document.getElementById('reevalScope').value;
+  try {
+    await api('POST', '/api/reevaluate', { scope });
+    toast(`Reevaluation trigger created (scope: ${scope}). Now type REEVALUATE ${scope} in Copilot chat.`, 't-ok');
+  } catch (e) { toast('Reevaluate failed: ' + e.message, 't-err'); }
+}
+
+/* ── Toast ───────────────────────────────────────────── */
+function toast(msg, cls) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (cls || 't-info');
+  el.setAttribute('role', 'alert');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+/* ── Command Center: Pipeline rendering ──────────────── */
+const PHASE_ICONS = {
+  'ONBOARDING': '&#128075;', 'PHASE-1': '&#128188;', 'PHASE-2': '&#9881;',
+  'PHASE-3': '&#127912;', 'PHASE-4': '&#128227;', 'SYNTHESIS': '&#128209;', 'PHASE-5': '&#128736;'
+};
+
+function renderPipeline() {
+  const el = document.getElementById('cmdPipeline');
+  const welcome = document.getElementById('cmdWelcome');
+  const p = progress;
+
+  if (!p || !p.active) {
+    el.innerHTML = '';
+    welcome.classList.remove('hidden');
+    return;
+  }
+  welcome.classList.add('hidden');
+
+  const totalAgents = p.phases.reduce((s, ph) => s + ph.total, 0);
+  const doneAgents  = p.phases.reduce((s, ph) => s + ph.done, 0);
+  const pct = totalAgents ? Math.round(doneAgents / totalAgents * 100) : 0;
+
+  let h = '';
+
+  // Pending command banner
+  if (p.command && p.command.status === 'PENDING') {
+    h += `<div class="cmd-pending">
+      <span class="cmd-pending-icon">&#9888;</span>
+      <div class="cmd-pending-text">Command queued: <span class="cmd-pending-cmd">${esc(p.command.command)}</span><br>
+        <span style="font-size:12px;color:var(--text-sec)">Paste the command in Copilot Chat to start processing.</span></div>
+    </div>`;
+  }
+
+  // Header
+  h += `<div class="pipe-header">
+    <h2>&#128640; ${esc(p.session.cycle_type || 'Session')} Pipeline</h2>
+    <div class="pipe-status">
+      Session: <strong>${esc(p.session.session_id || '—')}</strong> &middot;
+      Status: <strong>${esc(p.session.status || '—')}</strong>
+      ${p.session.current_agent ? ' &middot; Active agent: <strong>' + esc(p.session.current_agent) + '</strong>' : ''}
+    </div>
+  </div>`;
+
+  // Overall progress bar
+  h += `<div class="pipe-progress">
+    <div class="pipe-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Overall pipeline progress"><div class="pipe-progress-fill" style="width:${pct}%"></div></div>
+    <div class="pipe-progress-label">${doneAgents}/${totalAgents} agents (${pct}%)</div>
+  </div>`;
+
+  // Phase cards
+  for (const phase of p.phases) {
+    const icon = PHASE_ICONS[phase.key] || '&#128196;';
+    const badgeCls = phase.status === 'done' ? 'pipe-badge-done' : phase.status === 'active' ? 'pipe-badge-active' : 'pipe-badge-pending';
+    const statusLabel = phase.status === 'done' ? 'DONE' : phase.status === 'active' ? 'IN PROGRESS' : 'PENDING';
+
+    h += `<div class="pipe-phase">
+      <div class="pipe-phase-head">
+        <span class="pipe-phase-icon">${icon}</span>
+        <span class="pipe-phase-label">${esc(phase.label)}</span>
+        <span class="pipe-phase-count">${phase.done}/${phase.total}</span>
+        <span class="pipe-phase-badge ${badgeCls}">${statusLabel}</span>
+      </div>
+      <div class="pipe-agents">`;
+
+    for (const agent of phase.agents) {
+      const dotCls = agent.status === 'done' ? 'dot-done' : agent.status === 'active' ? 'dot-active' : 'dot-pending';
+      const agentCls = agent.status === 'done' ? 'agent-done' : agent.status === 'active' ? 'agent-active' : '';
+      h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}</div>`;
+    }
+
+    h += `</div></div>`;
+  }
+
+  // Sprint info
+  if (p.sprints && p.sprints.length) {
+    h += `<div class="pipe-sprints"><div class="cmd-section-title" style="margin:20px 0 10px;">Sprints</div>`;
+    for (const sp of p.sprints) {
+      const spBadge = sp.status === 'DONE' ? 'b-decided' : sp.status === 'IN_PROGRESS' ? 'b-open' : 'b-def';
+      h += `<div class="pipe-sprint-card">
+        <span class="pipe-sprint-id">${esc(sp.id)}</span>
+        <span class="badge ${spBadge}">${esc(sp.status)}</span>
+        <span style="flex:1;font-size:12px;color:var(--text-sec);text-align:right;">${sp.stories_done || 0}/${sp.stories_total || 0} stories &middot; ${sp.sp_done || 0}/${sp.sp_total || 0} SP</span>
+      </div>`;
+    }
+    h += `</div>`;
+  }
+
+  el.innerHTML = h;
+}
+
+/* ── Command Center: Command form rendering ──────────── */
+const CMD_NEEDS_PROJECT = ['CREATE', 'AUDIT'];
+const CMD_NEEDS_SCOPE = ['SCOPE CHANGE', 'REEVALUATE'];
+const CMD_NEEDS_DESC = ['FEATURE', 'SCOPE CHANGE', 'HOTFIX'];
+
+function selectCommand(cmd) {
+  activeCmd = cmd;
+  document.querySelectorAll('.cmd-btn').forEach(b => b.classList.toggle('active', b.dataset.cmd === cmd));
+
+  // Build form
+  const needsProject = CMD_NEEDS_PROJECT.some(c => cmd.startsWith(c) && cmd !== 'CREATE SYNTHESIS');
+  const needsScope   = CMD_NEEDS_SCOPE.includes(cmd);
+  const needsDesc    = CMD_NEEDS_DESC.includes(cmd);
+  const isSimple     = !needsProject && !needsScope && !needsDesc;
+
+  const el = document.getElementById('cmdMain');
+  const welcome = document.getElementById('cmdWelcome');
+  welcome.classList.add('hidden');
+
+  // Keep pipeline visible, prepend form
+  let formHTML = `<div class="cmd-form" id="cmdForm">
+    <h3>&#128640; ${esc(cmd)}</h3>`;
+
+  if (needsProject) {
+    formHTML += `<div class="form-group">
+      <label for="cmdProject">Project Name</label>
+      <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker">
+    </div>`;
+  }
+  if (needsScope) {
+    formHTML += `<div class="form-group">
+      <label for="cmdScope">Scope / Dimension</label>
+      <select id="cmdScope">
+        ${cmd === 'REEVALUATE' ? '<option value="ALL">ALL</option>' : ''}
+        <option value="BUSINESS">BUSINESS</option>
+        <option value="TECH">TECH</option>
+        <option value="UX">UX</option>
+        <option value="MARKETING">MARKETING</option>
+        ${cmd === 'SCOPE CHANGE' ? '<option value="ALL">ALL</option>' : ''}
+      </select>
+    </div>`;
+  }
+  if (needsDesc) {
+    formHTML += `<div class="form-group">
+      <label for="cmdDesc">${cmd === 'FEATURE' ? 'Feature Name & Description' : 'Description'}</label>
+      <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? 'e.g. Dark Mode: Add system-wide dark theme toggle' : 'Describe the change or issue...'}"></textarea>
+    </div>`;
+  }
+  if (isSimple) {
+    formHTML += `<p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">This command has no additional parameters. Click Launch to proceed.</p>`;
+  }
+
+  formHTML += `<div class="cmd-submit-row">
+    <button class="btn btn-primary" id="btnLaunchCmd">&#128640; Launch Command</button>
+    <button class="btn" id="btnCancelCmd">Cancel</button>
+  </div>
+  <div id="cmdClipboardBox" class="hidden"></div>
+  </div>`;
+
+  // Insert form before pipeline
+  const existing = document.getElementById('cmdForm');
+  if (existing) existing.remove();
+  document.getElementById('cmdPipeline').insertAdjacentHTML('beforebegin', formHTML);
+
+  // Bind launch
+  document.getElementById('btnLaunchCmd').addEventListener('click', launchCommand);
+  document.getElementById('btnCancelCmd').addEventListener('click', () => {
+    activeCmd = null;
+    document.querySelectorAll('.cmd-btn').forEach(b => b.classList.remove('active'));
+    const f = document.getElementById('cmdForm');
+    if (f) f.remove();
+    document.getElementById('cmdWelcome').classList.toggle('hidden', !!(progress && progress.active));
+  });
+}
+
+/* ── Command Center: Launch command ──────────────────── */
+async function launchCommand() {
+  if (!activeCmd) return;
+  const cmd = activeCmd;
+  const body = { command: cmd };
+
+  const projEl = document.getElementById('cmdProject');
+  if (projEl) {
+    if (!projEl.value.trim()) { toast('Project name is required', 't-info'); projEl.focus(); return; }
+    body.project = projEl.value.trim();
+  }
+
+  const scopeEl = document.getElementById('cmdScope');
+  if (scopeEl) body.scope = scopeEl.value;
+
+  const descEl = document.getElementById('cmdDesc');
+  if (descEl) {
+    if (!descEl.value.trim()) { toast('Description is required', 't-info'); descEl.focus(); return; }
+    body.description = descEl.value.trim();
+  }
+
+  try {
+    const r = await api('POST', '/api/command', body);
+    lastClipboard = r.clipboard_text;
+
+    // Show clipboard box
+    const box = document.getElementById('cmdClipboardBox');
+    box.classList.remove('hidden');
+    box.innerHTML = `
+      <div style="margin-top:12px;padding:12px;background:var(--success-light);border:1px solid var(--success);border-radius:var(--radius-sm);font-size:13px;color:var(--success);margin-bottom:8px;">
+        &#10004; Command queued successfully!
+      </div>
+      <div style="font-size:13px;color:var(--text-sec);margin-bottom:8px;">
+        Copy the command below and <strong>paste it in Copilot Chat</strong> to start:
+      </div>
+      <div class="cmd-clipboard">
+        <code id="clipText">${esc(r.clipboard_text)}</code>
+        <button id="btnCopyClip" title="Copy to clipboard">&#128203; Copy</button>
+      </div>`;
+    document.getElementById('btnCopyClip').addEventListener('click', copyClipboard);
+
+    toast('Command queued — paste in Copilot Chat to start', 't-ok');
+
+    // Refresh progress
+    await load(true);
+  } catch (e) {
+    toast('Failed: ' + e.message, 't-err');
+  }
+}
+
+/* ── Command Center: Copy to clipboard ───────────────── */
+function copyClipboard() {
+  const text = lastClipboard || document.getElementById('clipText')?.textContent || '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    toast('Copied to clipboard!', 't-ok');
+    const btn = document.getElementById('btnCopyClip');
+    if (btn) { btn.textContent = '\u2705 Copied!'; setTimeout(() => { btn.textContent = '\uD83D\uDCCB Copy'; }, 2000); }
+  }).catch(() => {
+    // Fallback for non-HTTPS
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Copied to clipboard!', 't-ok');
+  });
+}
+
+/* ── Event delegation ────────────────────────────────── */
+document.getElementById('tabBar').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (tab) switchTab(tab.dataset.tab);
+});
+
+document.getElementById('sidebar').addEventListener('click', e => {
+  const item = e.target.closest('.sb-item');
+  if (item) selectQ(item.dataset.file);
+});
+
+document.getElementById('cmdSidebar').addEventListener('click', e => {
+  const btn = e.target.closest('.cmd-btn');
+  if (btn) selectCommand(btn.dataset.cmd);
+});
+
+document.getElementById('main').addEventListener('input', e => {
+  if (e.target.matches('textarea[data-qid]')) markDirty(e.target.dataset.file, e.target.dataset.qid);
+});
+
+document.getElementById('main').addEventListener('change', e => {
+  if (e.target.matches('select[data-role="status"]')) markDirty(e.target.dataset.file, e.target.dataset.qid);
+});
+
+document.getElementById('main').addEventListener('click', e => {
+  const saveBtn = e.target.closest('button[data-save]');
+  if (saveBtn) saveOne(saveBtn.dataset.file, saveBtn.dataset.save);
+  const saveAllBtn = e.target.closest('button[data-saveall]');
+  if (saveAllBtn) saveFileAll(saveAllBtn.dataset.saveall);
+});
+
+document.getElementById('decMain').addEventListener('click', e => {
+  const ansBtn = e.target.closest('button[data-dec-answer]');
+  if (ansBtn) answerDecision(ansBtn.dataset.decAnswer);
+  const decBtn = e.target.closest('button[data-dec-decide]');
+  if (decBtn) decideDecision(decBtn.dataset.decDecide);
+  const defBtn = e.target.closest('button[data-dec-defer]');
+  if (defBtn) deferDecision(defBtn.dataset.decDefer);
+  const expBtn = e.target.closest('button[data-dec-expire]');
+  if (expBtn) expireDecision(expBtn.dataset.decExpire);
+  const reopBtn = e.target.closest('button[data-dec-reopen]');
+  if (reopBtn) reopenDecision(reopBtn.dataset.decReopen);
+  const editBtn = e.target.closest('button[data-dec-edit]');
+  if (editBtn) openEditDecision(editBtn.dataset.decEdit);
+});
+
+document.getElementById('btnSaveAll').addEventListener('click', saveAll);
+document.getElementById('btnNewDecision').addEventListener('click', () => openModal('newDecOverlay'));
+document.getElementById('btnReeval').addEventListener('click', () => openModal('reevalOverlay'));
+document.getElementById('btnCancelReeval').addEventListener('click', () => closeModal('reevalOverlay'));
+document.getElementById('btnConfirmReeval').addEventListener('click', doReeval);
+document.getElementById('reevalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal('reevalOverlay'); });
+document.getElementById('btnCancelNewDec').addEventListener('click', () => closeModal('newDecOverlay'));
+document.getElementById('btnConfirmNewDec').addEventListener('click', createDecision);
+document.getElementById('newDecOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal('newDecOverlay'); });
+
+/* ── Confirm modal listeners ─────────────────────────── */
+document.getElementById('btnDoConfirm').addEventListener('click', () => {
+  closeModal('confirmOverlay');
+  if (pendingConfirm) { pendingConfirm({ confirmed: true, reason: document.getElementById('confirmReason').value.trim() }); pendingConfirm = null; }
+});
+document.getElementById('btnCancelConfirm').addEventListener('click', () => {
+  closeModal('confirmOverlay');
+  if (pendingConfirm) { pendingConfirm({ confirmed: false }); pendingConfirm = null; }
+});
+document.getElementById('confirmOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) { closeModal('confirmOverlay'); if (pendingConfirm) { pendingConfirm({ confirmed: false }); pendingConfirm = null; } }
+});
+
+/* ── Edit decision modal listeners ───────────────────── */
+document.getElementById('btnConfirmEditDec').addEventListener('click', saveEditDecision);
+document.getElementById('btnCancelEditDec').addEventListener('click', () => closeModal('editDecOverlay'));
+document.getElementById('editDecOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal('editDecOverlay'); });
+
+/* ── Filter listeners ────────────────────────────────── */
+document.getElementById('decFilterText').addEventListener('input', e => { decFilter.text = e.target.value; renderDecisions(); });
+document.getElementById('decFilterPriority').addEventListener('change', e => { decFilter.priority = e.target.value; renderDecisions(); });
+document.getElementById('decFilterStatus').addEventListener('change', e => { decFilter.status = e.target.value; renderDecisions(); });
+
+/* ── Keyboard shortcut: Ctrl+S ───────────────────────── */
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (dirty.size) saveAll(); }
+  if (e.key === 'Escape') {
+    if (_focusTrapOverlay) {
+      const id = _focusTrapOverlay.id;
+      if (id === 'confirmOverlay') {
+        closeModal(id); if (pendingConfirm) { pendingConfirm({ confirmed: false }); pendingConfirm = null; }
+      } else { closeModal(id); }
+    }
+    closeHelp();
+  }
+});
+
+/* ── Help Panel ──────────────────────────────────────── */
+let helpTOC = [];
+let helpActiveTopic = null;
+
+function renderMarkdown(md) {
+  let html = md;
+  // fenced code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    '<pre><code>' + code.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</code></pre>');
+  // tables
+  html = html.replace(/^(\|.+\|)\n(\|[-|: ]+\|)\n((?:\|.+\|\n?)*)/gm, (_, hdr, sep, body) => {
+    const thCells = hdr.split('|').filter(c => c.trim()).map(c => '<th>' + c.trim() + '</th>').join('');
+    const rows = body.trim().split('\n').map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c => '<td>' + c.trim() + '</td>').join('');
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    return '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  });
+  // headings
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // hr
+  html = html.replace(/^---$/gm, '<hr>');
+  // blockquote
+  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  // bold + italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // unordered list
+  html = html.replace(/^((?:- .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => '<li>' + l.replace(/^- /, '') + '</li>').join('');
+    return '<ul>' + items + '</ul>';
+  });
+  // ordered list
+  html = html.replace(/^((?:\d+\. .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\.\s*/, '') + '</li>').join('');
+    return '<ol>' + items + '</ol>';
+  });
+  // paragraphs — wrap remaining plain lines
+  html = html.replace(/^(?!<[a-z])(\S.+)$/gm, '<p>$1</p>');
+  // collapse consecutive blockquotes
+  html = html.replace(/<\/blockquote>\s*<blockquote>/g, '<br>');
+  return html;
+}
+
+async function openHelp() {
+  const overlay = document.getElementById('helpOverlay');
+  overlay.classList.add('open');
+  if (!helpTOC.length) {
+    try {
+      const r = await fetch('/api/help');
+      const d = await r.json();
+      helpTOC = d.toc || [];
+    } catch { helpTOC = []; }
+    renderHelpNav();
+  }
+  if (helpTOC.length && !helpActiveTopic) loadHelpTopic(helpTOC[0].slug);
+}
+
+function closeHelp() {
+  document.getElementById('helpOverlay').classList.remove('open');
+}
+
+function renderHelpNav() {
+  const nav = document.getElementById('helpNav');
+  let h = '<div class="help-nav-title">Help Topics</div>';
+  for (const t of helpTOC) {
+    h += `<div class="help-nav-item${t.slug === helpActiveTopic ? ' active' : ''}" data-slug="${t.slug}">${t.icon} ${esc(t.title)}</div>`;
+  }
+  nav.innerHTML = h;
+  nav.querySelectorAll('.help-nav-item').forEach(item => {
+    item.addEventListener('click', () => loadHelpTopic(item.dataset.slug));
+  });
+}
+
+async function loadHelpTopic(slug) {
+  helpActiveTopic = slug;
+  renderHelpNav();
+  const el = document.getElementById('helpContent');
+  el.innerHTML = '<p style="color:var(--text-muted)">Loading&hellip;</p>';
+  try {
+    const r = await fetch('/api/help?topic=' + encodeURIComponent(slug));
+    if (!r.ok) throw new Error('Not found');
+    const d = await r.json();
+    el.innerHTML = renderMarkdown(d.content || '');
+  } catch {
+    el.innerHTML = '<p style="color:var(--text-muted)">Could not load help topic.</p>';
+  }
+}
+
+document.getElementById('btnHelp').addEventListener('click', openHelp);
+document.getElementById('helpClose').addEventListener('click', closeHelp);
+document.getElementById('helpOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeHelp();
+});
+
+/* ── Theme toggle ────────────────────────────────────── */
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefer = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const theme = saved || prefer;
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeIcon(theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+  const btn = document.getElementById('btnTheme');
+  if (btn) btn.innerHTML = theme === 'dark' ? '&#9728;&#65039;' : '&#127769;';
+}
+document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('theme')) {
+    const t = e.matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    updateThemeIcon(t);
+  }
+});
+
+/* ── Init ────────────────────────────────────────────── */
+initTheme();
+load();
+startPolling();
+</script>
+</body>
+</html>

@@ -48,7 +48,14 @@ This contract defines:
 | Code coverage tool | Measure test coverage | - |
 | Performance profiler | Identify bottlenecks | - |
 | Accessibility checker | Validate WCAG compliance | - |
-| Questionnaire & Decisions Manager web UI | Visual questionnaire editing and decisions management for non-technical stakeholders. Supports: viewing/answering questionnaires, creating new decisions (DECIDED or OPEN_QUESTION), answering open questions, promoting open questions to decided items. Writes directly to `BusinessDocs/` (questionnaires) and `.github/docs/decisions.md` (decisions). | `node .github/webapp/server.js` → http://127.0.0.1:3000 |
+
+### Category D+: Recommended (no alternative interface)
+
+| Tool | Purpose | Verification command |
+|------|------|----------------------|
+| Questionnaire & Decisions Manager web UI | Visual questionnaire editing and decisions management for non-technical stakeholders. Supports: viewing/answering questionnaires, creating new decisions (DECIDED or OPEN_QUESTION), answering open questions, promoting open questions to decided items. Writes directly to `BusinessDocs/` (questionnaires) and `.github/docs/decisions.md` (decisions). **Note:** While questionnaire files can be edited directly in a text editor, this web UI is the only guided interface for non-technical users and is strongly recommended when stakeholders are filling in questionnaires. | `node .github/webapp/server.js` → http://127.0.0.1:3000 |
+
+> **Category D+ rationale:** These tools are not strictly required (file-level editing is always possible), but they provide the **only user-friendly interface** for their function and have no equivalent alternative. Treat as RECOMMENDED — document as `TOOL_RECOMMENDED_MISSING` (not `TOOL_UNAVAILABLE`) when absent.
 
 ---
 
@@ -74,6 +81,7 @@ This contract defines:
 | `TOOL_UNAVAILABLE` | Tool not found | Document, block dependent phase |
 | `TOOL_DEGRADED` | Tool present but issues (wrong version, permission problem) | Document, escalate if critical |
 | `TOOL_UNTESTED` | Not verified | Treat as TOOL_UNAVAILABLE |
+| `TOOL_RECOMMENDED_MISSING` | Category D+ tool not found — no alternative interface | Document in Tooling Status Report and Synthesis recommendations; does NOT block any phase |
 
 ---
 

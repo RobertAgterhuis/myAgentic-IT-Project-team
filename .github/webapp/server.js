@@ -28,7 +28,8 @@ const MAX_BODY      = 1_048_576; // 1 MB
 function safePath(base, relative) {
   const absBase  = path.resolve(base);
   const resolved = path.resolve(base, relative);
-  if (!resolved.startsWith(absBase + path.sep) && resolved !== absBase) {
+  const rel = path.relative(absBase, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw Object.assign(new Error('Path traversal blocked'), { status: 403 });
   }
   return resolved;
@@ -43,6 +44,8 @@ function setSecurityHeaders(res) {
 
 function safeWriteSync(filePath, data, encoding) {
   try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, data, encoding || 'utf8');
   } catch (err) {
     throw Object.assign(new Error(`File write failed (${path.basename(filePath)}): ${err.message}`), { status: 500 });
@@ -77,16 +80,35 @@ function escRx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function today() { return new Date().toISOString().split('T')[0]; }
 function isoNow() { return new Date().toISOString(); }
 
+function log(method, url, status, ms) {
+  const ts = new Date().toISOString();
+  console.log(`  ${ts} ${method} ${url} → ${status} (${ms}ms)`);
+}
+
+async function parseBody(req) {
+  const ct = (req.headers['content-type'] || '');
+  if (!ct.includes('application/json')) {
+    throw Object.assign(new Error('Content-Type must be application/json'), { status: 415 });
+  }
+  const raw = await readBody(req);
+  try { return JSON.parse(raw); }
+  catch { throw Object.assign(new Error('Invalid JSON in request body'), { status: 400 }); }
+}
+
 /* ── File discovery ───────────────────────────────────────────── */
 
 function discoverQuestionnaires() {
   if (!fs.existsSync(BUSINESS_DOCS)) return [];
   const results = [];
   (function walk(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
       const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.isFile() && entry.name.endsWith('-questionnaire.md')) results.push(full);
+      try {
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && entry.name.endsWith('-questionnaire.md')) results.push(full);
+      } catch { /* skip inaccessible entry */ }
     }
   })(BUSINESS_DOCS);
   return results.sort();
@@ -204,13 +226,16 @@ function rebuildQuestionnaireIndex() {
   const files = discoverQuestionnaires();
   if (files.length === 0) return;
 
-  const rows = files.map(f => {
-    const p = parseQuestionnaire(fs.readFileSync(f, 'utf8'), f);
+  const rows = [];
+  for (const f of files) {
+    let content;
+    try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
+    const p = parseQuestionnaire(content, f);
     const total    = p.questions.length;
     const answered = p.questions.filter(q => q.status === 'ANSWERED').length;
     const status   = total === 0 ? 'OPEN' : answered === total ? 'COMPLETE' : answered > 0 ? 'PARTIAL' : 'OPEN';
-    return `| ${p.file} | ${p.phase} | ${p.agent} | ${total} | ${answered} | ${status} |`;
-  });
+    rows.push(`| ${p.file} | ${p.phase} | ${p.agent} | ${total} | ${answered} | ${status} |`);
+  }
 
   const md = [
     '# Questionnaire Index',
@@ -227,17 +252,25 @@ function rebuildQuestionnaireIndex() {
 
 async function apiGetQuestionnaires(_req, res) {
   const files = discoverQuestionnaires();
-  const questionnaires = files.map(f => parseQuestionnaire(fs.readFileSync(f, 'utf8'), f));
+  const questionnaires = [];
+  for (const f of files) {
+    let content;
+    try { content = fs.readFileSync(f, 'utf8'); } catch { continue; }
+    questionnaires.push(parseQuestionnaire(content, f));
+  }
   json(res, 200, { questionnaires });
 }
 
 async function apiGetSession(_req, res) {
   if (!fs.existsSync(SESSION_FILE)) return json(res, 200, { session: null });
-  json(res, 200, { session: JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')) });
+  let session;
+  try { session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')); }
+  catch { return json(res, 200, { session: null }); }
+  json(res, 200, { session });
 }
 
 async function apiSave(req, res) {
-  const body = JSON.parse(await readBody(req));
+  const body = await parseBody(req);
   if (!body.file || !Array.isArray(body.updates) || body.updates.length === 0) return json(res, 400, { error: 'Missing file or updates' });
 
   const filePath = safePath(BUSINESS_DOCS, body.file);
@@ -257,7 +290,7 @@ async function apiSave(req, res) {
 }
 
 async function apiReevaluate(req, res) {
-  const body  = JSON.parse(await readBody(req));
+  const body  = await parseBody(req);
   const scope = ['ALL', 'BUSINESS', 'TECH', 'UX', 'MARKETING'].includes(body.scope) ? body.scope : 'ALL';
   if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
@@ -278,7 +311,7 @@ function parseDecisions() {
   // Parse "Open Questions" table
   const openSection = content.match(/## Open Questions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
   if (openSection) {
-    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*([\d-]*)\s*\|/g;
+    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
     let m;
     while ((m = re.exec(openSection[1]))) {
       if (m[4].includes('No open questions')) continue;
@@ -289,7 +322,7 @@ function parseDecisions() {
   // Parse "Transformation Decisions" table
   const transSection = content.match(/### Transformation Decisions[^\n]*\n([\s\S]*?)(?=\n### |\n---|\n## )/);
   if (transSection) {
-    const re = /\|\s*(DEC-T-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*([\d-]*)\s*\|/g;
+    const re = /\|\s*(DEC-T-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
     let m;
     while ((m = re.exec(transSection[1]))) {
       decided.push({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() });
@@ -299,7 +332,7 @@ function parseDecisions() {
   // Parse "Operational Decisions" table
   const opsSection = content.match(/### Operational Decisions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
   if (opsSection) {
-    const re = /\|\s*(DEC-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*([\d-]*)\s*\|/g;
+    const re = /\|\s*(DEC-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
     let m;
     while ((m = re.exec(opsSection[1]))) {
       if (m[4].includes('Add a decision here')) continue;
@@ -310,7 +343,7 @@ function parseDecisions() {
   // Parse "Deferred & Expired" table
   const defSection = content.match(/## Deferred & Expired[^\n]*\n([\s\S]*?)(?=\n---|\n## |$)/);
   if (defSection) {
-    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(DEFERRED|EXPIRED)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*([\d-]*)\s*\|/g;
+    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(DEFERRED|EXPIRED)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
     let m;
     while ((m = re.exec(defSection[1]))) {
       deferred.push({ id: m[1], type: m[2] === 'DEFERRED' ? 'OPEN_QUESTION' : 'DECIDED', status: m[2], scope: m[3].trim(), subject: m[4].trim(), reason: m[5].trim(), date: m[6].trim() });
@@ -516,7 +549,7 @@ async function apiGetDecisions(_req, res) {
 }
 
 async function apiPostDecision(req, res) {
-  const body = JSON.parse(await readBody(req));
+  const body = await parseBody(req);
   if (!body.action) return json(res, 400, { error: 'Missing action' });
 
   if (!fs.existsSync(DECISIONS_FILE)) return json(res, 404, { error: 'decisions.md not found' });
@@ -596,7 +629,7 @@ const VALID_COMMANDS = [
 ];
 
 async function apiPostCommand(req, res) {
-  const body = JSON.parse(await readBody(req));
+  const body = await parseBody(req);
   if (!body.command || typeof body.command !== 'string') return json(res, 400, { error: 'Missing command' });
   const cmd = body.command.trim().toUpperCase();
   const base = cmd.replace(/\s+\S+$/, ''); // e.g. 'CREATE TECH' → 'CREATE'
@@ -910,9 +943,11 @@ const ROUTES = {
   'GET /api/progress':       apiGetProgress,
   'GET /api/export':         apiGetExport,
   'GET /api/help':             apiGetHelp,
+  'GET /health':             (_req, res) => json(res, 200, { status: 'ok', uptime: Math.round(process.uptime()) }),
 };
 
 const server = http.createServer(async (req, res) => {
+  const start = Date.now();
   const pathname = new URL(req.url, `http://${HOST}:${PORT}`).pathname.replace(/\/+$/, '') || '/';
   const key = `${req.method} ${pathname}`;
   if (ROUTES[key]) {
@@ -923,7 +958,11 @@ const server = http.createServer(async (req, res) => {
   } else {
     json(res, 404, { error: 'Not found' });
   }
+  log(req.method, pathname, res.statusCode, Date.now() - start);
 });
+
+server.setTimeout(30000);
+server.keepAliveTimeout = 5000;
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
@@ -943,3 +982,13 @@ server.listen(PORT, HOST, () => {
   console.log(`  Decisions    : ${fs.existsSync(DECISIONS_FILE) ? 'found' : 'not yet created'}`);
   console.log(`  Server       : http://${HOST}:${PORT}\n`);
 });
+
+/* ── Graceful shutdown ─────────────────────────────────────────── */
+
+function shutdown() {
+  console.log('\n  Shutting down gracefully...');
+  server.close(() => { console.log('  Server closed.'); process.exit(0); });
+  setTimeout(() => { console.error('  Forced shutdown after timeout.'); process.exit(1); }, 5000);
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

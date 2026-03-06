@@ -643,6 +643,14 @@
       .header-stats { display: none; }
     }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    /* ── Focus indicators for keyboard navigation (H9) ── */
+    button:focus-visible, .tab:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--primary); outline-offset: 2px;
+    }
+    .theme-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .cmd-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .sidebar-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
   </style>
 </head>
 <body>
@@ -662,8 +670,8 @@
       <button class="btn btn-success" id="btnNewDecision">&#10010; New Decision</button>
       <button class="btn btn-primary" id="btnReeval">&#128260; Reevaluate</button>
       <button class="btn" id="btnHelp" title="Help">&#10067; Help</button>
-      <button class="btn" id="btnExport" title="Export session data as JSON">&#128229; Export</button>
-      <button class="theme-toggle" id="btnTheme" title="Toggle dark mode">&#127769;</button>
+      <button class="btn" id="btnExport" title="Export session data as JSON" aria-label="Export session data as JSON">&#128229; Export</button>
+      <button class="theme-toggle" id="btnTheme" title="Toggle dark mode" aria-label="Toggle dark mode">&#127769;</button>
     </div>
   </header>
 
@@ -913,7 +921,7 @@
 let questionnaires = [];
 let decisions      = { open: [], decided: [], deferred: [] };
 let activeFile     = null;
-let activeTab      = 'commandcenter';
+let activeTab      = sessionStorage.getItem('activeTab') || 'commandcenter';
 const dirty        = new Map();   // "file::Q-ID" → { answer, status }
 let decFilter      = { text: '', priority: '', status: '' };
 let pollTimer      = null;
@@ -924,6 +932,8 @@ let progress       = null;        // pipeline progress data
 let activeCmd      = null;        // selected command in sidebar
 let lastClipboard  = '';          // last clipboard text shown
 let pollInterval   = 10000;       // adaptive: 3s active, 10s idle, 30s dormant
+let silentFailCount = 0;          // consecutive silent polling failures
+const MAX_SILENT_FAILS = 5;       // show warning after this many
 
 /* ── API layer ───────────────────────────────────────── */
 async function api(method, url, body) {
@@ -938,11 +948,16 @@ async function api(method, url, body) {
 /* ── Load ────────────────────────────────────────────── */
 async function load(silent) {
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 15000);
+    const opts = { signal: ctrl.signal };
     const [qData, dData, pData] = await Promise.all([
       api('GET', '/api/questionnaires'),
       api('GET', '/api/decisions'),
       api('GET', '/api/progress').catch(() => null),
     ]);
+    clearTimeout(timeout);
+    silentFailCount = 0;
     const newDecHash = JSON.stringify(dData);
     const newProgHash = pData ? JSON.stringify(pData) : '';
     if (silent && newDecHash === lastDecHash && newProgHash === lastProgHash) return;
@@ -995,6 +1010,12 @@ async function load(silent) {
       if (loader) loader.textContent = 'Error: ' + e.message;
       const decLoader = document.getElementById('decLoader');
       if (decLoader) decLoader.textContent = 'Error: ' + e.message;
+    } else {
+      silentFailCount++;
+      if (silentFailCount >= MAX_SILENT_FAILS) {
+        toast('Connection lost \u2014 server may be down. Retrying...', 't-err');
+        silentFailCount = 0;
+      }
     }
   }
 }
@@ -1025,6 +1046,7 @@ function openModal(overlayId) {
   const overlay = document.getElementById(overlayId);
   overlay.classList.remove('hidden');
   _focusTrapOverlay = overlay;
+  document.body.style.overflow = 'hidden';
   const first = overlay.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
   if (first) first.focus();
 }
@@ -1033,6 +1055,7 @@ function closeModal(overlayId) {
   const overlay = document.getElementById(overlayId);
   overlay.classList.add('hidden');
   if (_focusTrapOverlay === overlay) _focusTrapOverlay = null;
+  document.body.style.overflow = '';
   if (_previousFocus) { _previousFocus.focus(); _previousFocus = null; }
 }
 
@@ -1053,7 +1076,7 @@ document.addEventListener('keydown', e => {
 /* ── Escape helpers ──────────────────────────────────── */
 const _esc = document.createElement('span');
 function esc(s) { _esc.textContent = s || ''; return _esc.innerHTML; }
-function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;').replace(/\t/g,'&#9;'); }
 
 /* ── Sidebar ─────────────────────────────────────────── */
 function renderSidebar() {
@@ -1208,7 +1231,11 @@ function renderEmpty() {
 
 /* ── Tab switching ───────────────────────────────────── */
 function switchTab(tab) {
+  if (activeTab === 'questionnaires' && dirty.size > 0 && tab !== 'questionnaires') {
+    if (!confirm('You have unsaved questionnaire changes. Switch tab anyway?')) return;
+  }
   activeTab = tab;
+  try { sessionStorage.setItem('activeTab', tab); } catch {}
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.getElementById('panelQuestionnaires').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
@@ -1632,8 +1659,10 @@ function renderPipeline() {
   }
   welcome.classList.add('hidden');
 
-  const totalAgents = p.phases.reduce((s, ph) => s + ph.total, 0);
-  const doneAgents  = p.phases.reduce((s, ph) => s + ph.done, 0);
+  const phases = p.phases || [];
+  const session = p.session || {};
+  const totalAgents = phases.reduce((s, ph) => s + (ph.total || 0), 0);
+  const doneAgents  = phases.reduce((s, ph) => s + (ph.done || 0), 0);
   const pct = totalAgents ? Math.round(doneAgents / totalAgents * 100) : 0;
 
   let h = '';
@@ -1649,11 +1678,11 @@ function renderPipeline() {
 
   // Header
   h += `<div class="pipe-header">
-    <h2>&#128640; ${esc(p.session.cycle_type || 'Session')} Pipeline</h2>
+    <h2>&#128640; ${esc(session.cycle_type || 'Session')} Pipeline</h2>
     <div class="pipe-status">
-      Session: <strong>${esc(p.session.session_id || '—')}</strong> &middot;
-      Status: <strong>${esc(p.session.status || '—')}</strong>
-      ${p.session.current_agent ? ' &middot; Active agent: <strong>' + esc(p.session.current_agent) + '</strong>' : ''}
+      Session: <strong>${esc(session.session_id || '—')}</strong> &middot;
+      Status: <strong>${esc(session.status || '—')}</strong>
+      ${session.current_agent ? ' &middot; Active agent: <strong>' + esc(session.current_agent) + '</strong>' : ''}
     </div>
     <button class="btn btn-sm btn-primary" id="btnContinue" title="Copy CONTINUE to clipboard for pasting into a new Copilot Chat">&#9654; Continue</button>
   </div>`;
@@ -1665,7 +1694,7 @@ function renderPipeline() {
   </div>`;
 
   // Phase cards
-  for (const phase of p.phases) {
+  for (const phase of phases) {
     const icon = PHASE_ICONS[phase.key] || '&#128196;';
     const badgeCls = phase.status === 'done' ? 'pipe-badge-done' : phase.status === 'active' ? 'pipe-badge-active' : 'pipe-badge-pending';
     const statusLabel = phase.status === 'done' ? 'DONE' : phase.status === 'active' ? 'IN PROGRESS' : 'PENDING';
@@ -1682,7 +1711,7 @@ function renderPipeline() {
     for (const agent of phase.agents) {
       const dotCls = agent.status === 'done' ? 'dot-done' : agent.status === 'active' ? 'dot-active' : 'dot-pending';
       const agentCls = agent.status === 'done' ? 'agent-done' : agent.status === 'active' ? 'agent-active' : '';
-      const stepText = agent.status === 'active' && p.session.current_step ? `<span class="pipe-agent-step">${esc(p.session.current_step)}</span>` : '';
+      const stepText = agent.status === 'active' && session.current_step ? `<span class="pipe-agent-step">${esc(session.current_step)}</span>` : '';
       h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}${stepText}</div>`;
     }
 
@@ -1910,8 +1939,12 @@ document.getElementById('cmdSidebar').addEventListener('click', e => {
   if (btn) selectCommand(btn.dataset.cmd);
 });
 
+/* ── Debounce helper ────────────────────────────────────────── */
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+const debouncedMarkDirty = debounce((file, qId) => markDirty(file, qId), 300);
+
 document.getElementById('main').addEventListener('input', e => {
-  if (e.target.matches('textarea[data-qid]')) markDirty(e.target.dataset.file, e.target.dataset.qid);
+  if (e.target.matches('textarea[data-qid]')) debouncedMarkDirty(e.target.dataset.file, e.target.dataset.qid);
 });
 
 document.getElementById('main').addEventListener('change', e => {
@@ -1920,9 +1953,9 @@ document.getElementById('main').addEventListener('change', e => {
 
 document.getElementById('main').addEventListener('click', e => {
   const saveBtn = e.target.closest('button[data-save]');
-  if (saveBtn) saveOne(saveBtn.dataset.file, saveBtn.dataset.save);
+  if (saveBtn && !saveBtn.disabled) { saveBtn.disabled = true; saveOne(saveBtn.dataset.file, saveBtn.dataset.save).finally(() => saveBtn.disabled = false); }
   const saveAllBtn = e.target.closest('button[data-saveall]');
-  if (saveAllBtn) saveFileAll(saveAllBtn.dataset.saveall);
+  if (saveAllBtn && !saveAllBtn.disabled) { saveAllBtn.disabled = true; saveFileAll(saveAllBtn.dataset.saveall).finally(() => saveAllBtn.disabled = false); }
 });
 
 document.getElementById('decMain').addEventListener('click', e => {
@@ -1940,7 +1973,11 @@ document.getElementById('decMain').addEventListener('click', e => {
   if (editBtn) openEditDecision(editBtn.dataset.decEdit);
 });
 
-document.getElementById('btnSaveAll').addEventListener('click', saveAll);
+document.getElementById('btnSaveAll').addEventListener('click', function() {
+  if (this.disabled) return;
+  this.disabled = true;
+  saveAll().finally(() => this.disabled = dirty.size > 0 ? false : true);
+});
 document.getElementById('btnNewDecision').addEventListener('click', () => openModal('newDecOverlay'));
 document.getElementById('btnReeval').addEventListener('click', () => openModal('reevalOverlay'));
 document.getElementById('btnCancelReeval').addEventListener('click', () => closeModal('reevalOverlay'));
@@ -2020,8 +2057,11 @@ function renderMarkdown(md) {
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   // inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // links — sanitize href to prevent javascript: protocol
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+    const safeHref = /^(https?:|mailto:|#|\/)/i.test(href.trim()) ? href : '#';
+    return `<a href="${safeHref}" target="_blank" rel="noopener">${text}</a>`;
+  });
   // unordered list
   html = html.replace(/^((?:- .+\n?)+)/gm, m => {
     const items = m.trim().split('\n').map(l => '<li>' + l.replace(/^- /, '') + '</li>').join('');
@@ -2036,6 +2076,12 @@ function renderMarkdown(md) {
   html = html.replace(/^(?!<[a-z])(\S.+)$/gm, '<p>$1</p>');
   // collapse consecutive blockquotes
   html = html.replace(/<\/blockquote>\s*<blockquote>/g, '<br>');
+  // Sanitize: strip dangerous tags/attributes (event handlers, script, iframe, etc.)
+  html = html.replace(/<script[\s>][\s\S]*?<\/script>/gi, '');
+  html = html.replace(/<iframe[\s>][\s\S]*?<\/iframe>/gi, '');
+  html = html.replace(/<object[\s>][\s\S]*?<\/object>/gi, '');
+  html = html.replace(/<embed[\s>][\s\S]*?>/gi, '');
+  html = html.replace(/\bon\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '');
   return html;
 }
 
@@ -2133,6 +2179,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
 
 /* ── Init ────────────────────────────────────────────── */
 initTheme();
+if (activeTab !== 'commandcenter') switchTab(activeTab);
 load();
 startPolling();
 </script>

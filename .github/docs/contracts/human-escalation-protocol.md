@@ -113,6 +113,16 @@ If there are multiple open escalations:
 3. After each answer: process, update state, then next escalation
 4. If all `HALT` escalations are answered and only `PAUSE` escalations remain open: cycle may resume, `PAUSE` escalations are offered at the next interaction
 
+### High-volume escalation batching (> 5 outstanding)
+
+When more than 5 escalations are outstanding simultaneously:
+
+1. **Group by type**: present all `HALT` escalations first, then `PAUSE`
+2. **Batch presentation**: present up to **3 escalations per message** (rather than one-at-a-time) to reduce user fatigue. Each escalation retains its full format — batching only affects how many fit in a single prompt.
+3. **Auto-resolve candidates**: before presenting, scan for escalations that can be resolved by answers already given. For example, if ESC-003 depends on the same decision as ESC-001 (already answered), auto-resolve ESC-003 with `RESOLVED_BY: ESC-001` and inform the user.
+4. **Priority ceiling**: if > 10 escalations are outstanding, the Orchestrator MUST emit a `LESSON_CANDIDATE: ESCALATION_OVERLOAD` and recommend the user address root causes (e.g., missing onboarding input, unclear scope) rather than resolving one-by-one.
+5. **Summary header**: when batching, prefix the message with a summary: `📋 [N] escalations outstanding ([H] HALT, [P] PAUSE). Showing batch [B] of [T].`
+
 ---
 
 ## TRACEABILITY

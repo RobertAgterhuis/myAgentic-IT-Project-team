@@ -12,8 +12,14 @@ This contract defines the mandatory output schemas for the three workflows of th
 2. **Answer Loading** — answer map, summary, and agent context blocks passed to Orchestrator
 3. **Official Document Generation** — 8 living documents in `BusinessDocs/OfficialDocuments/`
 
-The Orchestrator validates against this contract via RULE ORC-25 and RULE ORC-26.  
+The Orchestrator validates against this contract via RULE ORC-25 and RULE ORC-26 (defined in `.github/skills/00-orchestrator.md`).  
 The Questionnaire Agent validates its own output against this contract before every handoff.
+
+### Cross-reference: ORC-25 (Questionnaire and official document lifecycle)
+After every phase Critic + Risk PASSED, the Orchestrator: (1) collects `QUESTIONNAIRE_REQUEST` items from phase agent handoffs, (2) activates the Questionnaire Agent generation workflow, (3) activates the Questionnaire Agent document generation workflow for official documents. Open questionnaires NEVER block the cycle. On REEVALUATE, answer loading runs before phase agents. This activation MUST NOT be skipped (G-GLOB-56).
+
+### Cross-reference: ORC-26 (Official document completeness gate)
+Before activating the Synthesis Agent, the Orchestrator verifies `document-registry.md` exists with all 8 rows, all 8 official documents exist, and completeness is checked. Missing documents trigger a scaffold request; completeness < 50% warns but does not block.
 
 ---
 
@@ -28,6 +34,19 @@ Questionnaire answers may arrive through any of the following channels. All chan
 | Future integrations | Any tool or API that writes answers to the standardized markdown format | Yes |
 
 The Questionnaire Agent's Answer Loading workflow does NOT distinguish between channels. It reads the markdown files and builds the answer map identically regardless of how the answers were entered.
+
+### Answer injection timing
+
+Answers may arrive at any time (including between phases). The system consumes them at these defined points:
+
+| Trigger | Injection pathway | Who activates |
+|---------|-------------------|---------------|
+| Phase boundary (normal cycle) | Orchestrator loads answers at "On phase start" step 3 — injects answered questions as `## QUESTIONNAIRE INPUT` context blocks into the next phase's agents | Orchestrator (automatic) |
+| `REEVALUATE [scope]` command | Questionnaire Agent re-runs the Answer Loading workflow, then affected phase agents re-execute with updated context | Orchestrator via ORC-25 step 5 |
+| Web UI reevaluate trigger | `reevaluate-trigger.json` with `status: "PENDING"` is treated as equivalent to `REEVALUATE [scope]` per ORC-28 | Orchestrator (automatic at session start / Sprint Gate) |
+| New cycle start | All existing answered questionnaires are loaded — answers carry forward unless the Questionnaire Agent flags them with `answer_age_status: PRIOR_CYCLE` or `POTENTIALLY_STALE` | Questionnaire Agent |
+
+**Key rule:** Answers that arrive between phases are NOT silently lost — they are automatically picked up at the next phase boundary. No REEVALUATE is required for inter-phase answers to take effect.
 
 ### Reevaluate trigger file
 

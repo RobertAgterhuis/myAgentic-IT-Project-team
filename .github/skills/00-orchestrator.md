@@ -152,13 +152,25 @@ The Orchestrator checks at every Sprint Gate whether `lessons-learned.md` contai
 **RULE ORC-23: HOTFIX protocol**
 A `HOTFIX [description]` command starts an abbreviated emergency cycle outside the normal sprint structure. Use only when a critical production issue requires immediate remediation.
 
+**Criticality thresholds (what qualifies as a HOTFIX):**
+- `CRITICAL_FINDING` flagged by Test Agent or PR/Review Agent (security or data integrity issue)
+- Production incident: service is down, data loss is occurring, or a security vulnerability is actively exploitable
+- Regulatory compliance violation that has a hard deadline
+
+**What does NOT qualify as a HOTFIX:**
+- Feature requests or enhancements
+- Non-blocking bugs that can wait for the next sprint
+- Performance issues that don't affect availability
+
+If the `HOTFIX` command does not match any criticality threshold, the Orchestrator MUST reject it: `⚠️ HOTFIX REJECTED — [description] does not meet criticality thresholds. Use a regular sprint story instead.`
+
 HOTFIX execution order:
 ```
 HOTFIX [description]
-  → Orchestrator validates: is this truly critical? (CRITICAL_FINDING or production incident?)
+  → Orchestrator validates: is this truly critical? (see criticality thresholds above)
   → Sprint Gate BYPASS — Definition of Ready check skipped; Orchestrator documents this explicitly
   → Implementation Agent (scope: the hotfix only — no additional work)
-  → Test Agent (abbreviated test: minimum the repaired functionality + immediately adjacent regression)
+  → Test Agent (abbreviated test: the repaired functionality + 1-layer-deep regression — all modules that directly import or are directly imported by the changed files)
   → PR/Review Agent (secret scan MANDATORY; revert detection MANDATORY)
   → Orchestrator: merge after APPROVED
   → KPI Agent: measurement if measurable
@@ -176,7 +188,7 @@ HOTFIX bookkeeping (mandatory):
 
 **RULE ORC-24: Onboarding refresh**
 The Onboarding Output and session-state.json can become stale as the codebase evolves. The Orchestrator triggers an **Onboarding Refresh** — a surface-level scan per Step 3 of the Onboarding Agent, without new intake questions — in the following situations:
-1. After a `REEVALUATE` where the delta scan reports significant code changes (new/removed files > 10% of the codebase)
+1. After a `REEVALUATE` where the delta scan reports significant code changes: **≥ 10% of total files in the project source directories** (count new files + removed files; directories: `src/`, `lib/`, `app/`, or project-specific source roots defined in `onboarding-output.md` tooling section; exclude `node_modules/`, `dist/`, `.git/`, test fixtures)
 2. After 5 or more consecutive sprints without re-evaluation
 3. On explicit command `REFRESH ONBOARDING`
 
@@ -204,6 +216,12 @@ An Onboarding Refresh:
 **RULE ORC-08:** Phase 1 NEVER starts before the Onboarding Agent has declared `ONBOARDING_COMPLETE`. All open `ONBOARDING_BLOCKED` items must be resolved. `INSUFFICIENT_DATA` items are passed as context — they do NOT block.
 
 **RULE ORC-09:** At every session start, the Orchestrator checks whether `.github/docs/session/session-state.json` exists with `status ≠ COMPLETE`. If yes: present the resumable session to the user per `.github/docs/contracts/session-state-contract.md` and wait for choice RESUME or RESET.
+
+**Corruption handling (ORC-09):** If `session-state.json` exists but cannot be parsed as valid JSON (truncated file, encoding error, etc.):
+1. Archive the corrupted file as `session-state-corrupted-[timestamp].json`
+2. Attempt to recover from the most recent `session-state-*-archived.json` in `.github/docs/session/archive/`
+3. If a valid archive exists: present it as a resumable session with warning: `⚠️ Session state was corrupted. Recovered from archive [filename]. Last known state: [status]. Some progress since the archive may be lost.`
+4. If no valid archive exists: inform the user: `⚠️ Session state was corrupted and no archive is available. Starting fresh session.` Initialize new session via Onboarding Agent.
 
 **RULE ORC-28: Questionnaire & Decisions Web UI integration**
 1. At every session start and before every Sprint Gate, check whether `.github/docs/session/reevaluate-trigger.json` exists with `status: "PENDING"`. If found:
@@ -278,7 +296,8 @@ The VS Code extension worker has a hard memory limit. Long conversations with ma
 **RULE ORC-33: Session Recovery Protocol (MANDATORY on CONTINUE)**
 When the user types `CONTINUE` and `session-state.json` exists, the Orchestrator MUST:
 
-1. **Load session state.** Read `session-state.json` and determine `current_phase`, `current_agent`, `completed_agents`, and `status`.
+0. **Parse session state safely.** If `session-state.json` cannot be parsed as valid JSON, follow the corruption handling procedure in ORC-09 before proceeding.
+1. **Load session state.** Read `session-state.json` and determine `current_phase`, `current_agent`, `completed_agents`, `scope`, and `status`.
 2. **Detect incomplete agent.** If `current_agent` is non-null but NOT in `completed_agents`, the last agent did not finish. The Orchestrator MUST:
    a. Check if the agent's expected output file exists (per `phase_outputs`).
    b. **If output file exists and has content:** Treat as completed — add to `completed_agents`, advance to next agent.
@@ -298,6 +317,35 @@ The following agent pairs within the same phase produce independent deliverables
 
 Current constraint: Copilot Chat processes one agent per turn (RULE ORC-30). This rule is preparatory for when parallel execution becomes available. Until then, agents run sequentially in the order listed in `PHASE_AGENTS`.
 
+**RULE ORC-35: Agent Output Contract Validation (MANDATORY on every handoff)**
+When an agent completes and hands off output, the Orchestrator MUST validate the output against the agent's output contract (if one exists in `.github/docs/contracts/`). The validation process:
+
+1. **Check output file exists.** The agent's declared output path (from STATE UPDATE) must exist and be non-empty.
+2. **Check HANDOFF CHECKLIST.** All checkboxes in the HANDOFF CHECKLIST must be checked. An unchecked box is a `CONTRACT_VIOLATION`.
+3. **Check required sections.** The output contract defines required sections. Each must be present and non-empty. Empty or placeholder text (e.g., "TBD", "TODO", "see appendix") is a `CONTRACT_VIOLATION`.
+4. **Check ANTI-HALLUCINATION compliance.** All `UNCERTAIN:` and `INSUFFICIENT_DATA:` items must be explicitly listed. Missing source citations on findings are a `CONTRACT_VIOLATION`.
+5. **On CONTRACT_VIOLATION:**
+   a. First violation: Return to the agent with specific violations listed. Agent must fix and re-submit.
+   b. Second violation (same agent, same item): Return with `FINAL_WARNING` — agent must fix all items.
+   c. Third violation (same agent): `PERSISTENT_CONTRACT_FAILURE` — escalate to user via Human Escalation Protocol type `OTHER`. Document: `"Agent [name] failed contract validation 3×. Items: [list]. Manual review required."`
+6. **Maximum retry budget:** 3 retries per agent per phase. After 3 retries, the Orchestrator proceeds with the best available output and documents all unresolved violations as `ACCEPTED_VIOLATION: [item]` in the Orchestrator Log.
+7. **Agents without output contracts:** Until all 15 missing contracts are created (see agent-index.md), agents without a formal contract are validated only for HANDOFF CHECKLIST completeness and output file existence.
+
+**RULE ORC-36: INSUFFICIENT_DATA Propagation (MANDATORY)**
+When an upstream agent marks an item as `INSUFFICIENT_DATA:`, downstream agents MUST be informed and follow these rules:
+1. **Within the same phase:** Downstream agents in the same phase receive the `INSUFFICIENT_DATA:` items as context warnings. They proceed with their analysis but mark any derived findings that depend on the missing data as `PROVISIONAL: based on INSUFFICIENT_DATA from [agent]`.
+2. **Across phases:** Phase N+1 receives all unresolved `INSUFFICIENT_DATA:` items from Phase N. Phase agents may choose to resolve items in their domain (mark as `RESOLVED_BY_PHASE_[N+1]: [source]`) or propagate them further.
+3. **At Synthesis:** The Synthesis Agent collects all remaining `INSUFFICIENT_DATA:` items across all phases and lists them in the Master Report under "Open Items". Items with `PROVISIONAL` downstream dependencies are highlighted as higher risk.
+4. **Blocking rule:** `INSUFFICIENT_DATA:` NEVER blocks phase progression. It is always informational and tracked via questionnaires.
+
+**RULE ORC-37: Phase Agent Persistent Failure (MANDATORY)**
+If a phase agent fails to produce a valid handoff after 3 consecutive attempts (including ORC-35 contract validation retries):
+1. Mark the agent's output as `AGENT_FAILURE: [agent name] — 3 attempts exhausted`
+2. Escalate to user via Human Escalation Protocol type `OTHER`: `"Agent [name] failed to produce valid output after 3 attempts. Options: (1) SKIP — proceed without this agent's output (gaps documented), (2) RETRY — one more attempt with simplified scope, (3) MANUAL — user provides the deliverable manually."`
+3. On SKIP: Document as `AGENT_SKIPPED: [name]` in Orchestrator Log; all downstream agents receive a notice that this agent's output is missing.
+4. On RETRY: Activate the agent once more with a simplified instruction set (only mandatory sections).
+5. On MANUAL: Wait for user to provide a file at the expected output path; validate format only (not content).
+
 **RULE ORC-10:** Every `HALT`-type escalation (per `.github/docs/contracts/human-escalation-protocol.md`) sets the global status to `AWAITING_HUMAN`. No agent may start a new step until the response is processed and the status is reset.
 
 ---
@@ -306,9 +354,10 @@ Current constraint: Copilot Chat processes one agent per turn (RULE ORC-30). Thi
 
 ### On phase start:
 1. Verify that input requirements for this phase are present
-2. **Questionnaire context injection (MANDATORY):** Load the answer context blocks prepared by the Questionnaire Agent during Onboarding. For each agent in this phase that has a `## QUESTIONNAIRE INPUT — [Agent Name]` block available, inject it as the first context block when activating that agent.
-3. Activate the first agent in the phase
-4. Document the start timestamp
+2. **Predecessor-output validation (MANDATORY):** For each phase after Onboarding, verify that the previous phase's output files (listed in `phase_outputs` in session-state.json) exist on disk and are non-empty. If any required predecessor file is missing or empty: `PREDECESSOR_MISSING: [file path]` — do NOT activate any phase agent; attempt re-generation by re-activating the missing agent; if re-generation fails, escalate via Human Escalation Protocol type `OTHER`.
+3. **Questionnaire context injection (MANDATORY):** Load the answer context blocks prepared by the Questionnaire Agent during Onboarding. For each agent in this phase that has a `## QUESTIONNAIRE INPUT — [Agent Name]` block available, inject it as the first context block when activating that agent. Also load any questionnaire answers that were filled between phases (even if no REEVALUATE was triggered) — these are treated as additional context, not as triggers for re-analysis.
+4. Activate the first agent in the phase
+5. Document the start timestamp
 
 ### On agent handoff receipt:
 1. Check whether handoff is `status: "READY"` or `"BLOCKED"`
@@ -506,7 +555,11 @@ Choose an action:
 
 ### **RULE ORC-03:** Implementation Agent, Test Agent, PR/Review Agent, KPI Agent, Documentation Agent, GitHub Integration Agent, and Retrospective Agent form a closed loop per sprint. The Orchestrator breaks the loop ONLY on ESCALATE or FAILED validation.
 
-**RULE ORC-14:** A story that fails the Definition of Ready check is NEVER picked up by the Implementation Agent. The story is automatically moved to the next sprint with reason `NOT_READY: [reason]`. Maximum 2 moves — then Human Escalation Protocol type `SCOPE_DECISION`.
+**RULE ORC-14:** A story that fails the Definition of Ready check is NEVER picked up by the Implementation Agent. The story is automatically moved to the next sprint with reason `NOT_READY: [reason]`. Maximum 2 moves — then Human Escalation Protocol type `SCOPE_DECISION` with the following resolution options presented:
+1. **SPLIT** — Break the story into smaller, ready stories (recommended)
+2. **OVERRIDE** — Force-accept as ready with documented risk (`READY_OVERRIDE: [justification]`)
+3. **REMOVE** — Remove the story from the backlog entirely (`STORY_REMOVED: [reason]`)
+4. **DEFER_INDEFINITELY** — Move to a parking lot outside the sprint backlog; re-evaluate at project end
 
 **RULE ORC-15:** The Retrospective Agent is the last step of every sprint. The next Sprint Gate may only start after `lessons-learned.md` and `velocity-log.json` have been updated.
 
@@ -520,13 +573,23 @@ The Orchestrator reads `story_type` from each sprint story and routes as follows
 |------------|-------------------|---------------------|
 | `CODE` | Implementation Agent → Test Agent → PR/Review Agent | Activate impl pipeline |
 | `INFRA` | Implementation Agent → Test Agent → PR/Review Agent | Activate impl pipeline |
-| `DESIGN` | Manual / design tooling | Monitor, but NEVER block the code pipeline |
-| `CONTENT` | Manual / content tooling | Monitor, but NEVER block the code pipeline |
-| `ANALYSIS` | Manual | Monitor, but NEVER block the code pipeline |
+| `DESIGN` | Manual / design tooling | Track as `IN_PROGRESS` at sprint start; user marks `COMPLETED` or `BLOCKED` at Sprint Gate; deliverable: design artifact file referenced in story |
+| `CONTENT` | Manual / content tooling | Track as `IN_PROGRESS` at sprint start; user marks `COMPLETED` or `BLOCKED` at Sprint Gate; deliverable: content file/draft referenced in story |
+| `ANALYSIS` | Manual | Track as `IN_PROGRESS` at sprint start; user marks `COMPLETED` or `BLOCKED` at Sprint Gate; deliverable: analysis document referenced in story |
 
-**RULE ORC-04:** A blocker or delay in a `DESIGN`, `CONTENT`, or `ANALYSIS` track MUST NEVER block the start or progress of a `CODE` or `INFRA` track in the same sprint. On detection of a cross-track blocker: `CROSS_TRACK_BLOCKER: [source-story-id] has type [type] and must not block [code-story-id]` → remove the dependency, document it, continue with the code pipeline.
+**Definition of Done for non-CODE stories:**
+- `DESIGN`: A design artifact (wireframe, mockup, or spec document) exists at the path referenced in the story and has been acknowledged by the user at Sprint Gate.
+- `CONTENT`: A content draft exists at the path referenced in the story, reviewed for completeness.
+- `ANALYSIS`: An analysis document exists, containing findings, recommendations, and source citations.
+Non-CODE stories do NOT go through the Implementation Agent, Test Agent, or PR/Review Agent pipeline. They are tracked by the Orchestrator and resolved at Sprint Gate.
 
-**RULE ORC-05:** If the Orchestrator receives a story with a missing `story_type` field: `MISSING_STORY_TYPE: [story-id]` → return to the relevant phase agent for correction. NO implementation starts.
+**RULE ORC-04:** A blocker or delay in a `DESIGN`, `CONTENT`, or `ANALYSIS` track MUST NEVER block the start or progress of a `CODE` or `INFRA` track in the same sprint. On detection of a cross-track blocker: `CROSS_TRACK_BLOCKER: [source-story-id] has type [type] and must not block [code-story-id]` → apply the following decision tree:
+1. **Is the dependency on a deliverable (design asset, content text)?** → Defer the dependent story to the next sprint (`BACKLOG: dependency on [source-story-id] not yet delivered`). Do NOT delete the dependency link.
+2. **Is the dependency on a decision or approval?** → Flag as `DECISION_NEEDED: [source-story-id]` and escalate via Human Escalation Protocol type `SCOPE_DECISION`.
+3. **Is the dependency informational only (no hard artifact required)?** → Remove the dependency link, document: `DEPENDENCY_REMOVED: [code-story-id] no longer depends on [source-story-id] (informational only)`. Continue with the code pipeline.
+In all cases, document the action in the Orchestrator Log.
+
+**RULE ORC-05:** If the Orchestrator receives a story with a missing `story_type` field: `MISSING_STORY_TYPE: [story-id]` → return to the **Product Manager (34)** for correction (Product Manager owns story_type assignment across all phases). NO implementation starts.
 
 ---
 

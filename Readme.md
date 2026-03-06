@@ -1,4 +1,4 @@
-# devAgentic – End-to-End Software Solution Creation & Audit
+# Agentic IT Project Team – End-to-End Software Solution Creation & Audit
 
 A **multi-agent system** of 38 specialized AI agents that creates complete, production-ready software solutions — or audits existing ones — through a structured four-phase analysis followed by autonomous sprint-by-sprint implementation.
 

@@ -419,6 +419,7 @@
       font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--text);
     }
     .cmd-form .form-group textarea { min-height: 60px; resize: vertical; }
+    .cmd-form .form-group textarea.brief-area { min-height: 200px; font-family: 'SF Mono','Cascadia Code','Consolas', monospace; font-size: 12px; line-height: 1.6; }
     .cmd-form .form-group input:focus, .cmd-form .form-group select:focus, .cmd-form .form-group textarea:focus {
       outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
     }
@@ -519,6 +520,17 @@
     .cmd-pending-icon { font-size: 22px; }
     .cmd-pending-text { flex: 1; font-size: 13px; }
     .cmd-pending-cmd { font-weight: 800; font-family: 'SF Mono','Cascadia Code','Consolas', monospace; }
+
+    /* Collapsible form wrapper after command queued */
+    .cmd-form-collapsed { margin-bottom: 8px; }
+    .cmd-form-collapsed summary {
+      cursor: pointer; font-size: 12px; color: var(--text-sec); padding: 6px 0;
+      list-style: none; display: flex; align-items: center; gap: 6px;
+    }
+    .cmd-form-collapsed summary::-webkit-details-marker { display: none; }
+    .cmd-form-collapsed summary::before { content: '\25B6'; font-size: 10px; transition: transform .2s; }
+    .cmd-form-collapsed[open] summary::before { transform: rotate(90deg); }
+    .cmd-form-collapsed .cmd-form { margin-top: 8px; }
 
     /* Empty pipeline state */
     .pipe-empty { text-align: center; padding: 80px 20px; color: var(--text-sec); }
@@ -1630,6 +1642,10 @@ function selectCommand(cmd) {
     formHTML += `<div class="form-group">
       <label for="cmdProject">Project Name</label>
       <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker">
+    </div>
+    <div class="form-group">
+      <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span></label>
+      <textarea id="cmdBrief" class="brief-area" placeholder="Paste your full project requirements here.&#10;This will be saved to BusinessDocs/project-brief.md so the Onboarding Agent can read it — it will NOT be included in the Copilot Chat command, preventing context overload and network timeouts."></textarea>
     </div>`;
   }
   if (needsScope) {
@@ -1699,6 +1715,12 @@ async function launchCommand() {
     body.description = descEl.value.trim();
   }
 
+  // Save project brief to file (not included in clipboard command)
+  const briefEl = document.getElementById('cmdBrief');
+  if (briefEl && briefEl.value.trim()) {
+    body.brief = briefEl.value.trim();
+  }
+
   try {
     const r = await api('POST', '/api/command', body);
     lastClipboard = r.clipboard_text;
@@ -1710,8 +1732,9 @@ async function launchCommand() {
       <div style="margin-top:12px;padding:12px;background:var(--success-light);border:1px solid var(--success);border-radius:var(--radius-sm);font-size:13px;color:var(--success);margin-bottom:8px;">
         &#10004; Command queued successfully!
       </div>
+      ${r.brief_saved ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px;">&#128196; Project brief saved to <code>BusinessDocs/project-brief.md</code> &mdash; the Onboarding Agent will read it from there.</div>` : ''}
       <div style="font-size:13px;color:var(--text-sec);margin-bottom:8px;">
-        Copy the command below and <strong>paste it in Copilot Chat</strong> to start:
+        Copy the <strong>short</strong> command below and paste it in Copilot Chat to start:
       </div>
       <div class="cmd-clipboard">
         <code id="clipText">${esc(r.clipboard_text)}</code>
@@ -1720,6 +1743,18 @@ async function launchCommand() {
     document.getElementById('btnCopyClip').addEventListener('click', copyClipboard);
 
     toast('Command queued — paste in Copilot Chat to start', 't-ok');
+
+    // Collapse the form into an expandable details element
+    const form = document.getElementById('cmdForm');
+    if (form) {
+      const details = document.createElement('details');
+      details.className = 'cmd-form-collapsed';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Show command details';
+      details.appendChild(summary);
+      form.parentNode.insertBefore(details, form);
+      details.appendChild(form);
+    }
 
     // Refresh progress
     await load(true);

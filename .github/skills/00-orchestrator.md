@@ -222,6 +222,58 @@ An Onboarding Refresh:
 2. The Command Center web UI at `.github/webapp/` (Command Center tab) writes `command-queue.json` via `POST /api/command`. The user must still paste one command in Copilot Chat to trigger the Orchestrator to read the queue. The clipboard-ready text is provided by the UI.
 3. When informing the user about available commands, include: `ℹ️ You can also launch commands from the Command Center tab in the web UI: run \`node .github/webapp/server.js\` and open http://127.0.0.1:3000`
 
+**RULE ORC-30: Checkpoint-and-Yield Protocol (MANDATORY — prevents network timeouts)**
+The Orchestrator MUST complete exactly **one agent per conversation turn**. After each agent completes its handoff, the Orchestrator:
+1. Writes the agent output to disk (per phase_outputs in session-state.json)
+2. Updates `session-state.json` with `current_agent`, `completed_agents`, and `last_updated`
+3. Updates `.github/docs/session/pipeline-progress.json` for the web UI
+4. **Yields back to the user** with a concise status message:
+   ```
+   ✅ [Agent Name] complete — output saved to [path]
+   Next: [Next Agent Name]
+   Type CONTINUE (or press Enter) to proceed.
+   ```
+5. On the next user turn (CONTINUE or Enter), the Orchestrator reads `session-state.json`, determines the next agent, and activates it.
+
+**Why this rule exists:** Without yielding, the Orchestrator attempts to run all agents in a single LLM generation turn. For large projects with detailed briefs, this causes the response to exceed network timeout limits (typically 60–120 seconds), resulting in partial output, skipped agents, or direct file creation by the wrong agent.
+
+**Exceptions to one-agent-per-turn:**
+- Critic + Risk validation runs as a pair in one turn (they are lightweight validators, not producers)
+- Questionnaire Agent generation runs in the same turn as the Critic + Risk that triggered it
+- The Onboarding Agent always completes in one turn (it is the first agent and has no predecessor output to carry)
+
+**RULE ORC-31: Project Brief File Protocol (MANDATORY for CREATE and AUDIT)**
+1. When `command-queue.json` contains `brief_saved: true` and `brief_path`, the Orchestrator MUST inform the Onboarding Agent that the project brief is available at `BusinessDocs/project-brief.md`.
+2. The clipboard text pasted by the user in Copilot Chat intentionally does NOT contain the project brief. The brief is stored as a file to prevent context overload.
+3. The Orchestrator MUST NOT ask the user to re-paste requirements that are already available in `BusinessDocs/project-brief.md`.
+4. If `BusinessDocs/project-brief.md` exists at cycle start, treat it as the primary input source for the Onboarding Agent, regardless of whether it was created via the web UI or manually.
+
+**RULE ORC-32: Conversation Memory Management (MANDATORY — prevents JS heap out of memory)**
+The VS Code extension worker has a hard memory limit. Long conversations with many tool calls and large agent outputs will cause `Worker terminated due to reaching memory limit: JS heap out of memory`. To prevent this:
+
+1. **Write all agent output to files, not to chat.** Agents MUST write their deliverables to the designated output files (per `phase_outputs` in session-state.json). The chat message should only contain:
+   - A brief summary (max 20 lines) of what was produced
+   - The file path where the full output was saved
+   - The handoff status (READY / BLOCKED)
+   - The next action prompt (per ORC-30)
+2. **Fresh conversation per phase boundary.** At phase boundaries (after Critic + Risk validation PASSED), the Orchestrator MUST instruct the user to start a **new Copilot Chat conversation** to reset accumulated context:
+   ```
+   ✅ Phase [N] complete — Critic + Risk validation PASSED.
+   
+   ⚠️ MEMORY MANAGEMENT: To prevent memory errors, please start a NEW Copilot Chat conversation.
+   Then type: CONTINUE
+   The Orchestrator will resume from session-state.json automatically.
+   ```
+   This clears the VS Code worker’s accumulated conversation history while `session-state.json` preserves all progress.
+3. **Do NOT re-read completed agent outputs into chat context.** When resuming, the Orchestrator reads only `session-state.json` to determine the next step. It passes file *paths* (not file contents) to the next agent. Each agent reads only the specific predecessor outputs it needs via file reads.
+4. **Limit tool call result accumulation.** Agents should prefer targeted `grep_search` over full `read_file` for large files. When reading files, read only the sections needed (use line ranges), not entire files.
+5. **If an agent’s output exceeds 400 lines:** The agent MUST split the output across multiple files (e.g., `01-business-analyst-part1.md`, `01-business-analyst-part2.md`) and produce only a summary + file manifest in the chat message.
+
+**Detecting memory pressure:** If the Orchestrator or any agent encounters unusually slow responses, truncated output, or repeated tool call failures mid-turn, it should immediately:
+- Save all progress to disk
+- Update `session-state.json`
+- Instruct the user to start a new conversation and type CONTINUE
+
 **RULE ORC-10:** Every `HALT`-type escalation (per `.github/docs/contracts/human-escalation-protocol.md`) sets the global status to `AWAITING_HUMAN`. No agent may start a new step until the response is processed and the status is reset.
 
 ---

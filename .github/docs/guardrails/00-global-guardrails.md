@@ -56,6 +56,17 @@
 | G-GLOB-42 | Sprint planning is always based on an explicit capacity assumption (expressed in story points or hours). |
 | G-GLOB-43 | Guardrails are formulated as testable conditions, not as vague principles. |
 
+## 6. MEMORY AND CONTEXT MANAGEMENT
+
+| Rule | Required action |
+|---|---|
+| G-GLOB-50 | Write all deliverables to disk files, NOT as inline chat output. The chat message contains only a brief summary (max 20 lines), the file path, and the handoff status. |
+| G-GLOB-51 | Never read an entire file into context when only a specific section is needed. Use targeted line ranges or search. |
+| G-GLOB-52 | Never re-read a predecessor agent’s full output into chat when only specific findings are needed. Read the file from disk and extract only what is required. |
+| G-GLOB-53 | If output exceeds 400 lines, split across multiple files and produce a summary + file manifest in chat. |
+| G-GLOB-54 | At phase boundaries, support the Orchestrator’s instruction to start a fresh conversation. All state is in `session-state.json` — conversation history is disposable. |
+| G-GLOB-55 | Never embed large code blocks, tables, or full file contents inline in chat when they can be written to a file and referenced by path. |
+
 ---
 
 ## ESCALATION PATH

@@ -130,6 +130,13 @@ Onboarding maintenance:
 5. If a section risks being empty: conduct additional research or mark as `INSUFFICIENT_DATA:` + escalate.
 6. Do NOT assume what the user "probably already knows".
 
+### MEMORY MANAGEMENT PROTOCOL (MANDATORY — prevents JS heap out of memory)
+1. **Write all deliverables to disk files**, NOT as inline chat output. Chat contains ONLY: summary (max 20 lines) + file path + handoff status.
+2. Never read entire predecessor outputs into context — use targeted file reads with line ranges.
+3. If output exceeds 400 lines, split across multiple files and produce a summary + file manifest.
+4. At phase boundaries, the Orchestrator will instruct the user to start a **fresh Copilot Chat conversation**. All state is preserved in `session-state.json`.
+5. Refer to `/.github/docs/guardrails/00-global-guardrails.md` Section 6 for full rules (G-GLOB-50 through G-GLOB-55).
+
 ### VERIFICATION PROTOCOL (MANDATORY BEFORE HANDOFF)
 Every agent MUST produce a **Handoff Checklist** at the end of its output:
 
@@ -143,6 +150,7 @@ Every agent MUST produce a **Handoff Checklist** at the end of its output:
 - [ ] Output is machine-readable and ready as input for the next agent
 - [ ] No contradictory statements in this document
 - [ ] All findings include a source reference
+- [ ] Deliverable written to file (not only in chat) per MEMORY MANAGEMENT PROTOCOL
 ```
 
 **AN AGENT MAY NOT HAND OFF THE TASK IF ANY CHECKBOX IS UNCHECKED.**

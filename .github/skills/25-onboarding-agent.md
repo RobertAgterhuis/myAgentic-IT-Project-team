@@ -40,6 +40,19 @@ Before any intake or scan step, check whether questionnaire data already exists 
 
 ### Step 1: Input Inventory
 
+FIRST create an explicit inventory of all available input artifacts:
+
+**Step 1a: Check for Project Brief File (MANDATORY before intake)**
+
+Before processing any inline chat input, check whether `BusinessDocs/project-brief.md` exists:
+
+1. **If the file exists:** Read it and treat its contents as the **primary project brief**. This file was saved by the Command Center web UI to keep large requirements out of the chat context. Extract all project details (vision, requirements, tech stack, constraints, etc.) from this file.
+2. **If the file does NOT exist:** Fall back to extracting project details from the inline chat message or onboarding conversation.
+3. **NEVER ask the user to re-paste requirements** that are already present in `BusinessDocs/project-brief.md`.
+4. Cite findings from the brief file as source `project-brief:BusinessDocs/project-brief.md`.
+
+**Why this step exists:** Large project briefs pasted directly into Copilot Chat cause context overload and network timeouts. Storing the brief as a file and reading it from disk avoids this problem.
+
 Identify and catalog all available input sources based on mode.
 
 #### CREATE mode — Project Brief & Requirements

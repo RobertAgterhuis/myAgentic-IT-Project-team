@@ -1,4 +1,3 @@
-```markdown
 # Business Guardrails – Phase 1 Agents
 > Applies to: Business Analyst, Domain Expert, Sales Strategist, Financial Analyst, Product Manager
 > Mode: CREATE + AUDIT (differences noted per rule)
@@ -21,6 +20,8 @@
 
 ### G-BUS-03 – ICP Validation
 **Rule:** Recommendations for product or sales may NOT be made before the Ideal Customer Profile (ICP) has been established based on demonstrable data.  
+**CREATE mode:** ICP may be constructed from market research or validated assumptions — document as `ICP_HYPOTHETICAL: [rationale]`.  
+**AUDIT mode:** ICP must be based on: existing customer data, interviews, CRM data, or market research – NOT on assumptions.  
 **Source requirement:** ICP must be based on: existing customer data, interviews, CRM data, or market research – NOT on assumptions.
 
 ### G-BUS-04 – Gap Analysis Completeness
@@ -56,5 +57,3 @@ After Phase 1 the output MUST be available as structured JSON or Markdown with t
 - `priority_matrix[]`
 
 Any missing field blocks the start of Phase 2.
-
-```

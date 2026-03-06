@@ -57,7 +57,16 @@ Do NOT delay or block your work based on the absence of questionnaire input.
 ---
 
 ### Step 1: Current Locale Coverage Inventory
-Document what is currently available:
+
+**CREATE mode:**
+Define target locale strategy for the new solution:
+- Which languages are strategically relevant (Domain Expert output, Sales Strategist international expansion)?
+- Tier prioritization: Tier 1 (launch), Tier 2 (post-launch), Tier 3 (future)
+- Is an `i18n` library or translation mechanism planned? (e.g. i18next, GNU gettext, ICU MessageFormat, Android resource strings, .resx files)
+- Per language: planned / deferred / `INSUFFICIENT_DATA:`
+
+**AUDIT mode:**
+Inventory existing locale coverage:
 - Which languages are actively supported? (UI, documentation, customer service)
 - Which languages are partially supported?
 - Which languages are absent but strategically relevant (Domain Expert output)?
@@ -66,6 +75,18 @@ Document what is currently available:
 Per language: full / partial / absent / `INSUFFICIENT_DATA:`
 
 ### Step 2: i18n Architecture Audit
+
+**CREATE mode:**
+Define i18n architecture requirements for the new solution based on Software Architect (Phase 2) output:
+- String externalization strategy and key naming convention
+- Locale-aware formatting requirements (dates, numbers, currencies, timezones)
+- RTL support requirements (if target markets include RTL languages)
+- Pluralization framework requirements per target language
+- String extractability and context mechanism for translators
+Per requirement: document as i18n architecture specification with priority.
+
+**AUDIT mode:**
+Audit the existing i18n architecture for deficiencies:
 
 #### 2a: Hardcoded Strings Detection
 Based on codebase analysis (Senior Developer output or direct codebase scan):
@@ -100,6 +121,16 @@ Based on codebase analysis (Senior Developer output or direct codebase scan):
 - Is there a context mechanism for translators (key context, maximum text length)?
 
 ### Step 3: Cultural Suitability Check
+
+**CREATE mode:**
+Define cultural suitability requirements per target market based on UX Designer and UI Designer output:
+- Color palette validation against cultural associations in target markets
+- Symbol and iconography requirements per market
+- Image and illustration guidelines for cultural sensitivity
+- Marketing and UI copy constraints for translatability
+Per requirement: `L10N_CULTURAL_REQ: [element] — [target market] — [requirement] — [source]`
+
+**AUDIT mode:**
 Identify cultural risks based on available UI material (UI Designer output):
 - Colors with culturally negative associations in target markets
 - Symbols or iconography with culturally unwanted meaning
@@ -111,6 +142,18 @@ Per finding: `L10N_CULTURAL_RISK: [element] — [target market] — [risk] — [
 Source requirement: Cultural claims require a verifiable source (study, research, recognized localization guide — e.g. Localization Industry Standards Association).
 
 ### Step 4: Translation Workflow Assessment
+
+**CREATE mode:**
+Design the translation workflow for the new solution:
+- Translation approach per tier (professional agency / MT+post-edit / crowdsourcing / internal)
+- TMS selection recommendation (e.g. Crowdin, Phrase, Lokalise, Transifex) with justification
+- Glossary and term list management process
+- Translation review stages (linguistic review, contextual review, in-product review)
+- Release integration: translation-blocking vs async translation strategy
+- CI/CD integration requirements for translation files → `DEPENDENT_ON: DevOps Engineer`
+
+**AUDIT mode:**
+Assess the existing translation workflow and tooling:
 - Is there an active translation workflow? (present / absent / not verifiable)
 - What type of translation is used? (professional translation agency / MT+post-edit / crowdsourcing / internal)
 - Is there a Translation Management System (TMS)? (e.g. Crowdin, Phrase, Lokalise, Transifex)
@@ -120,6 +163,19 @@ Source requirement: Cultural claims require a verifiable source (study, research
 `L10N_WORKFLOW_RISK: [aspect] — [finding] — [recommended action]`
 
 ### Step 5: New Market Recommendations
+
+**CREATE mode:**
+Define the market expansion roadmap based on:
+- Domain Expert (Phase 1): identified target markets
+- Sales Strategist (Phase 1): international expansion strategy
+- Product Manager (Phase 1): roadmap priorities
+- Target locale strategy (Step 1)
+- i18n architecture requirements (Step 2)
+
+Per target market, define minimum viable localization (MVL) requirements for launch.
+
+**AUDIT mode:**
+New market recommendations based on technical readiness:
 Based on:
 - Domain Expert (Phase 1): identified target markets
 - Sales Strategist (Phase 1): international expansion strategy
@@ -136,6 +192,18 @@ Per potential new market:
 Per market with BLOCKING: document the technical requirements that must first be resolved.
 
 ### Step 6: Self-Check (Phase 3 Closure)
+
+**CREATE mode** additional checks:
+- All target markets have locale requirements defined
+- i18n architecture requirements are consistent with Software Architect output
+- Translation workflow is designed with clear tier priorities
+- Market expansion roadmap is prioritized and includes MVL per Tier 1 market
+
+**AUDIT mode** additional checks:
+- All existing locale gaps are documented with I18N_ISSUE tags
+- Cultural risks are sourced and verifiable
+- Translation workflow risks are identified with recommended actions
+
 Additional as last Phase 3 agent:
 1. Verify that combined Phase 3 output (all 6 agents) is complete for the Critic Agent
 2. Are localization findings consistent with Content Strategist voice & tone output?
@@ -195,6 +263,49 @@ Document dependencies: i18n architecture (CODE) must be ready before translation
 
 ---
 
+## MANDATORY EXECUTION – PRODUCE GUARDRAILS
+
+> Execute this AFTER the analysis. Guardrails are forward-looking, testable decision rules.
+> Conform to `.github/docs/contracts/guardrails-output-contract.md`
+
+### Step I: Identify Guardrails
+- Every RISK-NNN with score Critical or High → translate into a preventive guardrail
+- Every GAP-NNN that can structurally recur → translate into a structural guardrail
+- Patterns you have analyzed that must prevent recurrence
+
+### Step J: Guardrail Formulation
+Per guardrail:
+- Formulate as testable — start with verb: "Must not", "Must always", "Requires"
+- **NOT valid:** "Ensure good quality"
+- **VALID:** "Must not be deployed without approved verification per [criterion]"
+- Scope: for whom and when does the guardrail apply?
+
+### Step K: Violation Action and Verification Method (MANDATORY per guardrail)
+- Violation action: what happens concretely when violated? (block, escalate to [role], mark as CRITICAL_FINDING)
+- Verification method: how do you verify compliance? (automated test, code review checklist, manual audit + frequency)
+
+**PROHIBITED:** No guardrail without a violation action.
+**PROHIBITED:** No guardrail without a verification method.
+**PROHIBITED:** No guardrail without a reference to an analysis finding (GAP/RISK ID).
+
+### Step L: Overlap Check
+Check overlap with existing guardrails in `.github/docs/guardrails/`. Document per guardrail: "New" / "Supplement to G-NNN" / "Conflict with G-NNN (resolution: [...])"
+
+### Step M: Guardrails Self-Check
+1. Is every guardrail formulated as testable?
+2. Does every guardrail have a violation action?
+3. Does every guardrail have a verification method?
+4. Does every guardrail have a GAP/RISK analysis reference?
+5. Have duplicates been checked against existing guardrail documents?
+
+---
+
+## GUARDRAILS
+- `.github/docs/guardrails/00-global-guardrails.md`
+- `.github/docs/guardrails/04-ux-guardrails.md`
+
+---
+
 ## HANDOFF CHECKLIST
 
 ```markdown
@@ -225,6 +336,10 @@ Document dependencies: i18n architecture (CODE) must be ready before translation
 --- Shared items ---
 - [ ] Phase 3 Closure: combined output complete for Critic Agent
 - [ ] i18n findings consistent with Content Strategist and Software Architect output
+- [ ] Guardrails: all guardrails are formulated testably
+- [ ] Guardrails: all guardrails have violation action and verification method
+- [ ] Guardrails: all guardrails reference a GAP/RISK analysis finding
+- [ ] All 4 deliverables present: Analysis ✓ Recommendations ✓ Sprint Plan ✓ Guardrails ✓
 - [ ] All UNCERTAIN: items documented and escalated
 - [ ] All INSUFFICIENT_DATA: items documented and escalated
 - [ ] Output complies with contracts in /.github/docs/contracts/

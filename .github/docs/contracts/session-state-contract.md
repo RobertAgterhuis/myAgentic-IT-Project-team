@@ -27,6 +27,8 @@ This contract defines:
 {
   "schema_version": "1.0",
   "session_id": "string — UUID or [YYYY-MM-DD]T[HH-MM-SS]",
+  "project_name": "string — project name from CREATE/AUDIT command",
+  "mode": "CREATE | AUDIT — derived from cycle_type (FULL_CREATE/PARTIAL_CREATE/COMBO_CREATE → CREATE; FULL_AUDIT/PARTIAL_AUDIT/COMBO_AUDIT → AUDIT; FEATURE/HOTFIX/REEVALUATE/SCOPE_CHANGE/REFRESH → inherit from parent session)",
   "cycle_type": "FULL_AUDIT | FULL_CREATE | PARTIAL_AUDIT | PARTIAL_CREATE | COMBO_AUDIT | COMBO_CREATE | FEATURE | REEVALUATE | SCOPE_CHANGE | HOTFIX | REFRESH",
   "scope": ["BUSINESS", "TECH", "UX", "MARKETING"],
   "project_type": "greenfield | existing | hybrid",
@@ -77,6 +79,10 @@ This contract defines:
       "15": "null",
       "16": "null",
       "critic_risk": "null"
+    },
+    "post_phase_4": {
+      "30_brand_assets": "path | null",
+      "31_storybook": "path | null"
     },
     "synthesis": "null",
     "sprintplan": "null",
@@ -245,7 +251,9 @@ PHASE-2
 PHASE-3
   → PHASE-4          (after Critic + Risk PASSED)
 PHASE-4
-  → SYNTHESIS        (after Critic + Risk PASSED)
+  → POST_PHASE_4     (after Critic + Risk PASSED)
+POST_PHASE_4
+  → SYNTHESIS        (after Brand & Assets + Storybook agents complete)
 SYNTHESIS
   → SPRINT_GATE      (after Synthesis APPROVED)
 SPRINT_GATE
@@ -263,6 +271,9 @@ Every status → REEVALUATE       (triggered by REEVALUATE command or reevaluate
 REEVALUATE → [previous status]  (after reevaluation completes)
 Every status → SCOPE_CHANGE     (on SCOPE CHANGE command — Sprint Gate PAUSED for affected dimension)
 SCOPE_CHANGE → [previous status]   (after Sprint Gate Reconciliation APPROVED by user)
+Any active status → HOTFIX       (on HOTFIX command)
+HOTFIX → PHASE-5                  (Sprint Gate BYPASSED)
+PHASE-5 (HOTFIX) → COMPLETE      (after PR merged + retrospective)
 ```
 
 **PROHIBITION:** Do not skip any phase. Do not jump back to an earlier phase without an explicit `REEVALUATE` trigger.
@@ -376,9 +387,9 @@ Story statuses flow through the system across multiple agents. This table define
 ### Valid transitions
 
 ```
-QUEUED → IN_PROGRESS | NOT_READY | BLOCKED | BACKLOG | CANCELLED
+QUEUED → IN_PROGRESS | NOT_READY | BLOCKED | BACKLOG | CANCELLED | SCOPE_CHANGE_HOLD SC-[N]
 NOT_READY → QUEUED (moved to next sprint, max 2×) | BLOCKED (after 2× NOT_READY)
-IN_PROGRESS → IMPLEMENTED | BLOCKED
+IN_PROGRESS → IMPLEMENTED | BLOCKED | SCOPE_CHANGE_HOLD SC-[N] (triggers Sprint Impact Flag)
 IMPLEMENTED → TESTING
 TESTING → REVIEW (tests pass and PR review follows) | COMPLETED (edge case: no PR review) | TEST_FAILED
 TEST_FAILED → IN_PROGRESS (rework)
@@ -386,7 +397,7 @@ IN_PROGRESS → REVIEW (when tests pass and PR created)
 REVIEW → COMPLETED | REVIEW_FAILED
 REVIEW_FAILED → IN_PROGRESS (rework)
 BLOCKED → IN_PROGRESS (blocker resolved) | CANCELLED
-BACKLOG → QUEUED (re-presented at Sprint Gate)
+BACKLOG → QUEUED (re-presented at Sprint Gate) | SCOPE_CHANGE_HOLD SC-[N]
 BACKLOG_CASCADE → QUEUED (re-presented at Sprint Gate when dependency resolved)
 SCOPE_CHANGE_HOLD → REQUEUED → QUEUED (story restored after scope change reconciliation)
 CANCELLED → (terminal state)
@@ -404,7 +415,7 @@ CANCELLED → (terminal state)
 | Implementation `PARTIAL` | `IN_PROGRESS` (rework needed) |
 | Implementation `BLOCKED` | `BLOCKED` |
 | Test `APPROVED` | `COMPLETED` (for story-level; or `REVIEW` if PR review follows) |
-| Test `REJECTED` | `TEST_FAILED` |
+| Test `REJECTED` (deprecated) | `TEST_FAILED` |
 
 The Orchestrator is responsible for translating agent-specific statuses to canonical statuses when updating `session-state.json`.
 

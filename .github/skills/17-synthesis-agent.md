@@ -257,7 +257,7 @@ Cross-domain recommendations (from Executive Summary Top-5) are included in the 
 ### Step 10: Open Items Register
 Document ALL unresolved `UNCERTAIN:` and `INSUFFICIENT_DATA:` items marked by agents but not yet resolved. Include in the master report AND as a filtered subset per department report.
 
-### Step 11: Self-Review
+### Step 11: Self-Check
 Verify:
 1. Is the master report internally consistent? (no contradictory statements)
 2. Are all Executive Summary claims traceable to specific agent findings?

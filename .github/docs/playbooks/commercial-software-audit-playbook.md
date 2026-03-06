@@ -195,6 +195,57 @@ After Critic + Risk validation:
 
 ---
 
+## SYNTHESIS (1 week)
+
+### Objective
+Consolidation of all phase outputs into one coherent final report for decision-makers.
+
+### Agent
+**Synthesis Agent** (skill: `17-synthesis-agent.md`)
+
+### Required Output (Final Report)
+1. Executive Summary (board-level, max 2 pages)
+2. Capability Heatmap
+3. Risk Matrix (consolidated)
+4. 12-month roadmap
+5. Combined Guardrail Document
+6. KPI Baseline + Target Dashboard
+7. Open Items Register
+
+---
+
+## POST-SYNTHESIS: GITHUB INTEGRATION
+
+After Synthesis is APPROVED, the **GitHub Integration Agent** (skill: `27-github-integration-agent.md`) publishes all sprint stories as GitHub Issues in `INITIAL_PUBLICATION` mode. This creates the project board, labels, milestones, and issues before any sprint begins.
+
+---
+
+## SPRINT GATE
+
+### Definition
+The Sprint Gate is the decision point between Synthesis and each sprint in Phase 5. It gates entry into implementation and recurs between sprints.
+
+### Inputs
+- Synthesis outputs (all 6 documents APPROVED)
+- `.github/docs/decisions.md` (decided items since last gate)
+- `.github/docs/session/reevaluate-trigger.json` (if `status: "PENDING"`)
+- Sprint Completion Report from previous sprint (if not first sprint)
+- Lessons learned from previous sprint (if not first sprint)
+
+### Sprint Gate Steps
+1. **Step 0 — Check Decisions + Reevaluate Triggers:** Load decisions.md for new DECIDED items; check reevaluate-trigger.json for PENDING triggers. If PENDING reevaluate found, execute REEVALUATE before proceeding.
+2. **Step 1 — Present Sprint:** Present the next sprint's stories to user for `IMPLEMENT` or `BACKLOG` decision per story. Apply Definition of Ready check. Inject lessons-learned from previous sprints.
+
+### Outputs
+- Sprint activation decision: `IMPLEMENT` | `BACKLOG` per story
+- Updated story statuses in session-state.json
+- Lessons-learned injection into agent contexts
+
+### Transition
+On `IMPLEMENT` decision → Phase 5 activates for the selected sprint.
+
+---
+
 ## PHASE 5: AUTONOMOUS IMPLEMENTATION (Ongoing per sprint)
 
 ### Objective
@@ -257,25 +308,6 @@ Stories in the same sprint that have NO mutual dependencies (identified in the P
 ### Validation Per Sprint
 After each sprint: **Critic Agent** + **Risk Agent** validation mandatory.
 Next sprint does NOT start without both validations APPROVED.
-
----
-
-## SYNTHESIS (1 week)
-
-### Objective
-Consolidation of all phase outputs into one coherent final report for decision-makers.
-
-### Agent
-**Synthesis Agent** (skill: `17-synthesis-agent.md`)
-
-### Required Output (Final Report)
-1. Executive Summary (board-level, max 2 pages)
-2. Capability Heatmap
-3. Risk Matrix (consolidated)
-4. 12-month roadmap
-5. Combined Guardrail Document
-6. KPI Baseline + Target Dashboard
-7. Open Items Register
 
 ---
 

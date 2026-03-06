@@ -9,7 +9,7 @@ const path = require('path');
 
 /* ── Configuration ────────────────────────────────────────────── */
 
-const PORT          = parseInt(process.env.PORT, 10) || 3000;
+const PORT          = (() => { const p = parseInt(process.env.PORT, 10); return (p >= 1 && p <= 65535) ? p : 3000; })();
 const HOST          = '127.0.0.1';
 const WEBAPP_DIR    = __dirname;
 const PROJECT_ROOT  = path.resolve(WEBAPP_DIR, '..', '..');
@@ -85,6 +85,21 @@ function escPipe(s) { return (s || '').replace(/\|/g, '\\|'); }
 const Q_ID_RE = /^Q-\d{1,3}-\d{1,4}$/;
 const DEC_ID_RE = /^DEC-[\w-]{1,30}$/;
 
+function assertString(val, name, maxLen = 1000) {
+  if (typeof val !== 'string') throw Object.assign(new Error(`${name} must be a string`), { status: 400 });
+  if (val.length > maxLen) throw Object.assign(new Error(`${name} exceeds max length (${maxLen})`), { status: 400 });
+}
+
+const _writeLocks = new Map();
+async function withFileLock(filePath, fn) {
+  const key = path.resolve(filePath);
+  while (_writeLocks.has(key)) await _writeLocks.get(key);
+  let resolve;
+  _writeLocks.set(key, new Promise(r => { resolve = r; }));
+  try { return await fn(); }
+  finally { _writeLocks.delete(key); resolve(); }
+}
+
 function log(method, url, status, ms) {
   const ts = new Date().toISOString();
   console.log(`  ${ts} ${method} ${url} → ${status} (${ms}ms)`);
@@ -92,7 +107,8 @@ function log(method, url, status, ms) {
 
 async function parseBody(req) {
   const ct = (req.headers['content-type'] || '');
-  if (!ct.includes('application/json')) {
+  const mediaType = ct.split(';')[0].trim().toLowerCase();
+  if (mediaType !== 'application/json') {
     throw Object.assign(new Error('Content-Type must be application/json'), { status: 415 });
   }
   const raw = await readBody(req);
@@ -105,17 +121,18 @@ async function parseBody(req) {
 function discoverQuestionnaires() {
   if (!fs.existsSync(BUSINESS_DOCS)) return [];
   const results = [];
-  (function walk(dir) {
+  (function walk(dir, depth) {
+    if (depth > 20) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       try {
-        if (entry.isDirectory()) walk(full);
+        if (entry.isDirectory()) walk(full, depth + 1);
         else if (entry.isFile() && entry.name.endsWith('-questionnaire.md')) results.push(full);
       } catch { /* skip inaccessible entry */ }
     }
-  })(BUSINESS_DOCS);
+  })(BUSINESS_DOCS, 0);
   return results.sort();
 }
 
@@ -253,6 +270,12 @@ function rebuildQuestionnaireIndex() {
   safeWriteSync(Q_INDEX_FILE, md);
 }
 
+let _rebuildTimer = null;
+function scheduleRebuildIndex() {
+  if (_rebuildTimer) clearTimeout(_rebuildTimer);
+  _rebuildTimer = setTimeout(() => { _rebuildTimer = null; rebuildQuestionnaireIndex(); }, 500);
+}
+
 /* ── API handlers ─────────────────────────────────────────────── */
 
 async function apiGetQuestionnaires(_req, res) {
@@ -276,7 +299,8 @@ async function apiGetSession(_req, res) {
 
 async function apiSave(req, res) {
   const body = await parseBody(req);
-  if (!body.file || !Array.isArray(body.updates) || body.updates.length === 0) return json(res, 400, { error: 'Missing file or updates' });
+  assertString(body.file, 'file', 500);
+  if (!Array.isArray(body.updates) || body.updates.length === 0 || body.updates.length > 200) return json(res, 400, { error: 'updates must be 1–200 items' });
 
   const filePath = safePath(BUSINESS_DOCS, body.file);
   if (!fs.existsSync(filePath)) return json(res, 404, { error: 'File not found' });
@@ -286,11 +310,13 @@ async function apiSave(req, res) {
     if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return json(res, 400, { error: `Invalid status: ${u.status}` });
   }
 
-  let content = fs.readFileSync(filePath, 'utf8');
-  for (const u of body.updates) content = updateAnswerInContent(content, u.questionId, u.answer, u.status);
-  safeWriteSync(filePath, content);
+  await withFileLock(filePath, () => {
+    let content = fs.readFileSync(filePath, 'utf8');
+    for (const u of body.updates) content = updateAnswerInContent(content, u.questionId, u.answer, u.status);
+    safeWriteSync(filePath, content);
+  });
 
-  rebuildQuestionnaireIndex();
+  scheduleRebuildIndex();
   json(res, 200, { ok: true, saved: body.updates.length });
 }
 
@@ -558,13 +584,20 @@ async function apiGetDecisions(_req, res) {
 
 async function apiPostDecision(req, res) {
   const body = await parseBody(req);
-  if (!body.action) return json(res, 400, { error: 'Missing action' });
+  assertString(body.action, 'action', 50);
   if (body.id && !DEC_ID_RE.test(body.id)) return json(res, 400, { error: 'Invalid decision ID format' });
+  if (body.scope) assertString(body.scope, 'scope', 200);
+  if (body.text) assertString(body.text, 'text', 2000);
+  if (body.notes) assertString(body.notes, 'notes', 2000);
+  if (body.answer) assertString(body.answer, 'answer', 2000);
+  if (body.reason) assertString(body.reason, 'reason', 2000);
 
   if (!fs.existsSync(DECISIONS_FILE)) return json(res, 404, { error: 'decisions.md not found' });
-  let content = fs.readFileSync(DECISIONS_FILE, 'utf8');
 
-  switch (body.action) {
+  return withFileLock(DECISIONS_FILE, () => {
+    let content = fs.readFileSync(DECISIONS_FILE, 'utf8');
+
+    switch (body.action) {
     case 'create': {
       if (!body.type || !body.priority || !body.scope || !body.text) {
         return json(res, 400, { error: 'Missing type, priority, scope, or text' });
@@ -627,6 +660,7 @@ async function apiPostDecision(req, res) {
     default:
       return json(res, 400, { error: `Unknown action: ${body.action}` });
   }
+  }); // withFileLock
 }
 
 /* ── Command Queue API ────────────────────────────────────────── */
@@ -639,10 +673,17 @@ const VALID_COMMANDS = [
 
 async function apiPostCommand(req, res) {
   const body = await parseBody(req);
-  if (!body.command || typeof body.command !== 'string') return json(res, 400, { error: 'Missing command' });
+  assertString(body.command, 'command', 100);
+  if (body.project) assertString(body.project, 'project', 200);
+  if (body.description) assertString(body.description, 'description', 2000);
+  if (body.scope) assertString(body.scope, 'scope', 200);
+  if (body.brief) assertString(body.brief, 'brief', 200000);
   const cmd = body.command.trim().toUpperCase();
-  const base = cmd.replace(/\s+\S+$/, ''); // e.g. 'CREATE TECH' → 'CREATE'
-  if (!VALID_COMMANDS.includes(cmd) && !VALID_COMMANDS.includes(base) && !VALID_COMMANDS.includes(cmd.split(' ')[0])) {
+  const parts = cmd.split(/\s+/);
+  const isValid = VALID_COMMANDS.includes(cmd)
+    || VALID_COMMANDS.includes(parts.slice(0, 2).join(' '))
+    || (VALID_COMMANDS.includes(parts[0]) && parts.length <= 1);
+  if (!isValid) {
     return json(res, 400, { error: `Unknown command: ${body.command}` });
   }
 
@@ -685,7 +726,9 @@ async function apiPostCommand(req, res) {
       queue = Array.isArray(existing) ? existing : (existing ? [existing] : []);
     } catch {}
   }
+  const MAX_QUEUE_SIZE = 50;
   queue.push(entry);
+  if (queue.length > MAX_QUEUE_SIZE) queue = queue.slice(-MAX_QUEUE_SIZE);
   safeWriteSync(COMMAND_QUEUE, JSON.stringify(queue, null, 2));
   json(res, 200, { ok: true, clipboard_text: clipText, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${clipText}` });
 }
@@ -984,11 +1027,20 @@ const server = http.createServer(async (req, res) => {
   } else if (req.method === 'GET' && !pathname.startsWith('/api')) {
     serveStatic(req, res);
   } else {
-    // S2-008: Check if path exists with different method → 405
-    const altKey = (req.method === 'GET' ? 'POST' : 'GET') + ' ' + pathname;
-    if (ROUTES[altKey]) {
-      res.writeHead(405, { 'Allow': altKey.split(' ')[0] });
-      res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+    // Check if path exists with different method → 405
+    const allowed = Object.keys(ROUTES)
+      .filter(k => k.endsWith(' ' + pathname))
+      .map(k => k.split(' ')[0]);
+    if (allowed.length > 0) {
+      setSecurityHeaders(res);
+      const body = JSON.stringify({ error: 'Method Not Allowed' });
+      res.writeHead(405, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+        'Cache-Control': 'no-store',
+        'Allow': allowed.join(', '),
+      });
+      res.end(body);
     } else {
       json(res, 404, { error: 'Not found' });
     }
@@ -1012,9 +1064,6 @@ server.on('error', (err) => {
 server.listen(PORT, HOST, () => {
   console.log(`\n  Questionnaire & Decisions Manager`);
   console.log(`  ──────────────────────────────────`);
-  console.log(`  Project root : ${PROJECT_ROOT}`);
-  console.log(`  BusinessDocs : ${fs.existsSync(BUSINESS_DOCS) ? 'found' : 'not yet created'}`);
-  console.log(`  Decisions    : ${fs.existsSync(DECISIONS_FILE) ? 'found' : 'not yet created'}`);
   console.log(`  Server       : http://${HOST}:${PORT}\n`);
 });
 

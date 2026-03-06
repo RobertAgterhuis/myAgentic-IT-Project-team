@@ -89,6 +89,19 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## Immutability Enforcement
+
+After writing the retrospective file, compute SHA-256 hash of the file contents and store in `session-state.json` under `sprint_retrospective_hashes[SP-N]`. The Orchestrator verifies the hash at Sprint Gate. If the hash does not match, the Orchestrator rejects the sprint and raises a `INTEGRITY_VIOLATION` escalation.
+
+```json
+"sprint_retrospective_hashes": {
+  "SP-1": "sha256:<hash>",
+  "SP-2": "sha256:<hash>"
+}
+```
+
+---
+
 ## JSON Export
 
 The `velocity-log.json` entry (see schema above) serves as the JSON export for this contract. The retrospective narrative is Markdown-only.

@@ -160,7 +160,7 @@ Define prototype requirements:
 Estimate design debt in story points or hours per finding category.
 **Prohibition:** No estimates without explicit rationale.
 
-### Step 6: Self-Review
+### Step 6: Self-Check
 
 **CREATE mode** additional checks:
 - All UX Researcher journeys have corresponding wireframe specifications
@@ -171,11 +171,11 @@ Estimate design debt in story points or hours per finding category.
 - Nielsen’s Heuristics pre-validated against designed flows
 
 **Both modes:**
-Perform explicit self-review on completeness and consistency.
+Perform explicit self-check on completeness and consistency.
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING RECOMMENDATIONS
+## MANDATORY EXECUTION – PRODUCE RECOMMENDATIONS
 
 > Execute this AFTER the analysis steps, using your analysis output as the basis.
 > Conform to `.github/docs/contracts/recommendations-output-contract.md`
@@ -210,7 +210,7 @@ Per recommendation:
 
 **PROHIBITION:** No priority without explicit justification.
 
-### Step D: Recommendations Self-Review
+### Step D: Recommendations Self-Check
 1. Does every recommendation have a GAP/RISK reference?
 2. Are all impact fields filled or marked as `INSUFFICIENT_DATA:`?
 3. Are all measurement criteria SMART?
@@ -218,7 +218,7 @@ Per recommendation:
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING SPRINT PLAN
+## MANDATORY EXECUTION – PRODUCE SPRINT PLAN
 
 > Execute this AFTER the recommendations, based on the prioritized recommendations.
 > Conform to `.github/docs/contracts/sprintplan-output-contract.md`
@@ -281,7 +281,7 @@ Per sprint:
 - Define 1–3 measurable KPI targets based on the SMART measurement criteria
 - Definition of Done: all stories complete, tests passed, KPI measurement executed, no new CRITICAL_FINDING, all INTERN blockers resolved
 
-### Step H: Sprint Plan Self-Review
+### Step H: Sprint Plan Self-Check
 1. Are all stories based on recommendations (REC-NNN)?
 2. **Does every P1 recommendation have at least one story?** Build a traceability table: list all REC-NNN with priority P1 or P2 and check per REC whether a story exists with `Recommendation reference: REC-NNN`. A P1 recommendation without a story: `MISSING_STORY: REC-NNN` — BLOCKING for handoff.
 3. Does every story have a team assignment?
@@ -297,7 +297,7 @@ Per sprint:
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING GUARDRAILS
+## MANDATORY EXECUTION – PRODUCE GUARDRAILS
 
 > Execute this AFTER the analysis. Guardrails are forward-looking, testable decision rules.
 > Conform to `.github/docs/contracts/guardrails-output-contract.md`
@@ -325,7 +325,7 @@ Per guardrail:
 ### Step L: Overlap Check
 Check overlap with the existing guardrails in `.github/docs/guardrails/`. Document per guardrail: "New" / "Addition to G-NNN" / "Conflict with G-NNN (resolution: [...])"
 
-### Step M: Guardrails Self-Review
+### Step M: Guardrails Self-Check
 1. Is every guardrail formulated testably?
 2. Does every guardrail have a violation action?
 3. Does every guardrail have a verification method?
@@ -372,7 +372,7 @@ Check overlap with the existing guardrails in `.github/docs/guardrails/`. Docume
 - [ ] All claims based on actual screen analysis
 - [ ] All findings have source references
 - [ ] JSON export present and valid
-- [ ] Self-review performed
+- [ ] Self-check performed
 - [ ] Recommendations: every recommendation references a GAP/RISK analysis finding
 - [ ] Recommendations: all impact fields filled or marked as INSUFFICIENT_DATA:
 - [ ] Recommendations: all measurement criteria are SMART

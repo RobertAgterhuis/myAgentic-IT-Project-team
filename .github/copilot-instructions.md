@@ -106,6 +106,8 @@ Emergency protocol (critical production issues):
   HOTFIX [description] → Orchestrator validates urgency → Sprint Gate BYPASS → Implementation → Test (abbreviated regression) → PR/Review (secret scan mandatory) → merge → KPI → Documentation → GitHub Integration → Retrospective
   Sprint ID: HOTFIX-[N]; LESSON_CANDIDATE mandatory; DECIDED item in decisions.md if structural constraints result
 
+Note: BRAND_REFRESH_REQUIRED flag from Reevaluate Agent blocks Synthesis until Brand & Assets Agent re-executes.
+
 Onboarding maintenance:
   REFRESH ONBOARDING → Onboarding Agent (steps 3+4 only: scan + tooling) → update onboarding-output.md (intake answers preserved)
 ```
@@ -198,4 +200,4 @@ The system is complete when:
 7. No open `UNCERTAIN:` or `INSUFFICIENT_DATA:` items without resolution — unresolvable items have a corresponding question in `BusinessDocs/[PHASE]/Questionnaires/`
 8. `BusinessDocs/questionnaire-index.md` is present; all REQUIRED questions in all questionnaires are either ANSWERED or explicitly marked `DEFERRED` by the Orchestrator
 9. `BusinessDocs/OfficialDocuments/document-registry.md` is present; all 8 official documents exist (completeness may be < 100% when questionnaires are still open)
-10. (Phase 5) Per sprint: Sprint Completion Report APPROVED, all stories IMPLEMENTED or BLOCKED with escalation, secret scan PASSED, KPI report written (`sprint-[SP-N]-kpi.json`), PR merged, user-manual.md and technical-manual.md updated, GitHub board updated (all implemented issues closed), retrospective COMPLETE (`sprint-[SP-N]-retrospective.md`), `velocity-log.json` updated
+10. (Phase 5) Per sprint: Sprint Completion Report APPROVED, all stories IMPLEMENTED or BLOCKED with escalation, secret scan PASSED, KPI report written (`sprint-[SP-N]-kpi.json`), PR merged, user-manual.md and technical-manual.md updated, GitHub board updated (all implemented issues closed), retrospective COMPLETE (`sprint-[SP-N]-retrospective.md`), `.github/docs/retrospectives/velocity-log.json` updated, lessons-learned.md updated

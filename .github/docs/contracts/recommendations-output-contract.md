@@ -45,7 +45,7 @@ Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discip
 
 ### Problem
 [Concrete description of the problem or design challenge – reference finding ID from analysis]
-**Analysis reference:** [GAP-NNN / RISK-NNN / CS-NNN / DESIGN-NNN]
+**Analysis reference:** [GAP-NNN / RISK-NNN / CS-NNN]
 
 ### Solution
 [Concrete, specific solution – not generic]
@@ -90,6 +90,14 @@ Where `N` is the phase number (1–4) and `[discipline]` is the lowercase discip
 
 Impact and Effort: High / Medium / Low (with explicit rationale in appendix)
 
+### Priority-to-Severity Mapping
+
+| Priority | Standard Severity |
+|----------|-------------------|
+| `P1` | `Critical` or `High` |
+| `P2` | `Medium` |
+| `P3` | `Low` |
+
 ## HANDOFF CHECKLIST
 - [ ] All recommendations reference an analysis finding (GAP/RISK/CS/DESIGN ID)
 - [ ] All impacts have rationale (no empty cells)
@@ -98,6 +106,7 @@ Impact and Effort: High / Medium / Low (with explicit rationale in appendix)
 - [ ] Priority matrix is fully completed
 - [ ] Dependencies are documented
 - [ ] No recommendations outside competence domain
+- [ ] All INSUFFICIENT_DATA: items tagged with QUESTIONNAIRE_REQUEST in handoff message
 - [ ] If cycle_type is SCOPE_CHANGE: Scope Change Impact — Recommendations section present as FIRST section (Still Applicable / Superseded / Net-New) (or `NOT_APPLICABLE` — normal cycle)
 - [ ] JSON export is valid and complete
 ```
@@ -119,7 +128,7 @@ Impact and Effort: High / Medium / Low (with explicit rationale in appendix)
     {
       "id": "REC-001",
       "problem": "string",
-      "analysis_reference": ["GAP-001", "RISK-001", "DESIGN-001"],
+      "analysis_reference": ["GAP-001", "RISK-001", "CS-001"],
       "solution": {
         "description": "string",
         "steps": ["string"]

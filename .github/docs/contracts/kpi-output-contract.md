@@ -67,6 +67,13 @@ Valid JSON object containing:
 - Sprint-over-sprint velocity comparison
 - Trend direction: IMPROVING | STABLE | DECLINING
 
+**Cumulative Trend Data Table:**
+
+| Sprint | Planned | Completed | Delta | Trend |
+|--------|---------|-----------|-------|-------|
+| SP-1   | N       | N         | ±N    | —     |
+| SP-2   | N       | N         | ±N    | IMPROVING / STABLE / DECLINING |
+
 #### 3. Quality Trend
 - Test pass rate trend
 - Bug count trend

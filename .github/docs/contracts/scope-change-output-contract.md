@@ -31,7 +31,7 @@ Ensures that fundamental project premise changes (business model pivots, core ar
 ### 3. Affected Tickets
 For each affected work item:
 - **Story/Task ID**
-- **Current Status:** (e.g., TODO, IN_PROGRESS, DONE)
+- **Current Status:** (e.g., QUEUED, IN_PROGRESS, COMPLETED)
 - **New Status:** `SCOPE_CHANGE_HOLD SC-[N]` | `CANCELLED` | `REQUEUED`
 - **Reason:** Why this ticket is affected
 - **Re-analysis Required:** YES / NO

@@ -39,7 +39,9 @@ For each agent output in the phase:
 >
 > | Critic Severity | Standard Severity |
 > |-----------------|-------------------|
-> | `MAJOR` | `CRITICAL` or `HIGH` |
+> | `MAJOR` with `risk_score ≥ Critical` | `CRITICAL` |
+> | `MAJOR` with `risk_score = High` | `HIGH` |
+> | `MAJOR` (all other / default) | `HIGH` |
 > | `MINOR` | `MEDIUM` |
 > | `INFO` | `LOW` |
 

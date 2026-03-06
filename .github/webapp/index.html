@@ -7,6 +7,7 @@
   <title>Agentic System — Command Center</title>
   <style>
     /* ── Theme: Light (default) ───────────────────── */
+    /* Convention: --color-* for colors, --radius-* for border-radius, --shadow-* for shadows */
     :root, [data-theme="light"] {
       --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: rgba(99,102,241,.1);
       --primary-glow: rgba(99,102,241,.25);
@@ -688,13 +689,13 @@
 
   <!-- ── Tabs ───────────────────────────────── -->
   <div class="tabs" id="tabBar" role="tablist">
-    <div class="tab active" data-tab="commandcenter" role="tab" aria-selected="true" tabindex="0">&#128640; Command Center</div>
-    <div class="tab" data-tab="questionnaires" role="tab" aria-selected="false" tabindex="0">&#128221; Questionnaires <span class="tab-count" id="tabCountQ">0</span></div>
-    <div class="tab" data-tab="decisions" role="tab" aria-selected="false" tabindex="0">&#9878; Decisions <span class="tab-count" id="tabCountD">0</span></div>
+    <div class="tab active" data-tab="commandcenter" role="tab" id="tab-cc" aria-selected="true" aria-controls="panelCommandCenter" tabindex="0">&#128640; Command Center</div>
+    <div class="tab" data-tab="questionnaires" role="tab" id="tab-q" aria-selected="false" aria-controls="panelQuestionnaires" tabindex="-1">&#128221; Questionnaires <span class="tab-count" id="tabCountQ">0</span></div>
+    <div class="tab" data-tab="decisions" role="tab" id="tab-d" aria-selected="false" aria-controls="panelDecisions" tabindex="-1">&#9878; Decisions <span class="tab-count" id="tabCountD">0</span></div>
   </div>
 
   <!-- ── Body ──────────────────────────────── -->
-  <div class="container hidden" id="panelQuestionnaires" aria-live="polite">
+  <div class="container hidden" id="panelQuestionnaires" role="tabpanel" aria-labelledby="tab-q" aria-live="polite">
     <button class="hamburger" id="btnHamburger" aria-label="Toggle sidebar">&#9776;</button>
     <nav class="sidebar" id="sidebar" aria-label="Questionnaire navigation"></nav>
     <main class="main" id="main">
@@ -702,7 +703,7 @@
     </main>
   </div>
 
-  <div class="container hidden" id="panelDecisions" aria-live="polite">
+  <div class="container hidden" id="panelDecisions" role="tabpanel" aria-labelledby="tab-d" aria-live="polite">
     <main class="main" style="padding:0;overflow-y:auto;">
       <div class="dec-stats-bar" id="decStats"></div>
       <div class="dec-filter-bar">
@@ -720,7 +721,7 @@
   </div>
 
   <!-- ── Command Center panel ──────────────── -->
-  <div class="cmd-layout" id="panelCommandCenter" aria-live="polite">
+  <div class="cmd-layout" id="panelCommandCenter" role="tabpanel" aria-labelledby="tab-cc" aria-live="polite">
     <nav class="cmd-sidebar" id="cmdSidebar" aria-label="Command navigation">
       <div class="cmd-section-title">Create New Solution</div>
       <button class="cmd-btn" data-cmd="CREATE">
@@ -855,16 +856,16 @@
         </div>
         <div class="form-group">
           <label for="ndScope">Scope</label>
-          <input type="text" id="ndScope" placeholder="e.g. Phase 2, SP-3, All sprints">
+          <input type="text" id="ndScope" placeholder="e.g. Phase 2, SP-3, All sprints" maxlength="200">
         </div>
       </div>
       <div class="form-group">
         <label for="ndText">Decision / Question</label>
-        <textarea id="ndText" placeholder="What has been decided or what needs to be answered?"></textarea>
+        <textarea id="ndText" placeholder="What has been decided or what needs to be answered?" maxlength="2000"></textarea>
       </div>
       <div class="form-group" id="ndNotesGroup">
         <label for="ndNotes">Notes (optional)</label>
-        <textarea id="ndNotes" style="min-height: 48px;" placeholder="Additional context or rationale"></textarea>
+        <textarea id="ndNotes" style="min-height: 48px;" placeholder="Additional context or rationale" maxlength="2000"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn" id="btnCancelNewDec">Cancel</button>
@@ -880,7 +881,7 @@
       <p id="confirmText">Are you sure?</p>
       <div class="form-group hidden" id="confirmReasonGroup">
         <label for="confirmReason">Reason (optional)</label>
-        <input type="text" id="confirmReason" placeholder="Why?">
+        <input type="text" id="confirmReason" placeholder="Why?" maxlength="500">
       </div>
       <div class="modal-actions">
         <button class="btn" id="btnCancelConfirm">Cancel</button>
@@ -901,16 +902,16 @@
         </div>
         <div class="form-group">
           <label for="edScope">Scope</label>
-          <input type="text" id="edScope">
+          <input type="text" id="edScope" maxlength="200">
         </div>
       </div>
       <div class="form-group">
         <label for="edText">Decision</label>
-        <textarea id="edText"></textarea>
+        <textarea id="edText" maxlength="2000"></textarea>
       </div>
       <div class="form-group">
         <label for="edNotes">Notes</label>
-        <textarea id="edNotes" style="min-height: 48px;"></textarea>
+        <textarea id="edNotes" style="min-height: 48px;" maxlength="2000"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn" id="btnCancelEditDec">Cancel</button>
@@ -1113,7 +1114,7 @@ function renderSidebar() {
       const total = q.questions.length;
       const ans   = q.questions.filter(x => x.status === 'ANSWERED').length;
       const pct   = total ? Math.round(ans / total * 100) : 0;
-      h += `<div class="sb-item${q.file === activeFile ? ' active' : ''}" data-file="${escAttr(q.file)}" tabindex="0" role="option">
+      h += `<div class="sb-item${q.file === activeFile ? ' active' : ''}" data-file="${escAttr(q.file)}" tabindex="0" role="button" aria-pressed="${q.file === activeFile ? 'true' : 'false'}">
         <span class="sb-item-name">${esc(q.agent)}</span>
         <div class="sb-progress"><div class="prog-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="prog-fill" style="width:${pct}%"></div></div><span>${ans}/${total}</span></div>
       </div>`;
@@ -1248,9 +1249,10 @@ function renderEmpty() {
 }
 
 /* ── Tab switching ───────────────────────────────────── */
-function switchTab(tab) {
+async function switchTab(tab) {
   if (activeTab === 'questionnaires' && dirty.size > 0 && tab !== 'questionnaires') {
-    if (!confirm('You have unsaved questionnaire changes. Switch tab anyway?')) return;
+    const r = await confirmAction('Unsaved Changes', 'You have unsaved questionnaire changes. Switch tab anyway?', false);
+    if (!r.confirmed) return;
   }
   activeTab = tab;
   try { sessionStorage.setItem('activeTab', tab); } catch {}
@@ -1258,10 +1260,15 @@ function switchTab(tab) {
     const sel = t.dataset.tab === tab;
     t.classList.toggle('active', sel);
     t.setAttribute('aria-selected', sel ? 'true' : 'false');
+    t.setAttribute('tabindex', sel ? '0' : '-1');
   });
   document.getElementById('panelQuestionnaires').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
   document.getElementById('panelCommandCenter').classList.toggle('hidden', tab !== 'commandcenter');
+  ['panelQuestionnaires', 'panelDecisions', 'panelCommandCenter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('aria-live', el.classList.contains('hidden') ? 'off' : 'polite');
+  });
   document.getElementById('btnSaveAll').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('btnNewDecision').classList.toggle('hidden', tab !== 'decisions' && tab !== 'questionnaires');
   document.getElementById('btnReeval').classList.toggle('hidden', tab === 'commandcenter');
@@ -1793,7 +1800,7 @@ function selectCommand(cmd) {
   if (needsProject) {
     formHTML += `<div class="form-group">
       <label for="cmdProject">Project Name</label>
-      <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker">
+      <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker" maxlength="200">
     </div>
     <div class="form-group">
       <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span></label>
@@ -1817,7 +1824,7 @@ function selectCommand(cmd) {
   if (needsDesc) {
     formHTML += `<div class="form-group">
       <label for="cmdDesc">${cmd === 'FEATURE' ? 'Feature Name & Description' : 'Description'}</label>
-      <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? 'e.g. Dark Mode: Add system-wide dark theme toggle' : 'Describe the change or issue...'}"></textarea>
+      <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? 'e.g. Dark Mode: Add system-wide dark theme toggle' : 'Describe the change or issue...'}" maxlength="2000"></textarea>
     </div>`;
   }
   if (isSimple) {
@@ -1938,10 +1945,13 @@ function copyClipboard() {
     ta.value = text;
     ta.style.position = 'fixed'; ta.style.left = '-9999px';
     document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    toast('Copied to clipboard!', 't-ok');
+    try {
+      ta.select();
+      document.execCommand('copy');
+      toast('Copied to clipboard!', 't-ok');
+    } finally {
+      document.body.removeChild(ta);
+    }
   });
 }
 
@@ -2050,7 +2060,11 @@ document.getElementById('decFilterText').addEventListener('input', debounce(e =>
 document.getElementById('decFilterPriority').addEventListener('change', e => { decFilter.priority = e.target.value; renderDecisions(); });
 document.getElementById('decFilterStatus').addEventListener('change', e => { decFilter.status = e.target.value; renderDecisions(); });
 
-/* ── Keyboard shortcut: Ctrl+S ───────────────────────── */
+/* ── Keyboard shortcuts ──────────────────────────────── */
+function isInputFocused() {
+  const tag = document.activeElement?.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (dirty.size) saveAll(); }
   if (e.key === 'Escape') {
@@ -2061,6 +2075,11 @@ document.addEventListener('keydown', e => {
       } else { closeModal(id); }
     }
     closeHelp();
+  }
+  if (e.key === 'F1' || (e.key === '?' && !isInputFocused())) {
+    e.preventDefault();
+    const overlay = document.getElementById('helpOverlay');
+    if (overlay.classList.contains('open')) closeHelp(); else openHelp();
   }
 });
 
@@ -2101,10 +2120,11 @@ function renderMarkdown(md) {
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   // inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // links — href was escaped, unescape for protocol check then use original
+  // links — href was escaped, unescape for protocol check then sanitize
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
     const raw = href.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-    const safeHref = /^(https?:|mailto:|#|\/)/i.test(raw.trim()) ? raw : '#';
+    if (!/^(https?:|mailto:|#|\/)/i.test(raw.trim())) return text;
+    const safeHref = raw.replace(/"/g, '%22');
     return `<a href="${safeHref}" target="_blank" rel="noopener">${text}</a>`;
   });
   // unordered list
@@ -2127,6 +2147,8 @@ function renderMarkdown(md) {
 async function openHelp() {
   const overlay = document.getElementById('helpOverlay');
   overlay.classList.add('open');
+  _previousFocus = document.activeElement;
+  _focusTrapOverlay = overlay;
   if (!helpTOC.length) {
     try {
       const r = await fetch('/api/help');
@@ -2138,8 +2160,12 @@ async function openHelp() {
   if (helpTOC.length && !helpActiveTopic) loadHelpTopic(helpTOC[0].slug);
 }
 
+let _previousFocus = null;
 function closeHelp() {
-  document.getElementById('helpOverlay').classList.remove('open');
+  const overlay = document.getElementById('helpOverlay');
+  overlay.classList.remove('open');
+  if (_focusTrapOverlay === overlay) _focusTrapOverlay = null;
+  if (_previousFocus) { _previousFocus.focus(); _previousFocus = null; }
 }
 
 function renderHelpNav() {
@@ -2191,7 +2217,8 @@ document.getElementById('helpOverlay').addEventListener('click', e => {
 
 /* ── Theme toggle ────────────────────────────────────── */
 function initTheme() {
-  const saved = localStorage.getItem('theme');
+  let saved;
+  try { saved = localStorage.getItem('theme'); } catch {}
   const prefer = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   const theme = saved || prefer;
   document.documentElement.setAttribute('data-theme', theme);
@@ -2201,7 +2228,7 @@ function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
+  try { localStorage.setItem('theme', next); } catch {}
   updateThemeIcon(next);
 }
 function updateThemeIcon(theme) {
@@ -2210,7 +2237,7 @@ function updateThemeIcon(theme) {
 }
 document.getElementById('btnTheme').addEventListener('click', toggleTheme);
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  if (!localStorage.getItem('theme')) {
+  if (!(() => { try { return localStorage.getItem('theme'); } catch { return null; } })()) {
     const t = e.matches ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', t);
     updateThemeIcon(t);

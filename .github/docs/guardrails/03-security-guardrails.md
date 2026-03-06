@@ -1,4 +1,3 @@
-```markdown
 # Security Guardrails – Security Architect
 > Applies to: Security Architect (Phase 2) and as a cross-cutting concern for all other agents
 
@@ -41,4 +40,5 @@
 ## CROSS-CUTTING: SECURITY AS RESPONSIBILITY OF ALL AGENTS
 Every agent (not just the Security Architect) is required to mark security-relevant findings as `SECURITY_FLAG: [description]` and forward them to the Security Architect's input queue.
 
-```
+### Security Finding Schema
+Each security finding object MUST contain: `{ id, title, severity, owasp_category, source, description, recommendation, status }`.

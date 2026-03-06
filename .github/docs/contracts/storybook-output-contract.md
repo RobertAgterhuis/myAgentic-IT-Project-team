@@ -75,6 +75,12 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## JSON Export
+
+> No standalone JSON export. The Implementation Agent consumes `component-inventory.md` as structured Markdown. Component metadata is encoded in the inventory table columns.
+
+---
+
 ## HANDOFF STATUS VALUES
 - `COMPLETE` — All sections filled, all checks passed
 - `PARTIAL` — Some sections filled, documented gaps

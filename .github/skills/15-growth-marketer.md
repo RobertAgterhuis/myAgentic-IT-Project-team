@@ -202,7 +202,7 @@ Design the SEO content strategy for organic growth:
 **AUDIT mode:**
 Always produce retention recommendations, even if acquisition is the primary focus.
 
-### Step 7: Launch Plan / Self-Review
+### Step 7: Launch Plan / Self-Check
 
 **CREATE mode:**
 Design the 90-day launch plan:
@@ -230,12 +230,12 @@ Design the 90-day launch plan:
 All launch plan items must reference the growth model from Step 1 and acquisition channels from Step 2.
 
 **AUDIT mode:**
-Self-review of all analysis steps.
+Self-check of all analysis steps.
 `DEPENDENT_ON: CRO Specialist — post-launch experiment execution`
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING RECOMMENDATIONS
+## MANDATORY EXECUTION – PRODUCE RECOMMENDATIONS
 
 > Execute this AFTER the analysis steps, using your analysis output as the basis.
 > Conform to `.github/docs/contracts/recommendations-output-contract.md`
@@ -270,7 +270,7 @@ Per recommendation:
 
 **PROHIBITION:** No priority without explicit justification.
 
-### Step D: Recommendations Self-Review
+### Step D: Recommendations Self-Check
 1. Does every recommendation have a GAP/RISK reference?
 2. Are all impact fields filled or marked as `INSUFFICIENT_DATA:`?
 3. Are all measurement criteria SMART?
@@ -278,7 +278,7 @@ Per recommendation:
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING SPRINT PLAN
+## MANDATORY EXECUTION – PRODUCE SPRINT PLAN
 
 > Execute this AFTER the recommendations, based on the prioritized recommendations.
 > Conform to `.github/docs/contracts/sprintplan-output-contract.md`
@@ -341,7 +341,7 @@ Per sprint:
 - Define 1–3 measurable KPI targets based on the SMART measurement criteria
 - Definition of Done: all stories complete, tests passed, KPI measurement executed, no new CRITICAL_FINDING, all INTERN blockers resolved
 
-### Step H: Sprint Plan Self-Review
+### Step H: Sprint Plan Self-Check
 1. Are all stories based on recommendations (REC-NNN)?
 2. **Does every P1 recommendation have at least one story?** Build a traceability table: list all REC-NNN with priority P1 or P2 and check per REC whether a story exists with `Recommendation reference: REC-NNN`. A P1 recommendation without a story: `MISSING_STORY: REC-NNN` — BLOCKING for handoff.
 3. Does every story have a team assignment?
@@ -357,7 +357,7 @@ Per sprint:
 
 ---
 
-## MANDATORY EXECUTION – PRODUCING GUARDRAILS
+## MANDATORY EXECUTION – PRODUCE GUARDRAILS
 
 > Execute this AFTER the analysis. Guardrails are forward-looking, testable decision rules.
 > Conform to `.github/docs/contracts/guardrails-output-contract.md`
@@ -385,7 +385,7 @@ Per guardrail:
 ### Step L: Overlap Check
 Check overlap with the existing guardrails in `.github/docs/guardrails/`. Document per guardrail: "New" / "Addition to G-NNN" / "Conflict with G-NNN (resolution: [...])"
 
-### Step M: Guardrails Self-Review
+### Step M: Guardrails Self-Check
 1. Is every guardrail formulated testably?
 2. Does every guardrail have a violation action?
 3. Does every guardrail have a verification method?
@@ -443,7 +443,7 @@ You do NOT design/analyze:
 - [ ] Technical SEO issues documented as SEO_TECH_ISSUE: + OUT_OF_SCOPE: TECH
 - [ ] All findings have source references or hypothesis label
 - [ ] JSON export present and valid
-- [ ] Self-review performed
+- [ ] Self-check performed
 - [ ] Recommendations: every recommendation references a GAP/RISK/DESIGN finding
 - [ ] Recommendations: all impact fields filled or marked as INSUFFICIENT_DATA:
 - [ ] Recommendations: all measurement criteria are SMART

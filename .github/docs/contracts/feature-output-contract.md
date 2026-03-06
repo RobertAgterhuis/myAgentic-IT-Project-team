@@ -66,6 +66,12 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## JSON Export
+
+> No standalone JSON export. The Orchestrator consumes the 5 markdown deliverables directly. Sprint plan items follow the standard sprint plan format and are integrated into the main sprint backlog by the Orchestrator.
+
+---
+
 ## HANDOFF STATUS VALUES
 - `COMPLETE` — All sections filled, all checks passed
 - `PARTIAL` — Some sections filled, documented gaps

@@ -280,6 +280,49 @@ Ensure these deliverables are ready before the Localization Specialist starts.
 
 ---
 
+## MANDATORY EXECUTION – PRODUCE GUARDRAILS
+
+> Execute this AFTER the analysis. Guardrails are forward-looking, testable decision rules.
+> Conform to `.github/docs/contracts/guardrails-output-contract.md`
+
+### Step I: Identify Guardrails
+- Every RISK-NNN with score Critical or High → translate into a preventive guardrail
+- Every GAP-NNN that can structurally recur → translate into a structural guardrail
+- Patterns you have analyzed that must prevent recurrence
+
+### Step J: Guardrail Formulation
+Per guardrail:
+- Formulate as testable — start with verb: "Must not", "Must always", "Requires"
+- **NOT valid:** "Ensure good quality"
+- **VALID:** "Must not be deployed without approved verification per [criterion]"
+- Scope: for whom and when does the guardrail apply?
+
+### Step K: Violation Action and Verification Method (MANDATORY per guardrail)
+- Violation action: what happens concretely when violated? (block, escalate to [role], mark as CRITICAL_FINDING)
+- Verification method: how do you verify compliance? (automated test, code review checklist, manual audit + frequency)
+
+**PROHIBITED:** No guardrail without a violation action.
+**PROHIBITED:** No guardrail without a verification method.
+**PROHIBITED:** No guardrail without a reference to an analysis finding (GAP/RISK ID).
+
+### Step L: Overlap Check
+Check overlap with existing guardrails in `.github/docs/guardrails/`. Document per guardrail: "New" / "Supplement to G-NNN" / "Conflict with G-NNN (resolution: [...])"
+
+### Step M: Guardrails Self-Check
+1. Is every guardrail formulated as testable?
+2. Does every guardrail have a violation action?
+3. Does every guardrail have a verification method?
+4. Does every guardrail have a GAP/RISK analysis reference?
+5. Have duplicates been checked against existing guardrail documents?
+
+---
+
+## GUARDRAILS
+- `.github/docs/guardrails/00-global-guardrails.md`
+- `.github/docs/guardrails/04-ux-guardrails.md`
+
+---
+
 ## HANDOFF CHECKLIST
 
 ```markdown
@@ -311,6 +354,10 @@ Ensure these deliverables are ready before the Localization Specialist starts.
 - [ ] Recommendations consistent with UX Researcher, UX Designer, UI Designer, Accessibility Specialist output
 - [ ] Style Guide and Voice & Tone guideline included as deliverable in sprint plan
 - [ ] Output ready as input for Localization Specialist (35)
+- [ ] Guardrails: all guardrails are formulated testably
+- [ ] Guardrails: all guardrails have violation action and verification method
+- [ ] Guardrails: all guardrails reference a GAP/RISK analysis finding
+- [ ] All 4 deliverables present: Analysis ✓ Recommendations ✓ Sprint Plan ✓ Guardrails ✓
 - [ ] All UNCERTAIN: items documented and escalated
 - [ ] All INSUFFICIENT_DATA: items documented and escalated
 - [ ] Output complies with contracts in /.github/docs/contracts/

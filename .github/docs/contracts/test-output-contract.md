@@ -39,6 +39,8 @@ Ensures every implemented story is validated through unit tests, integration tes
 - Per-criterion verdict: `MET` | `NOT_MET` | `PARTIALLY_MET`
 - Evidence or source reference for each verdict
 
+> **PARTIALLY_MET threshold:** `PARTIALLY_MET` requires the Test Agent to document which specific aspects are met and which are not. A story with any `PARTIALLY_MET` criterion cannot receive verdict `APPROVED` — it must be `FAILED` with remediation guidance.
+
 ### 5. Regression Check
 - Existing tests still passing: YES / NO
 - If NO: list of regressions introduced with details

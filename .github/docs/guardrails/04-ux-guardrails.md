@@ -1,4 +1,3 @@
-```markdown
 # UX Guardrails – Phase 3 Agents
 > Applies to: UX Researcher, UX Designer, UI Designer, Accessibility Specialist, Content Strategist, Localization Specialist
 
@@ -41,7 +40,8 @@
 **Rule:** Identified design debt is quantified in estimated remediation hours or story points – NOT as vague "technical debt".
 
 ### G-UX-08 – UX Recommendations Technically Feasible
-**Rule:** Every UX recommendation MUST be tested against the Phase 2 technical output. Recommendations that are not technically feasible within the existing architecture are flagged as `DEPENDENT_ON_TECH: [requirement]`.
+**Rule:** Every UX recommendation MUST be tested against the Phase 2 technical output. Recommendations that are not technically feasible within the existing architecture are flagged as `DEPENDENT_ON_TECH: [requirement]`.  
+**Partial cycle waiver:** In PARTIAL cycles without TECH, this rule is waived — document as `TECH_CONTEXT_UNAVAILABLE: partial cycle`. In full/combo cycles, the Phase 2 combined output is available at the path in session-state.json `phase_outputs.phase2`.
 
 ### G-UX-09 – Task Success Rate Baseline
 **Rule:** For every primary task a baseline task success rate MUST be documented (or marked as `INSUFFICIENT_DATA:` if no test data is available).
@@ -49,6 +49,8 @@
 ---
 
 ## PHASE 3 HANDOFF REQUIREMENTS
+See `analysis-output-contract.md` for the formal schema.
+
 Output must contain:
 - `journey_gaps[]`
 - `cognitive_load_scores{flow: string, score: 1-10, criteria: {}}`
@@ -56,5 +58,3 @@ Output must contain:
 - `heuristic_evaluation[10 items]`
 - `design_debt_estimate{hours: number, items: []}`
 - `friction_points[]`
-
-```

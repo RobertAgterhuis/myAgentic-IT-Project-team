@@ -164,6 +164,7 @@ All blockers across all sprints:
 - [ ] Consolidated Blocker Register is present
 - [ ] Definition of Done is present per sprint
 - [ ] No fictional capacity assumptions
+- [ ] All INSUFFICIENT_DATA: items tagged with QUESTIONNAIRE_REQUEST in handoff message
 - [ ] If cycle_type is SCOPE_CHANGE: all stories in the affected dimension that are no longer executable are tagged `SCOPE_CHANGE_HOLD SC-[N]` or `SCOPE_CHANGE_CANCELLED SC-[N]`; REQUEUED stories carry restored status; unaffected stories carry original status (or `NOT_APPLICABLE — normal cycle`)
 - [ ] JSON export is valid
 ```

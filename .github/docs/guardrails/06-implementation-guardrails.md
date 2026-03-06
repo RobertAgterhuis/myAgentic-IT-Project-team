@@ -1,4 +1,3 @@
-````markdown
 # Guardrails: Implementation (Phase 5)
 > Version 1.0 | Applies to: Implementation Agent, Test Agent, PR/Review Agent
 
@@ -28,7 +27,7 @@ These guardrails safeguard the quality, security, and traceability of every auto
 - Explicit mention in the sprint story or architecture decision
 - `DEPENDENCY_ADDED: [name, version, reason]` notification in the output
 
-**IMPL-GUARD-06:** Existing API contracts (internal and external) may NOT be broken by implementation. Breaking changes require `BREAKING_CHANGE: [description, impact, migration path]`.
+**IMPL-GUARD-06:** Existing API contracts (internal and external) may NOT be broken by implementation. Breaking changes require `BREAKING_CHANGE: [description, impact, migration path]`. See ORC-21 for the authoritative definition of 'breaking change'.
 
 **IMPL-GUARD-07:** Database schema changes require:
 - Forward compatibility (migration up)
@@ -129,9 +128,11 @@ ESCALATE:
 
 ## GUARD 29–30: TRACK INDEPENDENCE (CRITICAL)
 
-**IMPL-GUARD-29 (CRITICAL):** The Implementation Agent processes EXCLUSIVELY stories with `story_type` `CODE` or `INFRA`. Upon receiving a story with type `DESIGN`, `CONTENT`, or `ANALYSIS`: **HALT**, `ROUTING_ERROR: story_type [type] does not belong in the implementation pipeline`, escalate to Orchestrator.
+**IMPL-GUARD-29 (CRITICAL):** The Implementation Agent processes EXCLUSIVELY stories with `story_type` `CODE` or `INFRA`. Upon receiving a story with type `DESIGN`, `CONTENT`, `ANALYSIS`, `DOCS`, or `CONFIG`: **HALT**, `ROUTING_ERROR: story_type [type] does not belong in the implementation pipeline`, escalate to Orchestrator.
 
 **IMPL-GUARD-30 (CRITICAL):** A blocker on a DESIGN-, CONTENT-, or ANALYSIS-story may NEVER be registered as a blocker on a CODE- or INFRA-story. Upon detection: `CROSS_TRACK_BLOCKER: [story-id of blocker source] has type [type] and may not block story [code-story-id]`, escalate to Orchestrator.
+
+**IMPL-GUARD-31 (CRITICAL):** Feature Implementation Isolation — Implementation Agents running under a FEATURE cycle scope MUST NOT modify files outside `Workitems/[FEATURENAME]/` and the project source directories. Cross-boundary changes require `SCOPE_EXTENSION:` + Orchestrator approval.
 
 ---
 
@@ -147,5 +148,3 @@ ESCALATE:
 | IMPL-GUARD-25 | HALT, escalate per IMPL-GUARD-26 format |
 | IMPL-GUARD-29 | HALT, `ROUTING_ERROR:`, escalate to Orchestrator |
 | IMPL-GUARD-30 | HALT, `CROSS_TRACK_BLOCKER:`, escalate to Orchestrator |
-
-````

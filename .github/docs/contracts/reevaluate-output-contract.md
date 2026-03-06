@@ -67,6 +67,17 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## DELTA-ONLY SCOPE
+
+When scope is `DELTA-ONLY`, the Reevaluate Agent analyzes ONLY the changed/new inputs since the last evaluation. Pre-existing approved findings are not re-analyzed. The output includes a delta section clearly separating new findings from carried-forward findings.
+
+In DELTA-ONLY mode:
+- Section 2 (Delta Analysis) contains ONLY items changed since last evaluation
+- A "Carried-Forward Findings" sub-section lists previously approved items by reference (ID only, no re-analysis)
+- Section 3 (Impact Assessment) reflects only the delta impact, not cumulative impact
+
+---
+
 ## JSON Export
 
 > No standalone JSON export for this contract. The Reevaluate Agent's output is Markdown-only; delta items are consumed by the Orchestrator from the structured Markdown sections.

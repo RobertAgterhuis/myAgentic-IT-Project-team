@@ -1,4 +1,3 @@
-```markdown
 # Architecture Guardrails – Phase 2 Agents
 > Applies to: Software Architect, Senior Developer, DevOps Engineer, Security Architect, Data Architect, Legal Counsel
 
@@ -24,7 +23,8 @@
 
 ### G-ARCH-05 – CI/CD Maturity Mandatory Documentation
 **Rule:** DevOps Engineer ALWAYS documents the current CI/CD maturity based on provided pipeline configurations, not on verbal descriptions.  
-**Maturity levels:** Level 0 (no CI/CD) through Level 5 (fully automated, self-healing).
+**Maturity levels:** Level 0 (no CI/CD) through Level 5 (fully automated, self-healing).  
+Maturity levels follow the DORA model: Level 0 (none), Level 1 (initial), Level 2 (developing), Level 3 (defined), Level 4 (measured), Level 5 (optimizing).
 
 ### G-ARCH-06 – Observability Coverage
 **Rule:** Analysis of available observability (metrics, logs, traces, alerts) is MANDATORY. Missing dimensions are registered as a gap.
@@ -47,6 +47,8 @@
 ---
 
 ## PHASE 2 HANDOFF REQUIREMENTS
+See `analysis-output-contract.md` for the formal schema.
+
 Output is a combined JSON/Markdown document with:
 - `architecture_gaps[]`
 - `tech_debt_score{dimensions: {}, total: 0-100}`
@@ -57,5 +59,3 @@ Output is a combined JSON/Markdown document with:
 - `data_lineage_map{}`
 
 Any missing section blocks the start of Phase 3.
-
-```

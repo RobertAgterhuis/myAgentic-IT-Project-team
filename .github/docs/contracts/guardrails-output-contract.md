@@ -90,6 +90,7 @@ A guardrail:
 - [ ] All guardrails have a verification method
 - [ ] Overview table is complete
 - [ ] No duplicates with existing guardrails in /.github/docs/guardrails/
+- [ ] All INSUFFICIENT_DATA: items tagged with QUESTIONNAIRE_REQUEST in handoff message
 - [ ] If cycle_type is SCOPE_CHANGE: `## Scope Change Impact` section present as FIRST section with Still Valid / Superseded / Net-New sub-sections (or `NOT_APPLICABLE` — normal cycle)
 - [ ] JSON export is valid
 ```

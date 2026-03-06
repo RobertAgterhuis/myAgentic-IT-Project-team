@@ -80,7 +80,7 @@ If one or more items in the checklist are NOT checked:
   "handoff": {
     "from_agent": "string",
     "to_agent": "string | orchestrator",
-    "phase_completed": "string — e.g. 1 | 2 | 3 | 4 | 5 | SYNTHESIS | REEVALUATE",
+    "phase_completed": "string — e.g. PHASE-1 | PHASE-2 | PHASE-3 | PHASE-4 | PHASE-5 | SYNTHESIS | REEVALUATE",
     "date": "ISO 8601",
     "status": "READY | BLOCKED",
     "blocked_reason": "string | null",
@@ -106,12 +106,12 @@ If one or more items in the checklist are NOT checked:
 | Phase 1 → Phase 2 | Architect | Critic Agent + Risk Agent validation MANDATORY |
 | Phase 2 → Phase 3 | UX Researcher | Critic Agent + Risk Agent validation MANDATORY |
 | Phase 3 → Phase 4 | Brand Strategist | Critic Agent + Risk Agent validation MANDATORY |
-| Phase 4 → Synthesis | Synthesis Agent | Critic Agent + Risk Agent validation MANDATORY |
-| Every agent → Next in phase | Next agent | Handoff checklist MANDATORY |
-
----
-
-## JSON Export
+| Phase 4 → Post-Phase 4 | Brand & Assets + Storybook Agents | Critic Agent + Risk Agent validation MANDATORY |
+| Post-Phase 4 → Synthesis | Synthesis Agent | Brand & Assets + Storybook outputs present |
+| Synthesis → Sprint Gate | Orchestrator | All 6 synthesis documents APPROVED |
+| Sprint Gate → Phase 5 | Implementation Agent | Sprint Gate choice IMPLEMENT |
+| Phase 5 → Sprint Gate | Orchestrator | Sprint Completion Report APPROVED |
+| HOTFIX → Phase 5 | Implementation Agent | Sprint Gate BYPASSED (emergency protocol) |
 
 The handoff message JSON (Step 4 above) serves as the JSON export for this contract. No separate JSON export file is produced.
 

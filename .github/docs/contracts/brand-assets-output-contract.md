@@ -58,6 +58,39 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## JSON Export
+
+The `design-tokens.json` file serves as the JSON export for this contract. Required top-level keys:
+
+```json
+{
+  "colors": { },
+  "typography": { },
+  "spacing": { },
+  "breakpoints": { },
+  "shadows": { },
+  "borders": { }
+}
+```
+
+All six keys MUST be present. Contents follow the structure defined in the `design-tokens.json` section above.
+
+---
+
+## Refresh Protocol
+
+When `BRAND_REFRESH_REQUIRED: YES` is set by the Reevaluate Agent, the Brand & Assets Agent re-executes with the reevaluation delta as input, produces updated tokens and guidelines, and increments the `version` field in `design-tokens.json`.
+
+The refresh cycle:
+1. Reevaluate Agent sets `BRAND_REFRESH_REQUIRED: YES` in its output
+2. Orchestrator activates Brand & Assets Agent with reevaluation delta as input
+3. Brand & Assets Agent produces updated `design-tokens.json` + `brand-guidelines.md`
+4. `design-tokens.json` version field is incremented
+5. Storybook Agent re-executes to update component inventory against new tokens
+6. Synthesis is BLOCKED until refresh completes (per BRAND_REFRESH_REQUIRED flag)
+
+---
+
 ## HANDOFF STATUS VALUES
 - `COMPLETE` — All files produced, all checks passed
 - `PARTIAL` — Some files produced, documented gaps

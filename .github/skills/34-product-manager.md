@@ -214,6 +214,49 @@ Per P1/P2 recommendation, per mandatory story format. Story type = `ANALYSIS` fo
 
 ---
 
+## MANDATORY EXECUTION – PRODUCE GUARDRAILS
+
+> Execute this AFTER the analysis. Guardrails are forward-looking, testable decision rules.
+> Conform to `.github/docs/contracts/guardrails-output-contract.md`
+
+### Step I: Identify Guardrails
+- Every RISK-NNN with score Critical or High → translate into a preventive guardrail
+- Every GAP-NNN that can structurally recur → translate into a structural guardrail
+- Patterns you have analyzed that must prevent recurrence
+
+### Step J: Guardrail Formulation
+Per guardrail:
+- Formulate as testable — start with verb: "Must not", "Must always", "Requires"
+- **NOT valid:** "Ensure good quality"
+- **VALID:** "Must not be deployed without approved verification per [criterion]"
+- Scope: for whom and when does the guardrail apply?
+
+### Step K: Violation Action and Verification Method (MANDATORY per guardrail)
+- Violation action: what happens concretely when violated? (block, escalate to [role], mark as CRITICAL_FINDING)
+- Verification method: how do you verify compliance? (automated test, code review checklist, manual audit + frequency)
+
+**PROHIBITED:** No guardrail without a violation action.
+**PROHIBITED:** No guardrail without a verification method.
+**PROHIBITED:** No guardrail without a reference to an analysis finding (GAP/RISK ID).
+
+### Step L: Overlap Check
+Check overlap with existing guardrails in `.github/docs/guardrails/`. Document per guardrail: "New" / "Supplement to G-NNN" / "Conflict with G-NNN (resolution: [...])"
+
+### Step M: Guardrails Self-Check
+1. Is every guardrail formulated as testable?
+2. Does every guardrail have a violation action?
+3. Does every guardrail have a verification method?
+4. Does every guardrail have a GAP/RISK analysis reference?
+5. Have duplicates been checked against existing guardrail documents?
+
+---
+
+## GUARDRAILS
+- `.github/docs/guardrails/00-global-guardrails.md`
+- `.github/docs/guardrails/01-business-guardrails.md`
+
+---
+
 ## DOMAIN BOUNDARIES
 
 You define/prioritize EXCLUSIVELY:
@@ -262,6 +305,10 @@ You do NOT define/analyze:
 - [ ] All INSUFFICIENT_DATA: items documented and escalated
 - [ ] Output complies with contracts in /.github/docs/contracts/
 - [ ] Guardrails from /.github/docs/guardrails/ have been checked (domain-specific: `.github/docs/guardrails/01-business-guardrails.md`)
+- [ ] Guardrails: all guardrails are formulated testably
+- [ ] Guardrails: all guardrails have violation action and verification method
+- [ ] Guardrails: all guardrails reference a GAP/RISK analysis finding
+- [ ] All 4 deliverables present: Analysis ✓ Recommendations ✓ Sprint Plan ✓ Guardrails ✓
 - [ ] All findings include a source reference
 - [ ] Questionnaire input check performed (context block consumed or documented as NOT_INJECTED)
 - [ ] All remaining INSUFFICIENT_DATA: items compiled as QUESTIONNAIRE_REQUEST list and included in handoff for Orchestrator

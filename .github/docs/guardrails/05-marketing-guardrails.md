@@ -1,4 +1,3 @@
-```markdown
 # Marketing & Brand Guardrails – Phase 4 Agents
 > Applies to: Brand Strategist, Growth Marketer, CRO Specialist
 
@@ -46,12 +45,14 @@
 
 ### G-MKT-09 – SEO Analysis Data-Driven and Technical SEO Escalated
 **Rule 1:** SEO claims (keyword positions, backlink profile, organic traffic) MUST be based on tooling data (Search Console, Ahrefs, SEMrush, or equivalent) or explicitly marked as `INSUFFICIENT_DATA:`.
-**Rule 2:** Technical SEO findings (Core Web Vitals, crawlability, structured data, canonical tags, indexability) are outside the domain of the Growth Marketer. These MUST be documented as `SEO_TECH_ISSUE: [description]` + `OUT_OF_SCOPE: TECH` and forwarded to the Orchestrator for escalation to the Software Architect or Senior Developer.
+**Rule 2:** Technical SEO findings (Core Web Vitals, crawlability, structured data, canonical tags, indexability) are outside the domain of the Growth Marketer. These MUST be documented as `SEO_TECH_ISSUE: [description]` + `OUT_OF_SCOPE: TECH` and forwarded to the Software Architect (primary owner for technical SEO).
 **Prohibition:** No organic growth projections or projected traffic increases without historical traffic data or explicit `INSUFFICIENT_DATA:` marking.
 
 ---
 
 ## PHASE 4 HANDOFF REQUIREMENTS
+See `analysis-output-contract.md` for the formal schema.
+
 Output must contain:
 - `message_alignment_score: 0-100` (only based on data, not estimated)
 - `funnel_dropoffs[]{stage, dropoff_rate, source, recommendation}`
@@ -59,5 +60,3 @@ Output must contain:
 - `brand_consistency_audit[]{channel, status, deviation, remedy}`
 - `competitive_positioning{dimensions: [], score_vs_competitor: {}}`
 - `seo_analysis{organic_channel_assessment, keyword_positions[], backlink_profile, content_seo_gaps[], tech_issues[]}` (fields may be empty with INSUFFICIENT_DATA:)
-
-```

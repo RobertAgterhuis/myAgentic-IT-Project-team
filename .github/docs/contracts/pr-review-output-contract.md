@@ -35,6 +35,8 @@ For each story:
 - **Test Agent Verdict Reference:** Link to test report + its verdict
 - **Verdict:** `APPROVED` | `REJECTED` with reason
 
+> **Note:** PR/Review uses `REJECTED` as a review-specific term equivalent to Test Agent's `FAILED`. Canonical mapping: PR `REJECTED` → story status `REVIEW_FAILED`.
+
 #### 3. Secret Scan Summary
 - Reference to full secret scan report
 - Result: `PASSED` | `FAILED`

@@ -258,6 +258,9 @@ On name conflict: `FEATURENAME-v2`, `FEATURENAME-[date]`.
 - [ ] Feature Executive Summary is present in synthesis report
 - [ ] KPI baseline + target are defined
 - [ ] No open UNCERTAIN: or INSUFFICIENT_DATA: without resolution or escalation
+- [ ] All INSUFFICIENT_DATA: items from sub-agents compiled as QUESTIONNAIRE_REQUEST list
+- [ ] Questionnaire Agent activated for feature-scope questionnaires (or NOT_APPLICABLE)
+- [ ] Feature-scope questionnaires written to Workitems/[FEATURENAME]/Questionnaires/
 - [ ] Output complies with agent-handoff-contract.md
 ```
 

@@ -68,6 +68,12 @@ The Orchestrator checks (per ORC-35):
 
 ---
 
+## JSON Export
+
+> No standalone JSON export. Sprint plan items are consumed from department reports' Section 4. The GitHub Integration Agent parses structured Markdown tables directly.
+
+---
+
 ## HANDOFF STATUS VALUES
 - `COMPLETE` — All 6 documents produced, all checks passed
 - `PARTIAL` — Some documents produced (e.g., single-discipline run), documented gaps

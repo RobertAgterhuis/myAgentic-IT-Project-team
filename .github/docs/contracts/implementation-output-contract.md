@@ -17,13 +17,13 @@ This contract defines what a **fully implemented sprint story** means in the aut
 | Field | Source | Required |
 |------|------|-----------|
 | Sprint story (SP-N-NNN) | Approved sprint plan from Phases 1–4 | YES |
-| story_type | Sprint story field 3 — MUST be `CODE` or `INFRA` | YES |
-| sprint_status | Sprint field `sprint_status` — MUST be `IN_PROGRESS` | YES |
+| story_type | Sprint story column "Type" — MUST be `CODE` or `INFRA` | YES |
+| sprint_status | Sprint story column "sprint_status" — MUST be `IN_PROGRESS` | YES |
 | Architecture decisions | Phase 2 output (Software Architect + Senior Developer) | YES |
 | Tech stack definition | Phase 2 output | YES |
 | Guardrails (all phases) | `.github/docs/guardrails/00-09` | YES |
-| Acceptance criteria | Sprint story field 4 | YES |
-| Blocker status | Sprint story field 7 — MUST be `NONE` or INTERNALLY resolved | YES |
+| Acceptance criteria | Sprint story column "Acceptance Criteria" | YES |
+| Blocker status | Sprint story column "Blocker" — MUST be `NONE` or INTERNALLY resolved | YES |
 | Codebase access | Git repository (read + write) | YES |
 
 **HALT:** If any of the above mandatory inputs is missing, if `story_type` is not `CODE` or `INFRA`, if `sprint_status` is not `IN_PROGRESS`, or if the Blocker status is `EXTERN: [open]` → do NOT start implementation. Escalate to Orchestrator.
@@ -31,6 +31,8 @@ This contract defines what a **fully implemented sprint story** means in the aut
 ---
 
 ## OUTPUT PER STORY (MANDATORY)
+
+**Output file path:** `.github/docs/phase-5/sprint-[SP-N]/impl-[STORY-ID].md`
 
 ### A. Code Changes
 ```

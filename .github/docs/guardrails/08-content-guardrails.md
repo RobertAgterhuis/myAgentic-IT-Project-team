@@ -1,4 +1,3 @@
-```markdown
 # Content & Localization Guardrails – Phase 3 Agents
 > Applies to: Content Strategist / UX Writer (32), Localization Specialist (35)
 
@@ -52,5 +51,3 @@ After the Localization Specialist (last Phase 3 agent) the combined Phase 3 outp
 - `I18N_ISSUE` items with `OUT_OF_SCOPE: TECH` forwarded to Orchestrator
 
 Absence of the above blocks handoff to Critic Agent.
-
-```

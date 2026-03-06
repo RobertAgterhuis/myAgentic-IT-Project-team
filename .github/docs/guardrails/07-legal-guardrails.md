@@ -1,4 +1,3 @@
-```markdown
 # Legal & Privacy Guardrails – Phase 2 Agent
 > Applies to: Legal / Privacy Counsel (33)
 
@@ -49,5 +48,3 @@ After the Legal Counsel the combined Phase 2 output MUST be available for the Cr
 - All CRITICAL risks → escalated via Human Escalation Protocol
 
 Absence of the above blocks handoff to Critic Agent.
-
-```

@@ -21,8 +21,13 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Check server.js syntax
-        run: node -c .github/webapp/server.js
+      - name: Check source file syntax
+        run: |
+          node -c .github/webapp/server.js
+          node -c .github/webapp/models.js
+          node -c .github/webapp/store.js
+          node -c .github/webapp/cache.js
+          node -c .github/webapp/schemas.js
 
   test:
     name: Tests
@@ -42,16 +47,8 @@ jobs:
 
       - name: Run tests with coverage
         run: npm run test:coverage
-
-      - name: Check coverage threshold
-        run: |
-          if [ -f coverage/coverage-summary.json ]; then
-            LINES=$(node -e "const c = require('./coverage/coverage-summary.json'); console.log(c.total.lines.pct)")
-            echo "Line coverage: ${LINES}%"
-            node -e "const c = require('./coverage/coverage-summary.json'); if (c.total.lines.pct < 70) { console.error('Coverage below 70% threshold'); process.exit(1); }"
-          else
-            echo "No coverage report found — skipping threshold check (expected in Sprint 1)"
-          fi
+        # vitest.config.mjs enforces coverage thresholds natively —
+        # this step fails automatically if thresholds are not met
 
   secret-scan:
     name: Secret Scan

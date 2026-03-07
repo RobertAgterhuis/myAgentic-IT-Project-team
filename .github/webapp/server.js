@@ -9,6 +9,8 @@ const { getStore }    = require('./store');
 const { FileCache }   = require('./cache');
 const schemas         = require('./schemas');
 const models          = require('./models');
+const { attachSecretWarnings } = require('./utils/secret-utils');
+const { errorResponse, statusToCode } = require('./utils/errors');
 
 const _cache = new FileCache();
 
@@ -35,7 +37,7 @@ function safePath(base, relative) {
   const resolved = path.resolve(base, relative);
   const rel = path.relative(absBase, resolved);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
-    throw Object.assign(new Error('Path traversal blocked'), { status: 403 });
+    throw Object.assign(new Error('Path traversal blocked'), { status: 403, errorCode: 'PATH_TRAVERSAL' });
   }
   return resolved;
 }
@@ -72,19 +74,13 @@ function readBody(req) {
     let size = 0;
     req.on('data', c => {
       size += c.length;
-      if (size > MAX_BODY) { req.destroy(); return reject(Object.assign(new Error('Payload too large'), { status: 413 })); }
+      if (size > MAX_BODY) { req.destroy(); return reject(Object.assign(new Error('Payload too large'), { status: 413, errorCode: 'PAYLOAD_TOO_LARGE' })); }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     req.on('error', reject);
   });
 }
-
-function escRx(s) { return models.escRx(s); }
-function today() { return models.today(); }
-function isoNow() { return models.isoNow(); }
-const Q_ID_RE = models.Q_ID_RE;
-const DEC_ID_RE = models.DEC_ID_RE;
 
 /* ── Content sanitization (IMPL-CONSTRAINT-002) ───────────────── */
 function sanitizeMarkdown(text) {
@@ -136,8 +132,8 @@ function checkSecretsInBody(body, fieldsToCheck) {
 }
 
 function assertString(val, name, maxLen = 1000) {
-  if (typeof val !== 'string') throw Object.assign(new Error(`${name} must be a string`), { status: 400 });
-  if (val.length > maxLen) throw Object.assign(new Error(`${name} exceeds max length (${maxLen})`), { status: 400 });
+  if (typeof val !== 'string') throw Object.assign(new Error(`${name} must be a string`), { status: 400, errorCode: 'INVALID_INPUT' });
+  if (val.length > maxLen) throw Object.assign(new Error(`${name} exceeds max length (${maxLen})`), { status: 400, errorCode: 'INVALID_INPUT' });
 }
 
 const _writeLocks = new Map();
@@ -182,11 +178,11 @@ async function parseBody(req) {
   const ct = (req.headers['content-type'] || '');
   const mediaType = ct.split(';')[0].trim().toLowerCase();
   if (mediaType !== 'application/json') {
-    throw Object.assign(new Error('Content-Type must be application/json'), { status: 415 });
+    throw Object.assign(new Error('Content-Type must be application/json'), { status: 415, errorCode: 'INVALID_CONTENT_TYPE' });
   }
   const raw = await readBody(req);
   try { return JSON.parse(raw); }
-  catch { throw Object.assign(new Error('Invalid JSON in request body'), { status: 400 }); }
+  catch { throw Object.assign(new Error('Invalid JSON in request body'), { status: 400, errorCode: 'INVALID_JSON' }); }
 }
 
 /* ── File discovery ───────────────────────────────────────────── */
@@ -210,18 +206,6 @@ function discoverQuestionnaires() {
   return results.sort();
 }
 
-/* ── Markdown parser — delegates to models.js ─────────────────── */
-
-function parseQuestionnaire(content, filePath) {
-  return models.parseQuestionnaire(content, filePath, BUSINESS_DOCS);
-}
-
-/* ── Markdown writer — delegates to models.js ─────────────────── */
-
-function updateAnswerInContent(content, questionId, newAnswer, newStatus) {
-  return models.updateAnswerInContent(content, questionId, newAnswer, newStatus);
-}
-
 /* ── Questionnaire index updater ──────────────────────────────── */
 
 function rebuildQuestionnaireIndex() {
@@ -232,7 +216,7 @@ function rebuildQuestionnaireIndex() {
   for (const f of files) {
     let content;
     try { content = _cache.read(f); } catch { continue; }
-    const p = parseQuestionnaire(content, f);
+    const p = models.parseQuestionnaire(content, f, BUSINESS_DOCS);
     const total    = p.questions.length;
     const answered = p.questions.filter(q => q.status === 'ANSWERED').length;
     const status   = total === 0 ? 'OPEN' : answered === total ? 'COMPLETE' : answered > 0 ? 'PARTIAL' : 'OPEN';
@@ -241,7 +225,7 @@ function rebuildQuestionnaireIndex() {
 
   const md = [
     '# Questionnaire Index',
-    `> Last updated: ${isoNow()}`, '',
+    `> Last updated: ${models.isoNow()}`, '',
     '| File | Phase | Agent | Questions | Answered | Status |',
     '|------|-------|-------|-----------|----------|--------|',
     ...rows, '',
@@ -264,7 +248,7 @@ async function apiGetQuestionnaires(_req, res) {
   for (const f of files) {
     let content;
     try { content = _cache.read(f); } catch { continue; }
-    questionnaires.push(parseQuestionnaire(content, f));
+    questionnaires.push(models.parseQuestionnaire(content, f, BUSINESS_DOCS));
   }
   json(res, 200, { questionnaires });
 }
@@ -278,39 +262,48 @@ async function apiGetSession(_req, res) {
   json(res, 200, { session });
 }
 
+function validateSaveUpdates(updates) {
+  if (!Array.isArray(updates) || updates.length === 0 || updates.length > 200) return 'updates must be 1–200 items';
+  for (const u of updates) {
+    if (!models.Q_ID_RE.test(u.questionId)) return `Invalid Q-ID: ${u.questionId}`;
+    if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return `Invalid status: ${u.status}`;
+  }
+  return null;
+}
+
+function sanitizeSaveUpdates(updates) {
+  for (const u of updates) { if (u.answer) u.answer = sanitizeMarkdown(sanitizeQID(u.answer)); }
+}
+
+function detectSaveSecrets(updates) {
+  const warnings = [];
+  for (const u of updates) { if (u.answer) warnings.push(...detectSecrets(u.answer)); }
+  const unique = [...new Set(warnings)];
+  if (unique.length > 0) structuredLog('warn', 'secret_pattern_in_save', { patterns: unique });
+  return unique;
+}
+
 async function apiSave(req, res) {
   const body = await parseBody(req);
   assertString(body.file, 'file', 500);
-  if (!Array.isArray(body.updates) || body.updates.length === 0 || body.updates.length > 200) return json(res, 400, { error: 'updates must be 1–200 items' });
+  const validationError = validateSaveUpdates(body.updates);
+  if (validationError) return json(res, 400, errorResponse('VALIDATION_ERROR', validationError));
 
   const filePath = safePath(BUSINESS_DOCS, body.file);
-  if (!getStore().exists(filePath)) return json(res, 404, { error: 'File not found' });
+  if (!getStore().exists(filePath)) return json(res, 404, errorResponse('FILE_NOT_FOUND', 'File not found'));
 
-  for (const u of body.updates) {
-    if (!Q_ID_RE.test(u.questionId)) return json(res, 400, { error: `Invalid Q-ID: ${u.questionId}` });
-    if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return json(res, 400, { error: `Invalid status: ${u.status}` });
-    if (u.answer) u.answer = sanitizeMarkdown(sanitizeQID(u.answer));
-  }
+  sanitizeSaveUpdates(body.updates);
 
   await withFileLock(filePath, () => {
     let content = getStore().readFile(filePath);
-    for (const u of body.updates) content = updateAnswerInContent(content, u.questionId, u.answer, u.status);
+    for (const u of body.updates) content = models.updateAnswerInContent(content, u.questionId, u.answer, u.status);
     safeWriteSync(filePath, content);
   });
 
-  // Secret detection in answers (IMPL-CONSTRAINT-008)
-  const secretWarnings = [];
-  for (const u of body.updates) {
-    if (u.answer) secretWarnings.push(...detectSecrets(u.answer));
-  }
-  const uniqueWarnings = [...new Set(secretWarnings)];
-  if (uniqueWarnings.length > 0) {
-    structuredLog('warn', 'secret_pattern_in_save', { patterns: uniqueWarnings });
-  }
-
+  const uniqueWarnings = detectSaveSecrets(body.updates);
   scheduleRebuildIndex();
   const response = { ok: true, saved: body.updates.length };
-  if (uniqueWarnings.length > 0) response.warnings = [`Possible secrets detected (${uniqueWarnings.join(', ')}). Please verify no sensitive data was submitted.`];
+  attachSecretWarnings(response, uniqueWarnings);
   json(res, 200, response);
 }
 
@@ -321,7 +314,7 @@ async function apiReevaluate(req, res) {
 
   safeWriteSync(
     path.join(SESSION_DIR, 'reevaluate-trigger.json'),
-    JSON.stringify({ requested_at: isoNow(), scope, source: 'questionnaire-webapp', status: 'PENDING' }, null, 2)
+    JSON.stringify({ requested_at: models.isoNow(), scope, source: 'questionnaire-webapp', status: 'PENDING' }, null, 2)
   );
   json(res, 200, { ok: true, scope, message: `Trigger written. Type REEVALUATE ${scope} in Copilot chat.` });
 }
@@ -342,99 +335,99 @@ async function apiGetDecisions(_req, res) {
   json(res, 200, decisions);
 }
 
+const DECISION_TEXT_FIELDS = ['text', 'notes', 'answer', 'reason', 'scope'];
+const DECISION_SECRET_FIELDS = ['text', 'notes', 'answer', 'reason'];
+
+function validateDecisionBody(body) {
+  assertString(body.action, 'action', 50);
+  if (body.id && !models.DEC_ID_RE.test(body.id)) return 'Invalid decision ID format';
+  for (const f of DECISION_TEXT_FIELDS) { if (body[f]) assertString(body[f], f, f === 'scope' ? 200 : 2000); }
+  return null;
+}
+
+function sanitizeDecisionFields(body) {
+  for (const f of DECISION_TEXT_FIELDS) { if (body[f]) body[f] = sanitizeMarkdown(sanitizeQID(body[f])); }
+}
+
+function detectDecisionSecrets(body) {
+  return checkSecretsInBody(body, DECISION_SECRET_FIELDS);
+}
+
+function validateDecisionCreateFields(body) {
+  if (!body.type || !body.priority || !body.scope || !body.text) return 'Missing type, priority, scope, or text';
+  if (!['DECIDED', 'OPEN_QUESTION'].includes(body.type)) return 'Invalid type';
+  if (!['HIGH', 'MEDIUM', 'LOW'].includes(body.priority)) return 'Invalid priority';
+  return null;
+}
+
+function handleDecisionCreate(body, content) {
+  const err = validateDecisionCreateFields(body);
+  if (err) return { error: err };
+  const id = models.nextDecisionId(content, 'DEC-');
+  if (body.type === 'OPEN_QUESTION') {
+    content = models.addOpenQuestion(content, { id, priority: body.priority, scope: body.scope, question: body.text, answer: '', date: models.today() });
+  } else {
+    content = models.addOperationalDecision(content, { id, priority: body.priority, scope: body.scope, decision: body.text, notes: body.notes || '', date: models.today() });
+  }
+  content = models.appendAuditTrail(content, 'create', id);
+  return { content, result: { ok: true, id, action: body.type === 'OPEN_QUESTION' ? 'created_open_question' : 'created_decision' } };
+}
+
+function mutateAnswer(body, content) {
+  if (!body.id || !body.answer) return { error: 'Missing id or answer' };
+  return { content: models.answerOpenQuestion(content, body.id, body.answer) };
+}
+function mutateDecide(body, content) {
+  if (!body.id || !body.answer) return { error: 'Missing id or answer' };
+  content = models.answerOpenQuestion(content, body.id, body.answer);
+  return { content: models.moveToDecided(content, body.id) };
+}
+function mutateDefer(body, content) {
+  if (!body.id) return { error: 'Missing id' };
+  return { content: models.deferOpenQuestion(content, body.id, body.reason || '') };
+}
+function mutateExpire(body, content) {
+  if (!body.id) return { error: 'Missing id' };
+  return { content: models.expireDecidedItem(content, body.id, body.reason || '') };
+}
+function mutateReopen(body, content) {
+  if (!body.id) return { error: 'Missing id' };
+  return { content: models.reopenItem(content, body.id) };
+}
+function mutateEdit(body, content) {
+  if (!body.id) return { error: 'Missing id' };
+  return { content: models.editDecidedRow(content, body.id, { priority: body.priority, scope: body.scope, text: body.text, notes: body.notes }) };
+}
+
+const DECISION_HANDLERS = { answer: mutateAnswer, decide: mutateDecide, defer: mutateDefer, expire: mutateExpire, reopen: mutateReopen, edit: mutateEdit };
+const PAST_TENSE = { answer: 'answered', decide: 'decided', defer: 'deferred', expire: 'expired', reopen: 'reopened', edit: 'edited' };
+
+function handleDecisionMutate(body, content) {
+  const handler = DECISION_HANDLERS[body.action];
+  if (!handler) return { error: `Unknown action: ${body.action}` };
+  const outcome = handler(body, content);
+  if (outcome.error) return outcome;
+  content = models.appendAuditTrail(outcome.content, body.action, body.id);
+  return { content, result: { ok: true, id: body.id, action: PAST_TENSE[body.action] || body.action } };
+}
+
 async function apiPostDecision(req, res) {
   const body = await parseBody(req);
-  assertString(body.action, 'action', 50);
-  if (body.id && !DEC_ID_RE.test(body.id)) return json(res, 400, { error: 'Invalid decision ID format' });
-  if (body.scope) assertString(body.scope, 'scope', 200);
-  if (body.text) assertString(body.text, 'text', 2000);
-  if (body.notes) assertString(body.notes, 'notes', 2000);
-  if (body.answer) assertString(body.answer, 'answer', 2000);
-  if (body.reason) assertString(body.reason, 'reason', 2000);
+  const valErr = validateDecisionBody(body);
+  if (valErr) return json(res, 400, errorResponse('VALIDATION_ERROR', valErr));
+  sanitizeDecisionFields(body);
+  const secretWarnings = detectDecisionSecrets(body);
+  if (secretWarnings.length > 0) structuredLog('warn', 'secret_pattern_in_decision', { patterns: secretWarnings, action: body.action });
 
-  // Sanitize user-supplied text fields (IMPL-CONSTRAINT-002)
-  if (body.text) body.text = sanitizeMarkdown(sanitizeQID(body.text));
-  if (body.notes) body.notes = sanitizeMarkdown(sanitizeQID(body.notes));
-  if (body.answer) body.answer = sanitizeMarkdown(sanitizeQID(body.answer));
-  if (body.reason) body.reason = sanitizeMarkdown(sanitizeQID(body.reason));
-  if (body.scope) body.scope = sanitizeMarkdown(sanitizeQID(body.scope));
-
-  // Secret detection in user-supplied fields (IMPL-CONSTRAINT-008)
-  const _decSecrets = [];
-  for (const f of ['text', 'notes', 'answer', 'reason']) { if (body[f]) _decSecrets.push(...detectSecrets(body[f])); }
-  const _decUniqueSecrets = [...new Set(_decSecrets)];
-  if (_decUniqueSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_decision', { patterns: _decUniqueSecrets, action: body.action });
-  const _ok = (obj) => { if (_decUniqueSecrets.length > 0) obj.warnings = [`Possible secrets detected (${_decUniqueSecrets.join(', ')}). Please verify no sensitive data was submitted.`]; return json(res, 200, obj); };
-
-  if (!getStore().exists(DECISIONS_FILE)) return json(res, 404, { error: 'decisions.md not found' });
+  if (!getStore().exists(DECISIONS_FILE)) return json(res, 404, errorResponse('DECISIONS_NOT_FOUND', 'decisions.md not found'));
 
   return withFileLock(DECISIONS_FILE, () => {
     let content = getStore().readFile(DECISIONS_FILE);
-
-    switch (body.action) {
-    case 'create': {
-      if (!body.type || !body.priority || !body.scope || !body.text) {
-        return json(res, 400, { error: 'Missing type, priority, scope, or text' });
-      }
-      if (!['DECIDED', 'OPEN_QUESTION'].includes(body.type)) return json(res, 400, { error: 'Invalid type' });
-      if (!['HIGH', 'MEDIUM', 'LOW'].includes(body.priority)) return json(res, 400, { error: 'Invalid priority' });
-      const id = models.nextDecisionId(content, 'DEC-');
-      if (body.type === 'OPEN_QUESTION') {
-        content = models.addOpenQuestion(content, { id, priority: body.priority, scope: body.scope, question: body.text, answer: '', date: today() });
-      } else {
-        content = models.addOperationalDecision(content, { id, priority: body.priority, scope: body.scope, decision: body.text, notes: body.notes || '', date: today() });
-      }
-      content = models.appendAuditTrail(content, 'create', id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id, action: body.type === 'OPEN_QUESTION' ? 'created_open_question' : 'created_decision' });
-    }
-    case 'answer': {
-      if (!body.id || !body.answer) return json(res, 400, { error: 'Missing id or answer' });
-      content = models.answerOpenQuestion(content, body.id, body.answer);
-      content = models.appendAuditTrail(content, 'answer', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'answered' });
-    }
-    case 'decide': {
-      if (!body.id || !body.answer) return json(res, 400, { error: 'Missing id or answer' });
-      content = models.answerOpenQuestion(content, body.id, body.answer);
-      content = models.moveToDecided(content, body.id);
-      content = models.appendAuditTrail(content, 'decide', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'decided' });
-    }
-    case 'defer': {
-      if (!body.id) return json(res, 400, { error: 'Missing id' });
-      content = models.deferOpenQuestion(content, body.id, body.reason || '');
-      content = models.appendAuditTrail(content, 'defer', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'deferred' });
-    }
-    case 'expire': {
-      if (!body.id) return json(res, 400, { error: 'Missing id' });
-      content = models.expireDecidedItem(content, body.id, body.reason || '');
-      content = models.appendAuditTrail(content, 'expire', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'expired' });
-    }
-    case 'reopen': {
-      if (!body.id) return json(res, 400, { error: 'Missing id' });
-      content = models.reopenItem(content, body.id);
-      content = models.appendAuditTrail(content, 'reopen', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'reopened' });
-    }
-    case 'edit': {
-      if (!body.id) return json(res, 400, { error: 'Missing id' });
-      content = models.editDecidedRow(content, body.id, { priority: body.priority, scope: body.scope, text: body.text, notes: body.notes });
-      content = models.appendAuditTrail(content, 'edit', body.id);
-      safeWriteSync(DECISIONS_FILE, content);
-      return _ok({ ok: true, id: body.id, action: 'edited' });
-    }
-    default:
-      return json(res, 400, { error: `Unknown action: ${body.action}` });
-  }
-  }); // withFileLock
+    const outcome = body.action === 'create' ? handleDecisionCreate(body, content) : handleDecisionMutate(body, content);
+    if (outcome.error) return json(res, 400, errorResponse('INVALID_ACTION', outcome.error));
+    safeWriteSync(DECISIONS_FILE, outcome.content);
+    return json(res, 200, attachSecretWarnings(outcome.result, secretWarnings));
+  });
 }
 
 /* ── Command Queue API ────────────────────────────────────────── */
@@ -445,88 +438,94 @@ const VALID_COMMANDS = [
   'REEVALUATE', 'FEATURE', 'SCOPE CHANGE', 'HOTFIX', 'REFRESH ONBOARDING', 'CONTINUE',
 ];
 
-async function apiPostCommand(req, res) {
-  const body = await parseBody(req);
+const COMMAND_OPT_FIELDS = ['project', 'description', 'scope', 'brief'];
+const COMMAND_OPT_LIMITS = { project: 200, description: 2000, scope: 200, brief: 200000 };
+
+function validateCommandBody(body) {
   assertString(body.command, 'command', 100);
-  if (body.project) assertString(body.project, 'project', 200);
-  if (body.description) assertString(body.description, 'description', 2000);
-  if (body.scope) assertString(body.scope, 'scope', 200);
-  if (body.brief) assertString(body.brief, 'brief', 200000);
-  // Sanitize user-supplied text fields (IMPL-CONSTRAINT-002)
+  for (const f of COMMAND_OPT_FIELDS) { if (body[f]) assertString(body[f], f, COMMAND_OPT_LIMITS[f]); }
   if (body.description) body.description = sanitizeMarkdown(sanitizeQID(body.description));
   if (body.brief) body.brief = sanitizeMarkdown(sanitizeQID(body.brief));
+}
 
-  // Secret detection in user-supplied fields (IMPL-CONSTRAINT-008)
-  const _cmdSecrets = [];
-  for (const f of ['description', 'brief']) { if (body[f]) _cmdSecrets.push(...detectSecrets(body[f])); }
-  const _cmdUniqueSecrets = [...new Set(_cmdSecrets)];
-  if (_cmdUniqueSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_command', { patterns: _cmdUniqueSecrets, command: body.command });
-
-  const cmd = body.command.trim().toUpperCase();
+function isValidCommand(cmd) {
   const parts = cmd.split(/\s+/);
-  const isValid = VALID_COMMANDS.includes(cmd)
+  return VALID_COMMANDS.includes(cmd)
     || VALID_COMMANDS.includes(parts.slice(0, 2).join(' '))
     || (VALID_COMMANDS.includes(parts[0]) && parts.length <= 1);
-  if (!isValid) {
-    return json(res, 400, { error: `Unknown command: ${body.command}` });
-  }
+}
 
-  getStore().mkdirp(SESSION_DIR);
-
-  const entry = {
+function buildCommandEntry(body) {
+  return {
     command: body.command.trim(),
     project: (body.project || '').trim() || null,
     description: (body.description || '').trim() || null,
     scope: (body.scope || '').trim() || null,
-    requested_at: isoNow(),
+    requested_at: models.isoNow(),
     status: 'PENDING',
     source: 'webapp',
   };
+}
 
-  // Save project brief to file if provided (keeps it out of the chat context)
-  if (body.brief && typeof body.brief === 'string' && body.brief.trim()) {
-    getStore().mkdirp(BUSINESS_DOCS);
-    const briefPath = path.join(BUSINESS_DOCS, 'project-brief.md');
-    const briefContent = `# Project Brief — ${entry.project || 'Untitled'}\n\n` +
-      `> Auto-generated by Command Center on ${isoNow()}\n\n` +
-      body.brief.trim() + '\n';
-    safeWriteSync(briefPath, briefContent);
-    entry.brief_saved = true;
-    entry.brief_path = 'BusinessDocs/project-brief.md';
-  }
+function saveProjectBrief(body, entry) {
+  if (!body.brief || typeof body.brief !== 'string' || !body.brief.trim()) return;
+  getStore().mkdirp(BUSINESS_DOCS);
+  const briefPath = path.join(BUSINESS_DOCS, 'project-brief.md');
+  const briefContent = `# Project Brief — ${entry.project || 'Untitled'}\n\n` +
+    `> Auto-generated by Command Center on ${models.isoNow()}\n\n` +
+    body.brief.trim() + '\n';
+  safeWriteSync(briefPath, briefContent);
+  entry.brief_saved = true;
+  entry.brief_path = 'BusinessDocs/project-brief.md';
+}
 
-  // Build the clipboard text the user should paste in Copilot Chat
-  // NOTE: The brief is intentionally NOT included — it is read from file by the Onboarding Agent
-  let clipText = entry.command;
-  if (entry.project) clipText += ' ' + entry.project;
-  if (entry.description) clipText += ': ' + entry.description;
-  entry.clipboard_text = clipText;
+function buildClipboardText(entry) {
+  let text = entry.command;
+  if (entry.project) text += ' ' + entry.project;
+  if (entry.description) text += ': ' + entry.description;
+  return text;
+}
 
-  // Append to queue array (preserves history)
-  let queue = [];
-  if (getStore().exists(COMMAND_QUEUE)) {
-    try {
-      const existing = JSON.parse(_cache.read(COMMAND_QUEUE));
-      queue = Array.isArray(existing) ? existing : (existing ? [existing] : []);
-    } catch {}
-  }
+function readCommandQueue() {
+  if (!getStore().exists(COMMAND_QUEUE)) return [];
+  try {
+    const raw = JSON.parse(_cache.read(COMMAND_QUEUE));
+    return Array.isArray(raw) ? raw : (raw ? [raw] : []);
+  } catch { return []; }
+}
+
+function appendToCommandQueue(entry) {
   const MAX_QUEUE_SIZE = 50;
+  let queue = readCommandQueue();
   queue.push(entry);
   if (queue.length > MAX_QUEUE_SIZE) queue = queue.slice(-MAX_QUEUE_SIZE);
   safeWriteSync(COMMAND_QUEUE, JSON.stringify(queue, null, 2));
-  const cmdResponse = { ok: true, clipboard_text: clipText, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${clipText}` };
-  if (_cmdUniqueSecrets.length > 0) cmdResponse.warnings = [`Possible secrets detected (${_cmdUniqueSecrets.join(', ')}). Please verify no sensitive data was submitted.`];
+}
+
+async function apiPostCommand(req, res) {
+  const body = await parseBody(req);
+  validateCommandBody(body);
+
+  const cmdSecrets = checkSecretsInBody(body, ['description', 'brief']);
+  if (cmdSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_command', { patterns: cmdSecrets, command: body.command });
+
+  const cmd = body.command.trim().toUpperCase();
+  if (!isValidCommand(cmd)) return json(res, 400, errorResponse('UNKNOWN_COMMAND', `Unknown command: ${body.command}`));
+
+  getStore().mkdirp(SESSION_DIR);
+  const entry = buildCommandEntry(body);
+  saveProjectBrief(body, entry);
+  entry.clipboard_text = buildClipboardText(entry);
+  appendToCommandQueue(entry);
+
+  const cmdResponse = { ok: true, clipboard_text: entry.clipboard_text, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${entry.clipboard_text}` };
+  attachSecretWarnings(cmdResponse, cmdSecrets);
   json(res, 200, cmdResponse);
 }
 
 async function apiGetCommand(_req, res) {
-  if (!getStore().exists(COMMAND_QUEUE)) return json(res, 200, { command: null, queue: [] });
-  try {
-    const raw = JSON.parse(_cache.read(COMMAND_QUEUE));
-    const queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-    const latest = queue.length ? queue[queue.length - 1] : null;
-    json(res, 200, { command: latest, queue });
-  } catch { json(res, 200, { command: null, queue: [] }); }
+  const queue = readCommandQueue();
+  json(res, 200, { command: getLatestCommand(queue), queue });
 }
 
 /* ── Progress API ─────────────────────────────────────────────── */
@@ -590,17 +589,78 @@ const PHASE_LABELS = {
   'PHASE-5': 'Phase 5 — Implementation',
 };
 
+function getLatestCommand(queue) {
+  if (!queue) queue = readCommandQueue();
+  return queue.length ? queue[queue.length - 1] : null;
+}
+
+function isAgentCompleted(agent, completedAgents) {
+  const agentFile = agent.id + '-' + agent.name.toLowerCase().replace(/[^a-z]+/g, '-');
+  return completedAgents.includes(agentFile) || completedAgents.includes(agent.id);
+}
+
+function isAgentActive(agent, phaseKey, currentPhase, currentAgent) {
+  return currentPhase === phaseKey && currentAgent && (currentAgent.startsWith(agent.id + '-') || currentAgent === agent.id);
+}
+
+function hasAgentOutputAsObject(po, agentId) {
+  return po && typeof po === 'object' && po[agentId] && po[agentId] !== 'null' && po[agentId] !== null;
+}
+
+function hasOnboardingOutput(po, phaseKey) {
+  return po && typeof po === 'string' && po !== 'null' && po !== null && phaseKey === 'ONBOARDING';
+}
+
+function resolveAgentStatus(agent, phaseKey, completedAgents, currentPhase, currentAgent, phaseOutputs) {
+  if (isAgentCompleted(agent, completedAgents)) return 'done';
+  if (isAgentActive(agent, phaseKey, currentPhase, currentAgent)) return 'active';
+  const po = phaseOutputs[phaseKey.toLowerCase()];
+  if (hasAgentOutputAsObject(po, agent.id) || hasOnboardingOutput(po, phaseKey)) return 'done';
+  return 'pending';
+}
+
+function resolvePhaseStatus(phaseKey, completedPhases, currentPhase, session) {
+  if (completedPhases.includes(phaseKey)) return 'done';
+  if (currentPhase === phaseKey) return 'active';
+  if (phaseKey === 'PHASE-5' && session.sprint_backlog && session.sprint_backlog.total_sprints > 0) return 'active';
+  return 'pending';
+}
+
+function buildPhaseProgress(session) {
+  const completedPhases = session.completed_phases || [];
+  const completedAgents = session.completed_agents || [];
+  const currentPhase    = session.current_phase || null;
+  const phaseOutputs    = session.phase_outputs || {};
+
+  return PHASE_ORDER.map(phaseKey => {
+    const agents = (PHASE_AGENTS[phaseKey] || []).map(a => ({
+      id: a.id, name: a.name,
+      status: resolveAgentStatus(a, phaseKey, completedAgents, currentPhase, session.current_agent || null, phaseOutputs),
+    }));
+    const phaseStatus = resolvePhaseStatus(phaseKey, completedPhases, currentPhase, session);
+    const done = agents.filter(a => a.status === 'done').length;
+    return { key: phaseKey, label: PHASE_LABELS[phaseKey], status: phaseStatus, agents, done, total: agents.length };
+  });
+}
+
+function buildSessionSummary(session) {
+  return {
+    session_id: session.session_id,
+    cycle_type: session.cycle_type,
+    status: session.status,
+    current_phase: session.current_phase || null,
+    current_agent: session.current_agent || null,
+    current_step: session.current_step || null,
+    initiated_at: session.initiated_at,
+    last_updated: session.last_updated,
+    blockers: session.blockers || [],
+    open_human_escalations: (session.open_human_escalations || []).filter(e => e.status === 'OPEN'),
+  };
+}
+
 async function apiGetProgress(_req, res) {
-  // Always include command queue so the UI can show waiting state
-  let command = null;
+  const command = getLatestCommand();
   const store = getStore();
-  if (store.exists(COMMAND_QUEUE)) {
-    try {
-      const raw = JSON.parse(_cache.read(COMMAND_QUEUE));
-      const queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-      command = queue.length ? queue[queue.length - 1] : null;
-    } catch {}
-  }
 
   if (!store.exists(SESSION_FILE)) {
     return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command });
@@ -608,64 +668,14 @@ async function apiGetProgress(_req, res) {
   let session;
   try { session = JSON.parse(_cache.read(SESSION_FILE)); } catch { return json(res, 200, { active: false, phases: buildEmptyPhases(), session: null, command }); }
 
-  const completedPhases = session.completed_phases || [];
-  const completedAgents = session.completed_agents || [];
-  const currentPhase    = session.current_phase || null;
-  const currentAgent    = session.current_agent || null;
-  const currentStep     = session.current_step || null;
-  const phaseOutputs    = session.phase_outputs || {};
-
-  const phases = PHASE_ORDER.map(phaseKey => {
-    const label   = PHASE_LABELS[phaseKey];
-    const agents  = (PHASE_AGENTS[phaseKey] || []).map(a => {
-      const agentFile = a.id + '-' + a.name.toLowerCase().replace(/[^a-z]+/g, '-');
-      let status = 'pending';
-      if (completedAgents.includes(agentFile) || completedAgents.includes(a.id)) status = 'done';
-      else if (currentPhase === phaseKey && currentAgent && (currentAgent.startsWith(a.id + '-') || currentAgent === a.id)) status = 'active';
-      // Also check phase_outputs
-      const po = phaseOutputs[phaseKey.toLowerCase()];
-      if (po && typeof po === 'object' && po[a.id] && po[a.id] !== 'null' && po[a.id] !== null) status = 'done';
-      else if (po && typeof po === 'string' && po !== 'null' && po !== null && phaseKey === 'ONBOARDING') status = 'done';
-      return { id: a.id, name: a.name, status };
-    });
-
-    let phaseStatus = 'pending';
-    if (completedPhases.includes(phaseKey)) phaseStatus = 'done';
-    else if (currentPhase === phaseKey) phaseStatus = 'active';
-    else if (phaseKey === 'PHASE-5' && session.sprint_backlog && session.sprint_backlog.total_sprints > 0) {
-      phaseStatus = 'active'; // Phase 5 is iterative
-    }
-
-    const done  = agents.filter(a => a.status === 'done').length;
-    const total = agents.length;
-
-    return { key: phaseKey, label, status: phaseStatus, agents, done, total };
-  });
-
-  // Sprint info
-  let sprints = null;
-  if (session.sprint_backlog) {
-    sprints = {
-      total: session.sprint_backlog.total_sprints || 0,
-      statuses: session.sprint_backlog.sprint_statuses || {},
-    };
-  }
+  const sprints = session.sprint_backlog
+    ? { total: session.sprint_backlog.total_sprints || 0, statuses: session.sprint_backlog.sprint_statuses || {} }
+    : null;
 
   json(res, 200, {
     active: true,
-    session: {
-      session_id: session.session_id,
-      cycle_type: session.cycle_type,
-      status: session.status,
-      current_phase: currentPhase,
-      current_agent: currentAgent,
-      current_step: currentStep,
-      initiated_at: session.initiated_at,
-      last_updated: session.last_updated,
-      blockers: session.blockers || [],
-      open_human_escalations: (session.open_human_escalations || []).filter(e => e.status === 'OPEN'),
-    },
-    phases,
+    session: buildSessionSummary(session),
+    phases: buildPhaseProgress(session),
     sprints,
     command,
   });
@@ -681,58 +691,62 @@ function buildEmptyPhases() {
 
 /* ── Export API ────────────────────────────────────────────────── */
 
+function readSafeFile(store, basePath, relativePath) {
+  let fp;
+  try { fp = safePath(basePath, relativePath); } catch { return null; }
+  if (!store.exists(fp)) return null;
+  try { return _cache.read(fp); } catch { return null; }
+}
+
+const MAX_EXPORT_SIZE = 10 * 1024 * 1024;
+
+function tryReadExportFile(store, filePath, ctx) {
+  const txt = readSafeFile(store, PROJECT_ROOT, filePath);
+  if (!txt) return null;
+  ctx.size += Buffer.byteLength(txt);
+  return ctx.size <= MAX_EXPORT_SIZE ? txt : null;
+}
+
+function collectStringPhaseOutput(val, store, ctx) {
+  if (typeof val !== 'string' || val === 'null' || !val) return null;
+  return tryReadExportFile(store, val, ctx);
+}
+
+function collectObjectPhaseOutput(val, store, ctx) {
+  if (!val || typeof val !== 'object') return null;
+  const entries = {};
+  for (const [agentId, filePath] of Object.entries(val)) {
+    if (ctx.size > MAX_EXPORT_SIZE) break;
+    if (filePath && filePath !== 'null') {
+      const txt = tryReadExportFile(store, filePath, ctx);
+      if (txt) entries[agentId] = txt;
+    }
+  }
+  return entries;
+}
+
+function collectPhaseOutputs(phaseOutputs, store) {
+  const result = {};
+  const ctx = { size: 0 };
+  for (const [phase, val] of Object.entries(phaseOutputs)) {
+    if (ctx.size > MAX_EXPORT_SIZE) break;
+    const out = collectStringPhaseOutput(val, store, ctx) || collectObjectPhaseOutput(val, store, ctx);
+    if (out) result[phase] = out;
+  }
+  return result;
+}
+
 async function apiGetExport(_req, res) {
   const store = getStore();
-  const bundle = { exported_at: isoNow(), session: null, command_queue: [], phase_outputs: {} };
+  const bundle = { exported_at: models.isoNow(), session: null, command_queue: [], phase_outputs: {} };
 
-  // Session state
   if (store.exists(SESSION_FILE)) {
     try { bundle.session = JSON.parse(_cache.read(SESSION_FILE)); } catch {}
   }
+  bundle.command_queue = readCommandQueue();
 
-  // Command queue
-  if (store.exists(COMMAND_QUEUE)) {
-    try {
-      const raw = JSON.parse(_cache.read(COMMAND_QUEUE));
-      bundle.command_queue = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-    } catch {}
-  }
-
-  // Collect phase output files referenced in session
   if (bundle.session && bundle.session.phase_outputs) {
-    const po = bundle.session.phase_outputs;
-    let cumSize = 0;
-    const MAX_EXPORT_SIZE = 10 * 1024 * 1024; // 10 MB
-    for (const [phase, val] of Object.entries(po)) {
-      if (cumSize > MAX_EXPORT_SIZE) break;
-      if (typeof val === 'string' && val !== 'null' && val) {
-        let fp;
-        try { fp = safePath(PROJECT_ROOT, val); } catch { continue; }
-        if (store.exists(fp)) {
-          try {
-            const txt = _cache.read(fp);
-            cumSize += Buffer.byteLength(txt);
-            if (cumSize <= MAX_EXPORT_SIZE) bundle.phase_outputs[phase] = txt;
-          } catch {}
-        }
-      } else if (val && typeof val === 'object') {
-        bundle.phase_outputs[phase] = {};
-        for (const [agentId, filePath] of Object.entries(val)) {
-          if (cumSize > MAX_EXPORT_SIZE) break;
-          if (filePath && filePath !== 'null') {
-            let fp;
-            try { fp = safePath(PROJECT_ROOT, filePath); } catch { continue; }
-            if (store.exists(fp)) {
-              try {
-                const txt = _cache.read(fp);
-                cumSize += Buffer.byteLength(txt);
-                if (cumSize <= MAX_EXPORT_SIZE) bundle.phase_outputs[phase][agentId] = txt;
-              } catch {}
-            }
-          }
-        }
-      }
-    }
+    bundle.phase_outputs = collectPhaseOutputs(bundle.session.phase_outputs, store);
   }
 
   json(res, 200, bundle);
@@ -760,12 +774,12 @@ async function apiGetHelp(req, res) {
 
   // Validate slug: alphanumeric + hyphens only
   if (!/^[a-z0-9-]+$/.test(slug)) {
-    return json(res, 400, { error: 'Invalid topic slug' });
+    return json(res, 400, errorResponse('INVALID_TOPIC', 'Invalid topic slug'));
   }
 
   const filePath = safePath(HELP_DIR, slug + '.md');
   if (!getStore().exists(filePath)) {
-    return json(res, 404, { error: 'Help topic not found' });
+    return json(res, 404, errorResponse('TOPIC_NOT_FOUND', 'Help topic not found'));
   }
   const content = _cache.read(filePath);
   const entry = HELP_TOC.find(t => t.slug === slug);
@@ -804,36 +818,41 @@ const ROUTES = {
   'GET /health':             (_req, res) => json(res, 200, { status: 'ok', uptime: Math.round(process.uptime()) }),
 };
 
+function handleMethodNotAllowed(res, pathname) {
+  const allowed = Object.keys(ROUTES)
+    .filter(k => k.endsWith(' ' + pathname))
+    .map(k => k.split(' ')[0]);
+  if (allowed.length === 0) return false;
+  setSecurityHeaders(res);
+  const body = JSON.stringify(errorResponse('METHOD_NOT_ALLOWED', 'Method Not Allowed'));
+  res.writeHead(405, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store',
+    'Allow': allowed.join(', '),
+  });
+  res.end(body);
+  return true;
+}
+
+function handleRouteError(err, res) {
+  if (!res.headersSent) {
+    const code = err.errorCode || statusToCode(err.status || 500);
+    json(res, err.status || 500, errorResponse(code, err.message));
+  } else { res.end(); }
+}
+
 const server = http.createServer(async (req, res) => {
   const start = Date.now();
   const pathname = new URL(req.url, `http://${HOST}:${PORT}`).pathname.replace(/\/+$/, '') || '/';
   const key = `${req.method} ${pathname}`;
   if (ROUTES[key]) {
     try { await ROUTES[key](req, res); }
-    catch (err) {
-      if (!res.headersSent) { json(res, err.status || 500, { error: err.message }); }
-      else { res.end(); }
-    }
+    catch (err) { handleRouteError(err, res); }
   } else if (req.method === 'GET' && !pathname.startsWith('/api')) {
     serveStatic(req, res);
-  } else {
-    // Check if path exists with different method → 405
-    const allowed = Object.keys(ROUTES)
-      .filter(k => k.endsWith(' ' + pathname))
-      .map(k => k.split(' ')[0]);
-    if (allowed.length > 0) {
-      setSecurityHeaders(res);
-      const body = JSON.stringify({ error: 'Method Not Allowed' });
-      res.writeHead(405, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Length': Buffer.byteLength(body),
-        'Cache-Control': 'no-store',
-        'Allow': allowed.join(', '),
-      });
-      res.end(body);
-    } else {
-      json(res, 404, { error: 'Not found' });
-    }
+  } else if (!handleMethodNotAllowed(res, pathname)) {
+    json(res, 404, errorResponse('NOT_FOUND', 'Not found'));
   }
   log(req.method, pathname, res.statusCode, Date.now() - start);
 });

@@ -71,6 +71,27 @@ class FileStore {
   }
 }
 
+/* ── InMemoryStore helpers ─────────────────────────────────────── */
+
+function collectDirEntries(keys, resolved, seen, entries, options, isDirFn) {
+  const prefix1 = resolved + path.sep;
+  const prefix2 = resolved + '/';
+  for (const key of keys) {
+    if (key.startsWith(prefix1) || key.startsWith(prefix2)) {
+      const name = key.slice(resolved.length + 1).split(/[\\/]/)[0];
+      if (!seen.has(name)) {
+        seen.add(name);
+        const isDir = isDirFn(key, resolved);
+        if (options && options.withFileTypes) {
+          entries.push({ name, isFile: () => !isDir, isDirectory: () => isDir });
+        } else {
+          entries.push(name);
+        }
+      }
+    }
+  }
+}
+
 /* ── InMemoryStore (for testing) ──────────────────────────────── */
 
 class InMemoryStore {
@@ -121,39 +142,9 @@ class InMemoryStore {
     const resolved = path.resolve(dirPath);
     const entries = [];
     const seen = new Set();
-
-    for (const key of this._files.keys()) {
-      if (key.startsWith(resolved + path.sep) || key.startsWith(resolved + '/')) {
-        const relative = key.slice(resolved.length + 1);
-        const parts = relative.split(/[\\/]/);
-        const name = parts[0];
-        if (!seen.has(name)) {
-          seen.add(name);
-          const isDir = parts.length > 1;
-          if (options && options.withFileTypes) {
-            entries.push({ name, isFile: () => !isDir, isDirectory: () => isDir });
-          } else {
-            entries.push(name);
-          }
-        }
-      }
-    }
-    // Also include empty dirs
-    for (const dir of this._dirs) {
-      if (dir.startsWith(resolved + path.sep) || dir.startsWith(resolved + '/')) {
-        const relative = dir.slice(resolved.length + 1);
-        const parts = relative.split(/[\\/]/);
-        const name = parts[0];
-        if (!seen.has(name)) {
-          seen.add(name);
-          if (options && options.withFileTypes) {
-            entries.push({ name, isFile: () => false, isDirectory: () => true });
-          } else {
-            entries.push(name);
-          }
-        }
-      }
-    }
+    collectDirEntries(this._files.keys(), resolved, seen, entries, options,
+      (key, res) => key.slice(res.length + 1).split(/[\\/]/).length > 1);
+    collectDirEntries(this._dirs, resolved, seen, entries, options, () => true);
     return entries;
   }
 

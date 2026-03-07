@@ -104,6 +104,19 @@
     .stat-val { font-weight: 700; color: #ffffff; }
     .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    /* ── System status indicators (Story #7) ────── */
+    .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,.7); flex-shrink: 0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background .3s; }
+    .status-dot.connected { background: #10b981; box-shadow: 0 0 4px #10b981; }
+    .status-dot.disconnected { background: #ef4444; box-shadow: 0 0 4px #ef4444; animation: pulse-dot 1.5s infinite; }
+    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+    .status-refresh { opacity: .7; }
+    .status-spinner { display: none; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+    .status-spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .server-banner { display: none; background: var(--danger, #ef4444); color: #fff; text-align: center; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+    .server-banner.visible { display: block; }
+
     /* Header buttons override */
     .header .btn {
       background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
@@ -677,6 +690,11 @@
       </div>
     </div>
     <div class="header-stats" id="hStats"></div>
+    <div class="status-indicator" id="statusIndicator">
+      <span class="status-spinner" id="statusSpinner"></span>
+      <span class="status-dot connected" id="statusDot" title="Server connected"></span>
+      <span class="status-refresh" id="statusRefresh"></span>
+    </div>
     <div class="header-actions">
       <button class="btn" id="btnSaveAll" disabled>&#128190; Save All</button>
       <button class="btn btn-success" id="btnNewDecision">&#10010; New Decision</button>
@@ -686,6 +704,7 @@
       <button class="theme-toggle" id="btnTheme" title="Toggle dark mode" aria-label="Toggle dark mode">&#127769;</button>
     </div>
   </header>
+  <div class="server-banner" id="serverBanner" role="alert">&#9888; Server unreachable — retrying automatically&hellip;</div>
 
   <!-- ── Tabs ───────────────────────────────── -->
   <div class="tabs" id="tabBar" role="tablist">
@@ -947,6 +966,8 @@ let lastClipboard  = '';          // last clipboard text shown
 let pollInterval   = 10000;       // adaptive: 3s active, 10s idle, 30s dormant
 let silentFailCount = 0;          // consecutive silent polling failures
 const MAX_SILENT_FAILS = 5;       // show warning after this many
+let _consecutiveFails = 0;        // for connection status dot (3 = disconnect)
+let _lastRefreshTime  = null;     // last successful load timestamp
 
 /* ── API layer ───────────────────────────────────────── */
 async function api(method, url, body, signal) {
@@ -964,6 +985,8 @@ let _loadInFlight = false;
 async function load(silent) {
   if (_loadInFlight) return;
   _loadInFlight = true;
+  const spinner = document.getElementById('statusSpinner');
+  if (spinner) spinner.classList.add('active');
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 15000);
@@ -974,32 +997,35 @@ async function load(silent) {
     ]);
     clearTimeout(timeout);
     silentFailCount = 0;
+    _consecutiveFails = 0;
+    _lastRefreshTime = new Date();
+    updateConnectionStatus();
     const newDecHash = JSON.stringify(dData);
     const newProgHash = pData ? JSON.stringify(pData) : '';
     if (silent && newDecHash === lastDecHash && newProgHash === lastProgHash) return;
     questionnaires = qData.questionnaires;
     decisions = dData;
-    if (pData) progress = pData;
     if (silent && lastDecHash && newDecHash !== lastDecHash) {
       toast('Data updated externally \u2014 refreshed', 't-info');
     }
-    lastDecHash = newDecHash;
-    lastProgHash = newProgHash;
 
-    // Detect pipeline transitions and show toasts
+    // Detect pipeline transitions and show toasts (compare BEFORE overwriting progress)
     if (silent && pData && progress) {
-      const prev = progress;
-      if (pData.active && prev.active) {
-        if (pData.session.current_agent !== prev.session.current_agent && pData.session.current_agent) {
+      if (pData.active && progress.active) {
+        if (pData.session.current_agent !== progress.session.current_agent && pData.session.current_agent) {
           toast('Agent started: ' + pData.session.current_agent, 't-ok');
         }
-        if (pData.session.current_phase !== prev.session.current_phase && pData.session.current_phase) {
+        if (pData.session.current_phase !== progress.session.current_phase && pData.session.current_phase) {
           toast('Phase started: ' + pData.session.current_phase, 't-info');
         }
-      } else if (pData.active && !prev.active) {
+      } else if (pData.active && !progress.active) {
         toast('Session started!', 't-ok');
       }
     }
+
+    if (pData) progress = pData;
+    lastDecHash = newDecHash;
+    lastProgHash = newProgHash;
 
     // Adaptive polling: faster when active, slower when idle
     updatePollInterval();
@@ -1028,6 +1054,8 @@ async function load(silent) {
       if (decLoader) decLoader.textContent = 'Error: ' + e.message;
     } else {
       silentFailCount++;
+      _consecutiveFails++;
+      updateConnectionStatus();
       if (silentFailCount >= MAX_SILENT_FAILS) {
         toast('Connection lost \u2014 server may be down. Retrying...', 't-err');
         silentFailCount = 0;
@@ -1035,12 +1063,16 @@ async function load(silent) {
     }
   } finally {
     _loadInFlight = false;
+    const spinner = document.getElementById('statusSpinner');
+    if (spinner) spinner.classList.remove('active');
   }
 }
 
 function startPolling() {
   if (pollTimer) return;
   pollTimer = setInterval(() => load(true), pollInterval);
+  // Update the "Xs ago" text every 5s
+  setInterval(updateConnectionStatus, 5000);
 }
 
 function updatePollInterval() {
@@ -1052,6 +1084,24 @@ function updatePollInterval() {
   if (newInterval !== pollInterval) {
     pollInterval = newInterval;
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; startPolling(); }
+  }
+}
+
+function updateConnectionStatus() {
+  const dot = document.getElementById('statusDot');
+  const refresh = document.getElementById('statusRefresh');
+  const banner = document.getElementById('serverBanner');
+  if (dot) {
+    const connected = _consecutiveFails < 3;
+    dot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
+    dot.title = connected ? 'Server connected' : 'Server unreachable';
+  }
+  if (refresh && _lastRefreshTime) {
+    const ago = Math.round((Date.now() - _lastRefreshTime.getTime()) / 1000);
+    refresh.textContent = ago < 5 ? 'just now' : ago + 's ago';
+  }
+  if (banner) {
+    banner.classList.toggle('visible', _consecutiveFails >= 3);
   }
 }
 

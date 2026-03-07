@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright (c) 2026 Robert Agterhuis. MIT License. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -33,9 +34,9 @@
       /* ── Typography: modular scale ─────────────── */
       --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-      --text-caption: 10px; --text-label: 11px; --text-sm: 12px;
-      --text-body: 13px; --text-md: 14px; --text-lg: 15px;
-      --text-h4: 16px; --text-h3: 18px; --text-h2: 20px; --text-h1: 26px;
+      --text-caption: 0.625rem; --text-label: 0.6875rem; --text-sm: 0.75rem;
+      --text-body: 0.8125rem; --text-md: 0.875rem; --text-lg: 0.9375rem;
+      --text-h4: 1rem; --text-h3: 1.125rem; --text-h2: 1.25rem; --text-h1: 1.625rem;
       --leading-tight: 1.25; --leading-normal: 1.5; --leading-relaxed: 1.6;
       --fw-normal: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-extrabold: 800;
 
@@ -658,6 +659,11 @@
       background: var(--code-bg); padding: 2px 6px; border-radius: var(--radius-xs);
       font-family: var(--font-mono); font-size: 12.5px;
     }
+    .help-content kbd {
+      display: inline-block; padding: 2px 7px; font-size: 12px; font-family: var(--font-mono);
+      background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: 0 1px 0 var(--border); min-width: 20px; text-align: center;
+    }
     .help-content pre {
       background: var(--code-bg); padding: 14px 18px; border-radius: var(--radius);
       overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--border);
@@ -769,6 +775,92 @@
     .sse-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-label); padding: 2px 8px; border-radius: var(--radius-pill); }
     .sse-badge.live { background: var(--success-light); color: var(--success); }
     .sse-badge.polling { background: var(--warning-light); color: #b45309; }
+
+    /* ── Font size control (SP-R2-005-004) ──────── */
+    html { font-size: 16px; } /* default */
+    html[data-fontsize="small"] { font-size: 14px; }
+    html[data-fontsize="large"] { font-size: 18px; }
+    .fontsize-control { display: inline-flex; align-items: center; gap: 2px; margin-right: 4px; }
+    .fontsize-btn { background: none; border: 1px solid var(--border); color: var(--text-sec); cursor: pointer;
+      border-radius: var(--radius-xs); width: 26px; height: 26px; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; line-height: 1; }
+    .fontsize-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .fontsize-btn.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+
+    /* ── prefers-reduced-motion (SP-R2-005-001) ──── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      /* Skeleton loaders: opacity-only subtle pulse instead of shimmer */
+      .skeleton, .skeleton-card .skeleton-line {
+        animation: none !important;
+        background: var(--border) !important;
+        opacity: .6;
+      }
+    }
+
+    /* ── forced-colors / High Contrast (SP-R2-005-002) ──── */
+    @media (forced-colors: active) {
+      /* Ensure all interactive elements have visible borders */
+      .btn, .tab, .sb-item, .cmd-btn, .card, .dec-card, .toast,
+      input, select, textarea, .q-jump-btn {
+        border: 1px solid ButtonText !important;
+      }
+      .btn:hover, .tab:hover, .sb-item:hover, .cmd-btn:hover,
+      .q-jump-btn:hover {
+        border-color: Highlight !important;
+      }
+      /* Focus indicators: use outline, not box-shadow */
+      *:focus-visible {
+        outline: 2px solid Highlight !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+      }
+      /* Cards and containers have defined borders */
+      .card, .dec-card, .pipe-phase, .pipe-sprint-card,
+      .cmd-clipboard, .onboarding-card, .modal,
+      .overlay .modal, .pipe-waiting {
+        border: 1px solid ButtonText !important;
+      }
+      .dec-card.blocking {
+        border: 2px solid Highlight !important;
+      }
+      /* SVG icons: force system colors */
+      .icon { forced-color-adjust: auto; }
+      svg.icon { stroke: ButtonText !important; }
+      /* Status dots need system colors */
+      .status-dot.connected { background: ButtonText !important; }
+      .status-dot.disconnected { background: Highlight !important; }
+      .pipe-agent-dot { background: ButtonText !important; }
+      .dot-active { background: Highlight !important; }
+      .dot-done { background: ButtonText !important; }
+      /* Badges */
+      .badge, .pipe-phase-badge, .sse-badge {
+        border: 1px solid ButtonText !important;
+        forced-color-adjust: none;
+      }
+      /* Progress bars */
+      .prog-fill, .pipe-progress-fill, .q-progress-fill {
+        background: Highlight !important;
+      }
+      /* Links */
+      a { color: LinkText !important; }
+      /* Server banner */
+      .server-banner.visible {
+        border: 2px solid Highlight !important;
+      }
+      /* Onboarding dots */
+      .onboarding-dot { border: 1px solid ButtonText !important; }
+      .onboarding-dot.active { background: Highlight !important; }
+      /* Tab active indicator */
+      .tab.active { border-bottom: 3px solid Highlight !important; }
+      /* Sidebar active item */
+      .sb-item.active { border-left-color: Highlight !important; }
+    }
   </style>
 </head>
 <body>
@@ -797,12 +889,19 @@
       <button class="btn btn-primary" id="btnReeval"><span aria-hidden="true">&#128260;</span> Reevaluate</button>
       <button class="btn" id="btnHelp" title="Help"><span aria-hidden="true">&#10067;</span> Help</button>
       <button class="btn" id="btnExport" title="Export session data as JSON" aria-label="Export session data as JSON"><span aria-hidden="true">&#128229;</span> Export</button>
+      <div class="fontsize-control" role="radiogroup" aria-label="Font size">
+        <button class="fontsize-btn" data-fontsize="small" title="Small text" aria-label="Small font size" style="font-size:11px;">A</button>
+        <button class="fontsize-btn active" data-fontsize="default" title="Default text" aria-label="Default font size" style="font-size:14px;">A</button>
+        <button class="fontsize-btn" data-fontsize="large" title="Large text" aria-label="Large font size" style="font-size:17px;">A</button>
+      </div>
       <button class="theme-toggle" id="btnTheme" title="Toggle dark mode" aria-label="Toggle dark mode"><span aria-hidden="true">&#127769;</span></button>
     </div>
   </header>
   <div class="server-banner" id="serverBanner" role="alert" aria-live="assertive"><span aria-hidden="true">&#9888;</span> Server unreachable — retrying automatically&hellip;</div>
   <!-- Screen reader error announcement region (WCAG 3.3.1, 3.3.3) -->
-  <div id="errorAnnounce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+  <div id="errorAnnounce" class="sr-only" aria-live="assertive" aria-atomic="true" aria-relevant="additions text"></div>
+  <!-- Screen reader status announcement region (SP-R2-005-005: aria-live refactor) -->
+  <div id="statusAnnounce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
   <!-- ── Tabs ───────────────────────────────── -->
   <div class="tabs" id="tabBar" role="tablist">
@@ -812,7 +911,7 @@
   </div>
 
   <!-- ── Body ──────────────────────────────── -->
-  <div class="container hidden" id="panelQuestionnaires" role="tabpanel" aria-labelledby="tab-q" aria-live="polite">
+  <div class="container hidden" id="panelQuestionnaires" role="tabpanel" aria-labelledby="tab-q">
     <button class="hamburger" id="btnHamburger" aria-label="Toggle sidebar"><span aria-hidden="true">&#9776;</span></button>
     <nav class="sidebar" id="sidebar" aria-label="Questionnaire navigation"></nav>
     <main class="main" id="main">
@@ -820,7 +919,7 @@
     </main>
   </div>
 
-  <div class="container hidden" id="panelDecisions" role="tabpanel" aria-labelledby="tab-d" aria-live="polite">
+  <div class="container hidden" id="panelDecisions" role="tabpanel" aria-labelledby="tab-d">
     <main class="main" style="padding:0;overflow-y:auto;">
       <div class="dec-stats-bar" id="decStats"></div>
       <div class="dec-filter-bar">
@@ -838,7 +937,7 @@
   </div>
 
   <!-- ── Command Center panel ──────────────── -->
-  <div class="cmd-layout" id="panelCommandCenter" role="tabpanel" aria-labelledby="tab-cc" aria-live="polite">
+  <div class="cmd-layout" id="panelCommandCenter" role="tabpanel" aria-labelledby="tab-cc">
     <nav class="cmd-sidebar" id="cmdSidebar" aria-label="Command navigation">
       <div class="cmd-section-title">Create New Solution</div>
       <button class="cmd-btn" data-cmd="CREATE">
@@ -924,7 +1023,7 @@
   </div>
 
   <!-- ── Toast container ───────────────────── -->
-  <div class="toast-box" id="toasts" role="status" aria-live="polite"></div>
+  <div class="toast-box" id="toasts"></div>
 
   <!-- ── Reevaluate modal ──────────────────── -->
   <div class="overlay hidden" id="reevalOverlay" role="dialog" aria-modal="true" aria-labelledby="reevalTitle">
@@ -1067,6 +1166,9 @@ let questionnaires = [];
 let decisions      = { open: [], decided: [], deferred: [] };
 let activeFile     = null;
 let activeTab      = sessionStorage.getItem('activeTab') || 'commandcenter';
+const TAB_HASH_MAP = { commandcenter: '#pipeline', questionnaires: '#questionnaires', decisions: '#decisions' };
+const HASH_TAB_MAP = { '#pipeline': 'commandcenter', '#questionnaires': 'questionnaires', '#decisions': 'decisions' };
+const TAB_TITLES   = { commandcenter: 'Command Center', questionnaires: 'Questionnaires', decisions: 'Decisions' };
 const dirty        = new Map();   // "file::Q-ID" → { answer, status }
 let decFilter      = { text: '', priority: '', status: '' };
 let pollTimer      = null;
@@ -1197,7 +1299,7 @@ async function load(silent) {
           toast('Phase started: ' + pData.session.current_phase, 't-info');
         }
       } else if (pData.active && !progress.active) {
-        toast('Session started!', 't-ok');
+        toast('Session started', 't-ok');
       }
     }
 
@@ -1290,7 +1392,11 @@ function updateConnectionStatus() {
     refresh.textContent = ago < 5 ? 'just now' : ago + 's ago';
   }
   if (banner) {
+    const wasVisible = banner.classList.contains('visible');
     banner.classList.toggle('visible', _consecutiveFails >= 3);
+    /* Announce connection status changes to screen readers (SP-R2-005-005) */
+    if (!wasVisible && _consecutiveFails >= 3) announceError('Server unreachable — retrying automatically');
+    else if (wasVisible && _consecutiveFails < 3) announceStatus('Server connection restored');
   }
 }
 
@@ -1450,11 +1556,13 @@ function renderQ(q) {
     const sv = d ? d.status : x.status;
     const bc = x.classification === 'REQUIRED' ? 'b-req' : 'b-opt';
     const sc = sv === 'ANSWERED' ? 'b-ans' : sv === 'DEFERRED' ? 'b-def' : 'b-open';
+    /* Colorblind-safe status icons (SP-R2-005-006) */
+    const si = sv === 'ANSWERED' ? '\u2714 ' : sv === 'DEFERRED' ? '\u23F8 ' : '\u25CB ';
 
     h += `<div class="card${dirty.has(k) ? ' dirty' : ''}" id="c-${x.id}">
       <div class="card-top">
         <div class="badges"><span class="card-id">${x.id}</span> <span class="badge ${bc}">${x.classification}</span></div>
-        <span class="badge ${sc}">${esc(sv)}</span>
+        <span class="badge ${sc}">${si}${esc(sv)}</span>
       </div>
       <div class="card-q">${esc(x.question)}</div>
       <dl class="card-meta">
@@ -1524,11 +1632,14 @@ function renderEmpty() {
 /* ── Tab switching ───────────────────────────────────── */
 async function switchTab(tab) {
   if (activeTab === 'questionnaires' && dirty.size > 0 && tab !== 'questionnaires') {
-    const r = await confirmAction('Unsaved Changes', 'You have unsaved questionnaire changes. Switch tab anyway?', false);
+    const r = await confirmAction('Unsaved Changes', 'You have unsaved questionnaire changes. Switch tab anyway?', false, 'Switch tab');
     if (!r.confirmed) return;
   }
   activeTab = tab;
   try { sessionStorage.setItem('activeTab', tab); } catch {}
+  const hash = TAB_HASH_MAP[tab];
+  if (hash && location.hash !== hash) history.pushState(null, '', hash);
+  document.title = (TAB_TITLES[tab] || 'Manager') + ' \u2014 Q&D Manager';
   document.querySelectorAll('.tab').forEach(t => {
     const sel = t.dataset.tab === tab;
     t.classList.toggle('active', sel);
@@ -1538,10 +1649,8 @@ async function switchTab(tab) {
   document.getElementById('panelQuestionnaires').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
   document.getElementById('panelCommandCenter').classList.toggle('hidden', tab !== 'commandcenter');
-  ['panelQuestionnaires', 'panelDecisions', 'panelCommandCenter'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute('aria-live', el.classList.contains('hidden') ? 'off' : 'polite');
-  });
+  /* Announce active tab to screen readers (SP-R2-005-005) */
+  announceStatus('Switched to ' + tab.replace('commandcenter', 'Command Center') + ' tab');
   document.getElementById('btnSaveAll').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('btnNewDecision').classList.toggle('hidden', tab !== 'decisions' && tab !== 'questionnaires');
   document.getElementById('btnReeval').classList.toggle('hidden', tab === 'commandcenter');
@@ -1582,9 +1691,11 @@ function renderDecisionStats() {
 }
 
 /* ── Decisions renderer ──────────────────────────────── */
+/* Colorblind-safe priority/status badge icons (SP-R2-005-006: WCAG 1.4.1) */
 function prioBadge(p) {
   const cls = p === 'HIGH' ? 'b-high' : p === 'MEDIUM' ? 'b-med' : 'b-low';
-  return `<span class="badge ${cls}">${esc(p)}</span>`;
+  const icon = p === 'HIGH' ? '\u26A0 ' : p === 'MEDIUM' ? '\u25CF ' : '\u25CB ';
+  return `<span class="badge ${cls}">${icon}${esc(p)}</span>`;
 }
 
 function renderDecisions() {
@@ -1633,7 +1744,7 @@ function renderDecisions() {
           <span class="dec-card-id">${esc(d.id)}</span>
           <div class="badges">
             ${isBlocking ? '<span class="badge badge-blocking"><span aria-hidden="true">&#9888;</span> BLOCKS SPRINT GATE</span>' : ''}
-            ${prioBadge(d.priority)} <span class="badge b-open">OPEN</span>${xref}
+            ${prioBadge(d.priority)} <span class="badge b-open">\u25CB OPEN</span>${xref}
           </div>
         </div>
         <div class="dec-card-text">${esc(d.question)}</div>
@@ -1662,7 +1773,7 @@ function renderDecisions() {
       h += `<div class="dec-card">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
-          <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">DECIDED</span>${xref}</div>
+          <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">\u2714 DECIDED</span>${xref}</div>
         </div>
         <div class="dec-card-text">${esc(d.decision)}</div>
         <div class="dec-card-meta">
@@ -1684,10 +1795,11 @@ function renderDecisions() {
     h += `<div class="dec-group-title"><span aria-hidden="true">&#128336;</span> Deferred &amp; Expired (${deferrF.length})</div>`;
     for (const d of deferrF) {
       const cls = d.status === 'EXPIRED' ? 'b-expired' : 'b-deferred';
+      const statusIcon = d.status === 'EXPIRED' ? '\u2716 ' : '\u23F8 ';
       h += `<div class="dec-card">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
-          <div class="badges"><span class="badge ${cls}">${esc(d.status)}</span></div>
+          <div class="badges"><span class="badge ${cls}">${statusIcon}${esc(d.status)}</span></div>
         </div>
         <div class="dec-card-text">${esc(d.subject)}</div>
         <div class="dec-card-meta">
@@ -1706,12 +1818,13 @@ function renderDecisions() {
 }
 
 /* ── Confirmation flow ────────────────────────────────── */
-function confirmAction(title, text, showReason) {
+function confirmAction(title, text, showReason, confirmLabel) {
   return new Promise(resolve => {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmText').textContent = text;
     document.getElementById('confirmReasonGroup').classList.toggle('hidden', !showReason);
     document.getElementById('confirmReason').value = '';
+    document.getElementById('btnDoConfirm').textContent = confirmLabel || 'Confirm';
     openModal('confirmOverlay');
     pendingConfirm = resolve;
   });
@@ -1720,8 +1833,8 @@ function confirmAction(title, text, showReason) {
 /* ── Decision actions ────────────────────────────────── */
 
 /** Confirm-then-execute helper for decision mutations (DRY: defer/expire/reopen). */
-async function confirmAndExecute(id, action, title, text, successMsg, showReason) {
-  const r = await confirmAction(title, text, showReason);
+async function confirmAndExecute(id, action, title, text, successMsg, showReason, confirmLabel) {
+  const r = await confirmAction(title, text, showReason, confirmLabel);
   if (!r.confirmed) return;
   try {
     const payload = { action, id };
@@ -1748,30 +1861,30 @@ async function decideDecision(id) {
   if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, 'An answer is required before deciding'); toast('Enter an answer first before deciding', 't-info'); return; }
   setFieldError(ta, '');
   const decision = decisions.open.find(d => d.id === id);
-  const r = await confirmAction('Decide & Close', `Move ${id} to Decided Items? This action is visible to all agents.`, false);
+  const r = await confirmAction('Decide & Close', `Move ${id} to Decided Items? This action is visible to all agents.`, false, 'Decide & close');
   if (!r.confirmed) return;
   const priority = decision?.priority;
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'decide', id, answer: ta.value.trim() });
-    toast(`${id} decided and moved to Decided Items`, 't-ok');
+    toast(`Decision closed: ${id}`, 't-ok');
     await load();
     if (priority === 'HIGH') {
-      const re = await confirmAction('Trigger Reevaluation?', `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`, false);
+      const re = await confirmAction('Trigger Reevaluation?', `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`, false, 'Trigger reevaluation');
       if (re.confirmed) openModal('reevalOverlay');
     }
   } catch (e) { showError(e, 'Could not decide'); }
 }
 
 async function deferDecision(id) {
-  return confirmAndExecute(id, 'defer', 'Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, `${id} deferred`, true);
+  return confirmAndExecute(id, 'defer', 'Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, `Decision deferred: ${id}`, true, 'Defer decision');
 }
 
 async function expireDecision(id) {
-  return confirmAndExecute(id, 'expire', 'Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, `${id} expired`, true);
+  return confirmAndExecute(id, 'expire', 'Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, `Decision expired: ${id}`, true, 'Expire decision');
 }
 
 async function reopenDecision(id) {
-  return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, `${id} reopened as open question`, false);
+  return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, `Decision reopened: ${id}`, false, 'Reopen decision');
 }
 
 function openEditDecision(id) {
@@ -1795,7 +1908,7 @@ async function saveEditDecision() {
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'edit', id, priority, scope, text, notes });
     closeModal('editDecOverlay');
-    toast(`${id} updated`, 't-ok');
+    toast(`Decision updated: ${id}`, 't-ok');
     await load();
   } catch (e) { showError(e, 'Could not update decision'); }
 }
@@ -1813,7 +1926,7 @@ async function createDecision() {
     document.getElementById('ndScope').value = '';
     document.getElementById('ndText').value = '';
     document.getElementById('ndNotes').value = '';
-    toast(`Created ${r.id}`, 't-ok');
+    toast(`Decision created: ${r.id}`, 't-ok');
     switchTab('decisions');
     await load();
   } catch (e) { showError(e, 'Could not create decision'); }
@@ -1842,7 +1955,7 @@ async function saveOne(file, qId) {
   try {
     await apiWithRetry('POST', '/api/save', { file, updates: [{ questionId: qId, answer, status }] });
     dirty.delete(file + '::' + qId);
-    toast('Saved ' + qId, 't-ok');
+    toast('Answer saved for ' + qId, 't-ok');
     await load();
   } catch (e) { showError(e, 'Save failed'); }
 }
@@ -1900,12 +2013,26 @@ async function doReeval() {
 }
 
 /* ── Toast ───────────────────────────────────────────── */
+/* Status icon prefixes for colorblind safety (SP-R2-005-006: WCAG 1.4.1) */
+const TOAST_ICONS = { 't-ok': '\u2714 ', 't-err': '\u2716 ', 't-info': '\u2139 ' };
+
 function toast(msg, cls) {
   const el = document.createElement('div');
   el.className = 'toast ' + (cls || 't-info');
-  el.textContent = msg;
+  el.textContent = (TOAST_ICONS[cls] || '') + msg;
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => el.remove(), 4500);
+  /* Announce non-error toasts via polite status region (SP-R2-005-005).
+     Error toasts are announced by announceError() via the assertive region. */
+  if (cls !== 't-err') announceStatus(msg);
+}
+
+/** Push status text to the polite aria-live region for screen readers (SP-R2-005-005). */
+function announceStatus(msg) {
+  const region = document.getElementById('statusAnnounce');
+  if (!region) return;
+  region.textContent = '';
+  setTimeout(() => { region.textContent = msg; }, 50);
 }
 
 /* ── Command Center: Pipeline rendering ──────────────── */
@@ -1997,7 +2124,7 @@ function renderPipeline() {
   for (const phase of phases) {
     const icon = PHASE_ICONS[phase.key] || '<span aria-hidden="true">&#128196;</span>';
     const badgeCls = phase.status === 'done' ? 'pipe-badge-done' : phase.status === 'active' ? 'pipe-badge-active' : 'pipe-badge-pending';
-    const statusLabel = phase.status === 'done' ? 'DONE' : phase.status === 'active' ? 'IN PROGRESS' : 'PENDING';
+    const statusLabel = phase.status === 'done' ? '\u2714 DONE' : phase.status === 'active' ? '\u25B6 IN PROGRESS' : '\u25CB PENDING';
 
     h += `<div class="pipe-phase">
       <div class="pipe-phase-head">
@@ -2039,8 +2166,8 @@ function renderPipeline() {
   if (contBtn) {
     contBtn.addEventListener('click', () => {
       navigator.clipboard.writeText('CONTINUE').then(() => {
-        toast('Copied CONTINUE — paste in a new Copilot Chat', 't-ok');
-      }).catch(() => toast('CONTINUE — paste this in Copilot Chat', 't-info'));
+        toast('Copied to clipboard', 't-ok');
+      }).catch(() => toast('Paste CONTINUE in Copilot Chat to resume', 't-info'));
     });
   }
 }
@@ -2183,7 +2310,7 @@ async function launchCommand() {
       </div>`;
     document.getElementById('btnCopyClip').addEventListener('click', copyClipboard);
 
-    toast('Command queued — paste in Copilot Chat to start', 't-ok');
+    toast('Command queued \u2014 paste in Copilot Chat to start', 't-ok');
 
     // Collapse the form into an expandable details element
     const form = document.getElementById('cmdForm');
@@ -2209,7 +2336,7 @@ function copyClipboard() {
   const text = lastClipboard || document.getElementById('clipText')?.textContent || '';
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
-    toast('Copied to clipboard!', 't-ok');
+    toast('Copied to clipboard', 't-ok');
     const btn = document.getElementById('btnCopyClip');
     if (btn) { btn.textContent = '\u2705 Copied!'; setTimeout(() => { btn.textContent = '\uD83D\uDCCB Copy'; }, 2000); }
   }).catch(() => {
@@ -2221,7 +2348,7 @@ function copyClipboard() {
     try {
       ta.select();
       document.execCommand('copy');
-      toast('Copied to clipboard!', 't-ok');
+      toast('Copied to clipboard', 't-ok');
     } finally {
       document.body.removeChild(ta);
     }
@@ -2429,7 +2556,9 @@ async function openHelp() {
     } catch { helpTOC = []; }
     renderHelpNav();
   }
-  if (helpTOC.length && !helpActiveTopic) loadHelpTopic(helpTOC[0].slug);
+  if (helpTOC.length && !helpActiveTopic) loadHelpTopic('_shortcuts');
+  else if (!helpActiveTopic) loadHelpTopic('_shortcuts');
+  announceStatus('Help panel opened');
 }
 
 function closeHelp() {
@@ -2437,11 +2566,14 @@ function closeHelp() {
   overlay.classList.remove('open');
   if (_focusTrapOverlay === overlay) _focusTrapOverlay = null;
   if (_previousFocus) { _previousFocus.focus(); _previousFocus = null; }
+  announceStatus('Help panel closed');
 }
 
 function renderHelpNav() {
   const nav = document.getElementById('helpNav');
   let h = '<div class="help-nav-title">Help Topics</div>';
+  /* Built-in Keyboard Shortcuts entry (SP-R2-005-003) */
+  h += `<div class="help-nav-item${helpActiveTopic === '_shortcuts' ? ' active' : ''}" data-slug="_shortcuts" tabindex="0"><span aria-hidden="true">&#9000;</span> Keyboard Shortcuts</div>`;
   for (const t of helpTOC) {
     h += `<div class="help-nav-item${t.slug === helpActiveTopic ? ' active' : ''}" data-slug="${t.slug}" tabindex="0"><span aria-hidden="true">${t.icon}</span> ${esc(t.title)}</div>`;
   }
@@ -2456,6 +2588,31 @@ async function loadHelpTopic(slug) {
   helpActiveTopic = slug;
   renderHelpNav();
   const el = document.getElementById('helpContent');
+  /* Built-in keyboard shortcuts panel (SP-R2-005-003) */
+  if (slug === '_shortcuts') {
+    el.innerHTML = `<h1>Keyboard Shortcuts</h1>
+      <table>
+        <thead><tr><th>Shortcut</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save all unsaved changes</td><td>Global</td></tr>
+          <tr><td><kbd>Escape</kbd></td><td>Close active modal or help panel</td><td>Modal / Help open</td></tr>
+          <tr><td><kbd>F1</kbd></td><td>Toggle help panel</td><td>Global</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Toggle help panel</td><td>When not in a text field</td></tr>
+          <tr><td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td><td>Navigate between tabs</td><td>Tab bar focused</td></tr>
+          <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd></td><td>Activate focused tab or sidebar item</td><td>Tab bar / Sidebar</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>Move focus to next interactive element</td><td>Global</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Move focus to previous interactive element</td><td>Global</td></tr>
+        </tbody>
+      </table>
+      <h2>Tips</h2>
+      <ul>
+        <li>Focus is trapped inside modals and the help panel — press <kbd>Escape</kbd> to close.</li>
+        <li>The skip-nav link at the top of the page jumps to the main content area.</li>
+        <li>All status changes and errors are announced to screen readers automatically.</li>
+      </ul>`;
+    announceStatus('Keyboard shortcuts panel opened');
+    return;
+  }
   el.innerHTML = '<p style="color:var(--text-muted)">Loading&hellip;</p>';
   try {
     const r = await fetch('/api/help?topic=' + encodeURIComponent(slug));
@@ -2478,12 +2635,38 @@ document.getElementById('btnExport').addEventListener('click', async () => {
     a.download = 'session-export-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast('Session exported', 't-ok');
+    toast('Session exported successfully', 't-ok');
   } catch (e) { toast('Export failed: ' + e.message, 't-err'); }
 });
 document.getElementById('helpClose').addEventListener('click', closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeHelp();
+});
+
+/* ── Font size control (SP-R2-005-004) ────────────── */
+function initFontSize() {
+  let saved;
+  try { saved = localStorage.getItem('fontsize'); } catch {}
+  if (saved && ['small', 'default', 'large'].includes(saved)) {
+    setFontSize(saved);
+  }
+}
+function setFontSize(size) {
+  if (size === 'default') {
+    document.documentElement.removeAttribute('data-fontsize');
+  } else {
+    document.documentElement.setAttribute('data-fontsize', size);
+  }
+  try { localStorage.setItem('fontsize', size); } catch {}
+  document.querySelectorAll('.fontsize-btn').forEach(btn => {
+    const active = btn.dataset.fontsize === size;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+}
+document.querySelector('.fontsize-control').addEventListener('click', e => {
+  const btn = e.target.closest('.fontsize-btn');
+  if (btn) setFontSize(btn.dataset.fontsize);
 });
 
 /* ── Theme toggle ────────────────────────────────────── */
@@ -2723,11 +2906,31 @@ switchTab = async function(tab) {
 
 /* ── Onboarding Wizard (SP-R2-004-001) ───────────────── */
 const ONBOARDING_STEPS = [
-  { title: 'Welcome!', text: 'This is the Questionnaire & Decisions Manager — your central hub for managing project inputs, decisions, and the agent pipeline.', icon: '<span aria-hidden="true">&#128075;</span>' },
-  { title: 'Command Center', text: 'Launch CREATE, AUDIT, or other commands from the Command Center tab. The agent pipeline progress appears here in real-time.', icon: '<span aria-hidden="true">&#128640;</span>' },
-  { title: 'Questionnaires', text: 'Agents generate questions when they need your input. Browse by phase, answer questions, and save. Your answers feed back into the analysis.', icon: '<span aria-hidden="true">&#128221;</span>' },
-  { title: 'Decisions', text: 'Open decisions block the Sprint Gate until answered. Use priority filters to focus on what matters most.', icon: '<span aria-hidden="true">&#9878;</span>' },
-  { title: 'You\'re all set!', text: 'Use keyboard shortcuts (Ctrl+S to save, ? for help) and watch the status indicator for live updates. Happy building!', icon: '<span aria-hidden="true">&#127881;</span>' }
+  {
+    title: 'Welcome to the Manager',
+    text: 'This is your central hub for project questionnaires, decisions, and the agent pipeline. Everything you need lives in three tabs — let\u2019s walk through them.',
+    icon: '<span aria-hidden="true">&#128075;</span>'
+  },
+  {
+    title: 'Command Center',
+    text: 'Launch commands like CREATE or AUDIT and track agent pipeline progress in real time. Each phase shows its current status so you always know where things stand.',
+    icon: '<span aria-hidden="true">&#128640;</span>'
+  },
+  {
+    title: 'Questionnaires',
+    text: 'Agents create questions when they need your input. Browse by phase, answer what you can, and save. Your answers feed directly into the analysis \u2014 no extra steps.',
+    icon: '<span aria-hidden="true">&#128221;</span>'
+  },
+  {
+    title: 'Decisions',
+    text: 'Open decisions block the Sprint Gate until resolved. Filter by priority to tackle the most urgent items first. You can decide, defer, or mark them expired.',
+    icon: '<span aria-hidden="true">&#9878;</span>'
+  },
+  {
+    title: 'You\u2019re ready!',
+    text: 'Start by opening the Command Center tab and launching your first command. Press Ctrl+S to save changes and ? to open the help panel at any time.',
+    icon: '<span aria-hidden="true">&#127881;</span>'
+  }
 ];
 
 function showOnboarding() {
@@ -2816,9 +3019,20 @@ openHelp = async function() {
   }
 };
 
+/* ── Hash routing (SP-R2-005-010) ────────────────────── */
+window.addEventListener('hashchange', () => {
+  const tab = HASH_TAB_MAP[location.hash];
+  if (tab && tab !== activeTab) switchTab(tab);
+});
+
 /* ── Init ────────────────────────────────────────────── */
 initTheme();
+initFontSize();
+/* Resolve initial tab: URL hash wins over sessionStorage */
+const hashTab = HASH_TAB_MAP[location.hash];
+if (hashTab) activeTab = hashTab;
 if (activeTab !== 'commandcenter') switchTab(activeTab);
+else { const h = TAB_HASH_MAP[activeTab]; if (h && location.hash !== h) history.replaceState(null, '', h); document.title = (TAB_TITLES[activeTab] || 'Manager') + ' \u2014 Q&D Manager'; }
 load();
 startPolling();
 connectSSE();

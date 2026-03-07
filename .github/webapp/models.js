@@ -22,40 +22,66 @@ const DEC_ID_RE = /^DEC-[\w-]{1,30}$/;
 
 /* ── Questionnaire Model ──────────────────────────────────────── */
 
-function parseQuestionnaire(content, filePath, basePath) {
-  const lines = content.split(/\r?\n/);
-  const q = {
-    file: path.relative(basePath, filePath).replace(/\\/g, '/'),
-    agent: '', phase: '', generated: '', version: '',
-    sections: [], questions: [],
-  };
-
+function parseQuestionnaireMetadata(content) {
+  const meta = { agent: '', phase: '', generated: '', version: '' };
   const titleM = content.match(/^#\s+Questionnaire:\s*(.+)/m);
-  if (titleM) q.agent = titleM[1].trim();
-
+  if (titleM) meta.agent = titleM[1].trim();
   const metaM = content.match(/>\s*Phase:\s*(.+?)\s*\|\s*Generated:\s*(.+?)\s*\|\s*Version:\s*(.+)/m);
-  if (metaM) { q.phase = metaM[1].trim(); q.generated = metaM[2].trim(); q.version = metaM[3].trim(); }
+  if (metaM) { meta.phase = metaM[1].trim(); meta.generated = metaM[2].trim(); meta.version = metaM[3].trim(); }
+  return meta;
+}
 
-  // Pre-parse status table
+function parseStatusMap(content) {
   const statusMap = {};
   const tableStart = content.indexOf('## Answer Status');
-  if (tableStart !== -1) {
-    const re = /\|\s*(Q-\d+-\d+)\s*\|\s*(\w+)\s*\|\s*(.+?)\s*\|/g;
-    let m;
-    while ((m = re.exec(content.slice(tableStart)))) statusMap[m[1]] = { status: m[2], lastUpdated: m[3].trim() };
-  }
+  if (tableStart === -1) return statusMap;
+  const re = /\|\s*(Q-\d+-\d+)\s*\|\s*(\w+)\s*\|\s*(.+?)\s*\|/g;
+  let m;
+  while ((m = re.exec(content.slice(tableStart)))) statusMap[m[1]] = { status: m[2], lastUpdated: m[3].trim() };
+  return statusMap;
+}
 
-  let sec = null, cur = null, inAns = false, ansLines = [];
+function skipToAnswerEnd(lines, startIdx) {
+  const ansLines = [];
+  let i = startIdx;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^---/.test(line) || /^###/.test(line) || /^##\s/.test(line)) break;
+    const stripped = line.replace(/^>\s?/, '');
+    if (stripped !== '*(fill in here)*') ansLines.push(stripped);
+    i++;
+  }
+  return { answer: ansLines.join('\n').trim(), nextIndex: i };
+}
+
+function applyQuestionField(line, cur) {
+  let fm;
+  if ((fm = line.match(/^\*\*Question:\*\*\s*(.+)/)))           cur.question        = fm[1].trim();
+  else if ((fm = line.match(/^\*\*Why we need this:\*\*\s*(.+)/))) cur.whyNeeded    = fm[1].trim();
+  else if ((fm = line.match(/^\*\*Expected format:\*\*\s*(.+)/)))  cur.expectedFormat = fm[1].trim();
+  else if ((fm = line.match(/^\*\*Example:\*\*\s*(.+)/)))          cur.example        = fm[1].trim();
+}
+
+function parseQuestionnaire(content, filePath, basePath) {
+  const lines = content.split(/\r?\n/);
+  const meta = parseQuestionnaireMetadata(content);
+  const q = {
+    file: path.relative(basePath, filePath).replace(/\\/g, '/'),
+    agent: meta.agent, phase: meta.phase, generated: meta.generated, version: meta.version,
+    sections: [], questions: [],
+  };
+  const statusMap = parseStatusMap(content);
+
+  let sec = null, cur = null;
 
   function finalize() {
     if (!cur) return;
-    if (inAns) cur.answer = ansLines.join('\n').trim();
     const st = statusMap[cur.id];
     cur.status = st ? st.status : 'OPEN';
     cur.lastUpdated = st ? st.lastUpdated : '';
     q.questions.push(cur);
     if (sec) sec.questions.push(cur);
-    cur = null; inAns = false; ansLines = [];
+    cur = null;
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -73,116 +99,142 @@ function parseQuestionnaire(content, filePath, basePath) {
     }
 
     if (!cur) continue;
-    if (/^\*\*Your answer:\*\*/.test(line)) { inAns = true; ansLines = []; continue; }
-
-    if (inAns) {
-      if (/^---/.test(line) || /^###/.test(line) || /^##\s/.test(line)) { cur.answer = ansLines.join('\n').trim(); inAns = false; i--; continue; }
-      const stripped = line.replace(/^>\s?/, '');
-      if (stripped !== '*(fill in here)*') ansLines.push(stripped);
+    if (/^\*\*Your answer:\*\*/.test(line)) {
+      const result = skipToAnswerEnd(lines, i + 1);
+      cur.answer = result.answer;
+      i = result.nextIndex - 1;
       continue;
     }
 
-    let fm;
-    if ((fm = line.match(/^\*\*Question:\*\*\s*(.+)/)))           cur.question        = fm[1].trim();
-    else if ((fm = line.match(/^\*\*Why we need this:\*\*\s*(.+)/))) cur.whyNeeded    = fm[1].trim();
-    else if ((fm = line.match(/^\*\*Expected format:\*\*\s*(.+)/)))  cur.expectedFormat = fm[1].trim();
-    else if ((fm = line.match(/^\*\*Example:\*\*\s*(.+)/)))          cur.example        = fm[1].trim();
+    applyQuestionField(line, cur);
   }
   finalize();
   return q;
 }
 
-function updateAnswerInContent(content, questionId, newAnswer, newStatus) {
-  const lines  = content.split(/\r?\n/);
-  const result = [];
-  const esc    = escRx(questionId);
-  let i = 0;
+function skipOldAnswerLines(lines, i) {
+  while (i < lines.length && !/^---/.test(lines[i]) && !/^###/.test(lines[i]) && !/^##\s/.test(lines[i])) i++;
+  return i;
+}
 
+function formatAnswerLines(newAnswer) {
+  if (newAnswer && newAnswer.trim()) {
+    return newAnswer.split('\n').map(l => `> ${l}`);
+  }
+  return ['> *(fill in here)*'];
+}
+
+function replaceAnswerBlock(lines, escapedId, newAnswer) {
+  const result = [];
+  let i = 0;
   while (i < lines.length) {
-    if (new RegExp(`^###\\s+${esc}\\s+\\[`).test(lines[i])) {
+    if (new RegExp(`^###\\s+${escapedId}\\s+\\[`).test(lines[i])) {
       result.push(lines[i++]);
       while (i < lines.length && !/^\*\*Your answer:\*\*/.test(lines[i])) result.push(lines[i++]);
       if (i < lines.length) {
         result.push(lines[i++]); // **Your answer:**
-        while (i < lines.length && !/^---/.test(lines[i]) && !/^###/.test(lines[i]) && !/^##\s/.test(lines[i])) i++;
-        if (newAnswer && newAnswer.trim()) {
-          for (const l of newAnswer.split('\n')) result.push(`> ${l}`);
-        } else {
-          result.push('> *(fill in here)*');
-        }
-        result.push('');
+        i = skipOldAnswerLines(lines, i);
+        result.push(...formatAnswerLines(newAnswer), '');
       }
-      continue;
-    }
-    if (new RegExp(`\\|\\s*${esc}\\s*\\|`).test(lines[i])) {
-      result.push(`| ${questionId} | ${newStatus} | ${today()} |`);
-      i++;
       continue;
     }
     result.push(lines[i++]);
   }
-  return result.join('\n');
+  return result;
+}
+
+function replaceStatusRow(lines, questionId, newStatus) {
+  const result = [];
+  const esc = escRx(questionId);
+  for (let i = 0; i < lines.length; i++) {
+    if (new RegExp(`\\|\\s*${esc}\\s*\\|`).test(lines[i])) {
+      result.push(`| ${questionId} | ${newStatus} | ${today()} |`);
+    } else {
+      result.push(lines[i]);
+    }
+  }
+  return result;
+}
+
+function updateAnswerInContent(content, questionId, newAnswer, newStatus) {
+  const lines = content.split(/\r?\n/);
+  const esc = escRx(questionId);
+  const withAnswer = replaceAnswerBlock(lines, esc, newAnswer);
+  const withStatus = replaceStatusRow(withAnswer, questionId, newStatus);
+  return withStatus.join('\n');
 }
 
 /* ── Decision Model ───────────────────────────────────────────── */
 
+function parseDecisionTable(content, sectionRegex, rowRegex, mapRow) {
+  const section = content.match(sectionRegex);
+  if (!section) return [];
+  const results = [];
+  let m;
+  while ((m = rowRegex.exec(section[1]))) {
+    const item = mapRow(m);
+    if (item) results.push(item);
+  }
+  return results;
+}
+
 function parseDecisions(content) {
   if (!content) return { open: [], decided: [], deferred: [] };
-  const open = [], decided = [], deferred = [];
 
-  // Parse "Open Questions" table
-  const openSection = content.match(/## Open Questions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
-  if (openSection) {
-    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
-    let m;
-    while ((m = re.exec(openSection[1]))) {
-      if (m[4].includes('No open questions')) continue;
-      open.push({ id: m[1], type: 'OPEN_QUESTION', status: 'OPEN', priority: m[2], scope: m[3].trim(), question: m[4].trim(), answer: m[5].trim(), date: m[6].trim() });
-    }
+  const open = parseDecisionTable(content,
+    /## Open Questions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/,
+    /\|\s*(DEC-[\w-]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
+    m => m[4].includes('No open questions') ? null : { id: m[1], type: 'OPEN_QUESTION', status: 'OPEN', priority: m[2], scope: m[3].trim(), question: m[4].trim(), answer: m[5].trim(), date: m[6].trim() }
+  );
+
+  const trans = parseDecisionTable(content,
+    /### Transformation Decisions[^\n]*\n([\s\S]*?)(?=\n### |\n---|\n## )/,
+    /\|\s*(DEC-T-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
+    m => ({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() })
+  );
+
+  const reev = parseDecisionTable(content,
+    /### Reevaluation Decisions[^\n]*\n([\s\S]*?)(?=\n### |\n---|\n## )/,
+    /\|\s*(DEC-R2-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
+    m => ({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() })
+  );
+
+  const ops = parseDecisionTable(content,
+    /### Operational Decisions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/,
+    /\|\s*(DEC-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
+    m => m[4].includes('Add a decision here') ? null : { id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() }
+  );
+
+  const deferred = parseDecisionTable(content,
+    /## Deferred & Expired[^\n]*\n([\s\S]*?)(?=\n---|\n## |$)/,
+    /\|\s*(DEC-[\w-]+)\s*\|\s*(DEFERRED|EXPIRED)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
+    m => ({ id: m[1], type: m[2] === 'DEFERRED' ? 'OPEN_QUESTION' : 'DECIDED', status: m[2], scope: m[3].trim(), subject: m[4].trim(), reason: m[5].trim(), date: m[6].trim() })
+  );
+
+  return { open, decided: [...trans, ...reev, ...ops], deferred };
+}
+
+/* ── Shared table-row insertion helper ─────────────────────────── */
+
+/**
+ * Insert a markdown table row, replacing a placeholder marker or
+ * appending after the last row in a section. Used by addOpenQuestion,
+ * addOperationalDecision, and moveToDecided.
+ * @param {string} content    - Full markdown content.
+ * @param {RegExp} marker     - Placeholder row regex to replace.
+ * @param {RegExp} sectionRe  - Section-end regex (capture group 1 = rows before `---`).
+ * @param {string} row        - The new table row string.
+ * @returns {string} Updated content.
+ */
+function insertTableRow(content, marker, sectionRe, row) {
+  if (marker.test(content)) {
+    return content.replace(marker, () => row);
   }
-
-  // Parse "Transformation Decisions" table
-  const transSection = content.match(/### Transformation Decisions[^\n]*\n([\s\S]*?)(?=\n### |\n---|\n## )/);
-  if (transSection) {
-    const re = /\|\s*(DEC-T-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
-    let m;
-    while ((m = re.exec(transSection[1]))) {
-      decided.push({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() });
-    }
+  const secEnd = content.match(sectionRe);
+  if (secEnd) {
+    return content.replace(secEnd[0], secEnd[1] + '\n' + row + '\n\n---');
   }
-
-  // Parse "Reevaluation Decisions" table
-  const reevSection = content.match(/### Reevaluation Decisions[^\n]*\n([\s\S]*?)(?=\n### |\n---|\n## )/);
-  if (reevSection) {
-    const re = /\|\s*(DEC-R2-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
-    let m;
-    while ((m = re.exec(reevSection[1]))) {
-      decided.push({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() });
-    }
-  }
-
-  // Parse "Operational Decisions" table
-  const opsSection = content.match(/### Operational Decisions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/);
-  if (opsSection) {
-    const re = /\|\s*(DEC-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
-    let m;
-    while ((m = re.exec(opsSection[1]))) {
-      if (m[4].includes('Add a decision here')) continue;
-      decided.push({ id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() });
-    }
-  }
-
-  // Parse "Deferred & Expired" table
-  const defSection = content.match(/## Deferred & Expired[^\n]*\n([\s\S]*?)(?=\n---|\n## |$)/);
-  if (defSection) {
-    const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(DEFERRED|EXPIRED)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
-    let m;
-    while ((m = re.exec(defSection[1]))) {
-      deferred.push({ id: m[1], type: m[2] === 'DEFERRED' ? 'OPEN_QUESTION' : 'DECIDED', status: m[2], scope: m[3].trim(), subject: m[4].trim(), reason: m[5].trim(), date: m[6].trim() });
-    }
-  }
-
-  return { open, decided, deferred };
+  return content;
 }
 
 /* ── Decision content mutation functions ──────────────────────── */
@@ -197,27 +249,13 @@ function nextDecisionId(content, prefix) {
 function addOpenQuestion(content, entry) {
   const marker = /\|\s*\|\s*\|\s*\|\s*\*\(No open questions\)\*\s*\|\s*\|\s*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.question)} | ${escPipe(entry.answer || '')} | ${escPipe(entry.date)} |`;
-  if (marker.test(content)) {
-    return content.replace(marker, () => row);
-  }
-  const secEnd = content.match(/(## Open Questions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
-  if (secEnd) {
-    return content.replace(secEnd[0], secEnd[1] + '\n' + row + '\n\n---');
-  }
-  return content;
+  return insertTableRow(content, marker, /(## Open Questions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
 }
 
 function addOperationalDecision(content, entry) {
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes || '')} | ${escPipe(entry.date)} |`;
-  if (marker.test(content)) {
-    return content.replace(marker, () => row);
-  }
-  const secEnd = content.match(/(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
-  if (secEnd) {
-    return content.replace(secEnd[0], secEnd[1] + '\n' + row + '\n\n---');
-  }
-  return content;
+  return insertTableRow(content, marker, /(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
 }
 
 function answerOpenQuestion(content, id, answer) {
@@ -250,12 +288,7 @@ function moveToDecided(content, id) {
   const entry = { id, priority, scope, decision: question, notes: answer, date: today() };
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes)} | ${escPipe(entry.date)} |`;
-  if (marker.test(content)) {
-    content = content.replace(marker, () => row);
-  } else {
-    const secEnd = content.match(/(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/);
-    if (secEnd) content = content.replace(secEnd[0], secEnd[1] + '\n' + row + '\n\n---');
-  }
+  content = insertTableRow(content, marker, /(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
   return content;
 }
 
@@ -313,6 +346,23 @@ function editDecidedRow(content, id, fields) {
   return literalReplace(content, m[0], replacement);
 }
 
+function isDataRow(line) {
+  const t = line.trim();
+  return t.startsWith('|') && t.endsWith('|') && !/^\|[\s-]+\|$/.test(t) && !/^\|\s*ID\b/.test(t);
+}
+
+function findTableInsertionLine(lines) {
+  let lastRow = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (isDataRow(lines[i])) lastRow = i;
+  }
+  if (lastRow >= 0) return lastRow + 1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\|[-\s|]+/.test(lines[i])) return i + 1;
+  }
+  return -1;
+}
+
 function insertDeferredRow(content, id, status, scope, subject, reason) {
   const row = `| ${escPipe(id)} | ${escPipe(status)} | ${escPipe(scope)} | ${escPipe(subject)} | ${escPipe(reason)} | ${today()} |`;
   const defIdx = content.indexOf('## Deferred & Expired');
@@ -326,20 +376,10 @@ function insertDeferredRow(content, id, status, scope, subject, reason) {
     return content.slice(0, defIdx) + section.replace(/\|\s*\|\s*\|\s*\|\s*\|\s*\|\s*\|/, row) + content.slice(sectionEnd);
   }
   const lines = section.split('\n');
-  let lastRow = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
-    if (t.startsWith('|') && t.endsWith('|') && !/^\|[\s-]+\|$/.test(t) && !/^\|\s*ID\b/.test(t)) lastRow = i;
-  }
-  if (lastRow >= 0) {
-    lines.splice(lastRow + 1, 0, row);
+  const insertAt = findTableInsertionLine(lines);
+  if (insertAt >= 0) {
+    lines.splice(insertAt, 0, row);
     return content.slice(0, defIdx) + lines.join('\n') + content.slice(sectionEnd);
-  }
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\|[-\s|]+/.test(lines[i])) {
-      lines.splice(i + 1, 0, row);
-      return content.slice(0, defIdx) + lines.join('\n') + content.slice(sectionEnd);
-    }
   }
   return content;
 }

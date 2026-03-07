@@ -21,19 +21,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install TruffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
       - name: Run TruffleHog secret scan
         id: trufflehog
-        uses: trufflesecurity/trufflehog-actions-scan@main
-        with:
-          path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified
+        run: |
+          trufflehog filesystem ./ --only-verified --fail --no-update && echo "outcome=success" >> "$GITHUB_OUTPUT" || echo "outcome=failure" >> "$GITHUB_OUTPUT"
 
       - name: Write secret scan result
         if: always()
         run: |
-          STATUS="${{ steps.trufflehog.outcome == 'success' && 'CLEAN' || 'FAIL' }}"
+          STATUS="$([[ "${{ steps.trufflehog.outputs.outcome }}" == 'failure' ]] && echo 'FAIL' || echo 'CLEAN')"
           mkdir -p .github/docs/security
           echo "# Secret Scan Report" > .github/docs/security/sprint-secret-scan.md
           echo "PR: ${{ github.event.pull_request.number }}" >> .github/docs/security/sprint-secret-scan.md
@@ -41,7 +41,7 @@ jobs:
           echo "Run: ${{ github.run_id }}" >> .github/docs/security/sprint-secret-scan.md
 
       - name: Fail build on detected secrets
-        if: steps.trufflehog.outcome == 'failure'
+        if: steps.trufflehog.outputs.outcome == 'failure'
         run: |
           echo "::error::SECRET_SCAN_FAIL – TruffleHog detected verified secrets. Merge is blocked. Escalate to Security Architect."
           exit 1

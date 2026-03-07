@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Robert Agterhuis. MIT License.
 'use strict';
 
 /**

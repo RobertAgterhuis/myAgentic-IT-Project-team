@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (c) 2026 Robert Agterhuis. MIT License.
 'use strict';
 
 const path = require('path');

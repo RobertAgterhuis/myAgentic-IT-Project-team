@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Robert Agterhuis. MIT License.
 'use strict';
 /* global describe, it, expect, beforeEach, afterEach */
 const { InMemoryStore, setStore, getStore } = require('./store');

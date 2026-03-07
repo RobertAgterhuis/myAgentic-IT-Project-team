@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (c) 2026 Robert Agterhuis. MIT License.
 // Questionnaire Manager — Local API server
 // Zero external dependencies. Requires Node.js 14+.
 'use strict';

@@ -74,6 +74,17 @@
 
 | ID | Priority | Scope | Decision | Notes | Date |
 |----|-----------|-------|-----------|-------------|-------|
+| DEC-102 | HIGH | Phase 2 | Infrastructure must be defined entirely using Infrastructure as Code with Bicep | All Azure resources must be provisioned through Bicep templates stored in the repository. Manual Azure Portal provisioning is prohibited except for break-glass recovery scenarios. | 2026-03-07 |
+| DEC-103 | HIGH | Phase 2 (DevOps) | All infrastructure deployments must run through Azure DevOps pipelines using Bicep | CI/CD pipelines perform what-if validation before deployment and enforce gated approvals for production environments. | 2026-03-07 |
+| DEC-104 | HIGH | Phase 2 (Architecture) | Infrastructure architecture must follow Microsoft Well-Architected Framework principles | Architecture decisions must explicitly address Reliability, Security, Cost Optimization, Operational Excellence, and Performance Efficiency. | 2026-03-07 |
+| DEC-105 | MEDIUM | Phase 2 (IaC Structure) | Bicep codebase must use modular template architecture | architecture
+Core modules stored under /infra/modules and composed by environment-level templates. Modules must be reusable and parameterized. | 2026-03-07 |
+| DEC-106 | HIGH | Phase 2 (Security) | All infrastructure deployments must implement secure defaults aligned with Azure security best practices | Includes managed identities, private endpoints where applicable, RBAC least-privilege roles, and Azure Policy compliance enforcement. | 2026-03-07 |
+| DEC-107 | MEDIUM | Phase 2 (Reliability) | Infrastructure must include built-in resilience patterns defined in Bicep templates | Where applicable: zone redundancy, automatic scaling, health probes, and retry-friendly architecture patterns. | 2026-03-07 |
+| DEC-108 | MEDIUM | Phase 2 (Cost Optimization) | All Bicep templates must include cost-aware configuration defaults | Examples include right-sized SKUs, autoscaling policies, lifecycle policies for storage, and cost monitoring integration. | 2026-03-07 |
+| DEC-109 | MEDIUM | Phase 2 (Operational Excellence) | Infrastructure must integrate Azure Monitor, Log Analytics, and diagnostics at deployment time | Diagnostic settings and monitoring resources must be created automatically via Bicep modules. | 2026-03-07 |
+| DEC-110 | MEDIUM | Phase 2 (Governance) | Infrastructure must enforce Azure Policy and tagging standards through Bicep deployment | Required tags include environment, owner, cost center, and application. Policy assignments must be deployed alongside resources. | 2026-03-07 |
+| DEC-111 | MEDIUM | Phase 2 (Environment Strategy) | Infrastructure environments must follow environment parity using parameterized Bicep deployments | Dev, Test, and Prod environments use the same templates with environment-specific parameter files. | 2026-03-07 |
 
 ---
 
@@ -86,6 +97,16 @@
 
 ## Change Log
 
+- 2026-03-07T17:42:05.245Z | `create` | `DEC-111` | source: webapp
+- 2026-03-07T17:41:36.176Z | `create` | `DEC-110` | source: webapp
+- 2026-03-07T17:41:15.853Z | `create` | `DEC-109` | source: webapp
+- 2026-03-07T17:40:56.503Z | `create` | `DEC-108` | source: webapp
+- 2026-03-07T17:40:34.041Z | `create` | `DEC-107` | source: webapp
+- 2026-03-07T17:40:08.639Z | `create` | `DEC-106` | source: webapp
+- 2026-03-07T17:39:43.057Z | `create` | `DEC-105` | source: webapp
+- 2026-03-07T17:39:09.707Z | `create` | `DEC-104` | source: webapp
+- 2026-03-07T17:38:31.307Z | `create` | `DEC-103` | source: webapp
+- 2026-03-07T17:37:46.624Z | `create` | `DEC-102` | source: webapp
 _(auto-populated by the webapp)_
 
 ---

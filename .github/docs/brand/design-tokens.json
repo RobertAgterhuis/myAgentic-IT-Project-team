@@ -1,0 +1,182 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "meta": {
+    "name": "Agentic System Design Tokens",
+    "version": "1.0.0",
+    "description": "Complete design token system — 8/8 categories. Source of truth for all visual properties.",
+    "generated": "2026-03-07",
+    "story": "SP-R2-002-006",
+    "source": "Agent 12 (REC-UID-001)"
+  },
+
+  "color": {
+    "$description": "Category 1/8 — Semantic color palette with light/dark theme variants",
+    "light": {
+      "primary":       { "$value": "#6366f1", "$type": "color" },
+      "primary-dark":  { "$value": "#4f46e5", "$type": "color" },
+      "primary-light": { "$value": "rgba(99,102,241,.1)", "$type": "color" },
+      "primary-glow":  { "$value": "rgba(99,102,241,.25)", "$type": "color" },
+      "accent":        { "$value": "#8b5cf6", "$type": "color" },
+      "accent-light":  { "$value": "rgba(139,92,246,.1)", "$type": "color" },
+      "success":       { "$value": "#10b981", "$type": "color" },
+      "success-light": { "$value": "rgba(16,185,129,.1)", "$type": "color" },
+      "warning":       { "$value": "#f59e0b", "$type": "color" },
+      "warning-light": { "$value": "rgba(245,158,11,.1)", "$type": "color" },
+      "danger":        { "$value": "#ef4444", "$type": "color" },
+      "danger-light":  { "$value": "rgba(239,68,68,.1)", "$type": "color" },
+      "bg":            { "$value": "#f4f6fb", "$type": "color" },
+      "bg-subtle":     { "$value": "#eef1f8", "$type": "color" },
+      "surface":       { "$value": "#ffffff", "$type": "color" },
+      "surface-raised":{ "$value": "#ffffff", "$type": "color" },
+      "surface-overlay":{ "$value": "rgba(255,255,255,.85)", "$type": "color" },
+      "text":          { "$value": "#1e293b", "$type": "color" },
+      "text-sec":      { "$value": "#64748b", "$type": "color" },
+      "text-muted":    { "$value": "#627389", "$type": "color" },
+      "border":        { "$value": "#e2e8f0", "$type": "color" },
+      "border-hover":  { "$value": "#cbd5e1", "$type": "color" },
+      "border-subtle": { "$value": "#f1f5f9", "$type": "color" },
+      "header-bg":     { "$value": "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)", "$type": "gradient" },
+      "header-text":   { "$value": "#ffffff", "$type": "color" },
+      "input-bg":      { "$value": "#ffffff", "$type": "color" },
+      "code-bg":       { "$value": "#f1f5f9", "$type": "color" }
+    },
+    "dark": {
+      "primary":       { "$value": "#818cf8", "$type": "color" },
+      "primary-dark":  { "$value": "#6366f1", "$type": "color" },
+      "primary-light": { "$value": "rgba(129,140,248,.12)", "$type": "color" },
+      "primary-glow":  { "$value": "rgba(129,140,248,.2)", "$type": "color" },
+      "accent":        { "$value": "#a78bfa", "$type": "color" },
+      "accent-light":  { "$value": "rgba(167,139,250,.1)", "$type": "color" },
+      "success":       { "$value": "#34d399", "$type": "color" },
+      "success-light": { "$value": "rgba(52,211,153,.12)", "$type": "color" },
+      "warning":       { "$value": "#fbbf24", "$type": "color" },
+      "warning-light": { "$value": "rgba(251,191,36,.12)", "$type": "color" },
+      "danger":        { "$value": "#f87171", "$type": "color" },
+      "danger-light":  { "$value": "rgba(248,113,113,.12)", "$type": "color" },
+      "bg":            { "$value": "#0f1117", "$type": "color" },
+      "bg-subtle":     { "$value": "#151823", "$type": "color" },
+      "surface":       { "$value": "#1a1d2e", "$type": "color" },
+      "surface-raised":{ "$value": "#1e2235", "$type": "color" },
+      "surface-overlay":{ "$value": "rgba(26,29,46,.9)", "$type": "color" },
+      "text":          { "$value": "#e2e8f0", "$type": "color" },
+      "text-sec":      { "$value": "#94a3b8", "$type": "color" },
+      "text-muted":    { "$value": "#7b8da1", "$type": "color" },
+      "border":        { "$value": "#2a2f45", "$type": "color" },
+      "border-hover":  { "$value": "#3b4168", "$type": "color" },
+      "border-subtle": { "$value": "#1e2235", "$type": "color" },
+      "header-bg":     { "$value": "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #3b0764 100%)", "$type": "gradient" },
+      "header-text":   { "$value": "#e2e8f0", "$type": "color" },
+      "input-bg":      { "$value": "#151823", "$type": "color" },
+      "code-bg":       { "$value": "#151823", "$type": "color" }
+    }
+  },
+
+  "spacing": {
+    "$description": "Category 2/8 — 4px base unit, scale from 0.25x (1px) to 8x (32px)",
+    "0":    { "$value": "0px",  "$type": "dimension" },
+    "px":   { "$value": "1px",  "$type": "dimension", "$comment": "0.25x — hairline borders" },
+    "0.5":  { "$value": "2px",  "$type": "dimension", "$comment": "0.5x" },
+    "1":    { "$value": "4px",  "$type": "dimension", "$comment": "1x — base unit" },
+    "1.5":  { "$value": "6px",  "$type": "dimension", "$comment": "1.5x" },
+    "2":    { "$value": "8px",  "$type": "dimension", "$comment": "2x" },
+    "2.5":  { "$value": "10px", "$type": "dimension", "$comment": "2.5x" },
+    "3":    { "$value": "12px", "$type": "dimension", "$comment": "3x" },
+    "4":    { "$value": "16px", "$type": "dimension", "$comment": "4x" },
+    "5":    { "$value": "20px", "$type": "dimension", "$comment": "5x" },
+    "6":    { "$value": "24px", "$type": "dimension", "$comment": "6x" },
+    "7":    { "$value": "28px", "$type": "dimension", "$comment": "7x" },
+    "8":    { "$value": "32px", "$type": "dimension", "$comment": "8x" }
+  },
+
+  "shadow": {
+    "$description": "Category 3/8 — Elevation levels with light/dark theme variants",
+    "light": {
+      "sm":  { "$value": "0 1px 2px rgba(0,0,0,.04)",                                    "$type": "shadow" },
+      "md":  { "$value": "0 4px 12px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04)",        "$type": "shadow" },
+      "lg":  { "$value": "0 12px 40px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04)",      "$type": "shadow" }
+    },
+    "dark": {
+      "sm":  { "$value": "0 1px 2px rgba(0,0,0,.2)",                                     "$type": "shadow" },
+      "md":  { "$value": "0 4px 12px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2)",          "$type": "shadow" },
+      "lg":  { "$value": "0 12px 40px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.25)",       "$type": "shadow" }
+    }
+  },
+
+  "motion": {
+    "$description": "Category 4/8 — Duration and easing curves for consistent animation",
+    "duration": {
+      "fast":    { "$value": "150ms", "$type": "duration", "$comment": "Micro-interactions: hover, focus" },
+      "normal":  { "$value": "250ms", "$type": "duration", "$comment": "Standard transitions: tabs, cards" },
+      "slow":    { "$value": "400ms", "$type": "duration", "$comment": "Layout shifts: panel open, progress bars" }
+    },
+    "easing": {
+      "default":  { "$value": "cubic-bezier(0.4, 0, 0.2, 1)", "$type": "cubicBezier", "$comment": "Standard ease — material design 'standard'" },
+      "in":       { "$value": "cubic-bezier(0.4, 0, 1, 1)",   "$type": "cubicBezier", "$comment": "Accelerate — element exiting" },
+      "out":      { "$value": "cubic-bezier(0, 0, 0.2, 1)",   "$type": "cubicBezier", "$comment": "Decelerate — element entering" },
+      "bounce":   { "$value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "$type": "cubicBezier", "$comment": "Playful overshoot — toasts, modals" }
+    }
+  },
+
+  "z-index": {
+    "$description": "Category 5/8 — Layering system with consistent stacking order",
+    "base":     { "$value": 1,     "$type": "number", "$comment": "Default stacking context" },
+    "header":   { "$value": 10,    "$type": "number", "$comment": "App header / sticky nav" },
+    "dropdown": { "$value": 100,   "$type": "number", "$comment": "Dropdowns, popovers" },
+    "sidebar":  { "$value": 500,   "$type": "number", "$comment": "Sidebar overlays, modals" },
+    "modal":    { "$value": 500,   "$type": "number", "$comment": "Modal dialogs" },
+    "toast":    { "$value": 1000,  "$type": "number", "$comment": "Toast notifications" },
+    "tooltip":  { "$value": 1500,  "$type": "number", "$comment": "Tooltips (above toasts)" },
+    "debug":    { "$value": 9000,  "$type": "number", "$comment": "Debug panel overlay" },
+    "skip-nav": { "$value": 10000, "$type": "number", "$comment": "Skip-to-content a11y link" }
+  },
+
+  "typography": {
+    "$description": "Category 6/8 — Modular type scale (base 14px, ratio ~1.2 minor third)",
+    "font-family": {
+      "sans":  { "$value": "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", "$type": "fontFamily" },
+      "mono":  { "$value": "'SF Mono', 'Cascadia Code', 'Consolas', monospace", "$type": "fontFamily" }
+    },
+    "scale": {
+      "caption": { "$value": "10px", "$type": "dimension", "$comment": "Smallest — badges, labels" },
+      "label":   { "$value": "11px", "$type": "dimension", "$comment": "Status indicators, sidebar labels" },
+      "sm":      { "$value": "12px", "$type": "dimension", "$comment": "Meta text, secondary labels" },
+      "body":    { "$value": "13px", "$type": "dimension", "$comment": "Default body text" },
+      "md":      { "$value": "14px", "$type": "dimension", "$comment": "Card IDs, form inputs" },
+      "lg":      { "$value": "15px", "$type": "dimension", "$comment": "Card questions, emphasis" },
+      "h4":      { "$value": "16px", "$type": "dimension", "$comment": "Heading 4 — header title" },
+      "h3":      { "$value": "18px", "$type": "dimension", "$comment": "Heading 3 — icon buttons" },
+      "h2":      { "$value": "20px", "$type": "dimension", "$comment": "Heading 2 — main title" },
+      "h1":      { "$value": "26px", "$type": "dimension", "$comment": "Heading 1 — logo/hero" }
+    },
+    "line-height": {
+      "tight":   { "$value": 1.25, "$type": "number" },
+      "normal":  { "$value": 1.5,  "$type": "number" },
+      "relaxed": { "$value": 1.6,  "$type": "number" }
+    },
+    "font-weight": {
+      "normal":    { "$value": 400, "$type": "number" },
+      "medium":    { "$value": 500, "$type": "number" },
+      "semibold":  { "$value": 600, "$type": "number" },
+      "bold":      { "$value": 700, "$type": "number" },
+      "extrabold": { "$value": 800, "$type": "number" }
+    }
+  },
+
+  "border-radius": {
+    "$description": "Category 7/8 — Formalized radius scale",
+    "none":  { "$value": "0px",  "$type": "dimension" },
+    "sm":    { "$value": "4px",  "$type": "dimension", "$comment": "Inline code, progress bars, small chips" },
+    "md":    { "$value": "6px",  "$type": "dimension", "$comment": "Buttons, inputs, tags" },
+    "lg":    { "$value": "10px", "$type": "dimension", "$comment": "Cards, panels — default" },
+    "xl":    { "$value": "16px", "$type": "dimension", "$comment": "Modals, large containers" },
+    "pill":  { "$value": "20px", "$type": "dimension", "$comment": "Pill badges, status tags" },
+    "full":  { "$value": "9999px", "$type": "dimension", "$comment": "Circles, avatars" }
+  },
+
+  "breakpoint": {
+    "$description": "Category 8/8 — Responsive breakpoints",
+    "sm":  { "$value": "600px",  "$type": "dimension", "$comment": "Mobile → tablet" },
+    "md":  { "$value": "900px",  "$type": "dimension", "$comment": "Tablet → desktop" },
+    "lg":  { "$value": "1200px", "$type": "dimension", "$comment": "Desktop → wide" }
+  }
+}

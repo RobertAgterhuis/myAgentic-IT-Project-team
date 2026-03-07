@@ -59,6 +59,17 @@
 | DEC-T-014 | LOW | Support agents | Support agents (Reevaluate, Feature, Questionnaire, Scope Change, Brand & Assets, Storybook) require zero changes | These agents operate on structured input independent of the originating mode. | 2025-07-18 |
 | DEC-T-015 | MEDIUM | All phases | Critic and Risk agents validate CREATE outputs using the same scoring rubric as AUDIT | Quality gates do not differentiate by mode — the same standards apply to designed solutions as to audited solutions. Critic Agent received minor context updates. | 2025-07-18 |
 
+### Reevaluation Decisions (DEC-R2 series)
+
+| ID | Priority | Scope | Decision | Notes | Date |
+|----|-----------|-------|-----------|-------------|-------|
+| DEC-R2-001 | HIGH | Phase 2, Phase 3, All sprints | Deployment scope is **localhost only**. All network-security findings are ADVISORY, not mandatory. | Source: Q-07-001, Q-08-001. Future internal deployment may trigger SCOPE CHANGE. 30+ conditional findings downgraded. | 2026-03-08 |
+| DEC-R2-002 | HIGH | Phase 2 (Legal) | **GDPR is not applicable.** All GDPR compliance work (32 SP) is SUPERSEDED. | Source: Q-07-001 (localhost), Q-09-002 (no PII), Q-09-003 (no retention). Privacy Policy, DPA, breach procedure all NOT REQUIRED. | 2026-03-08 |
+| DEC-R2-003 | MEDIUM | Phase 2 (Legal) | License: **MIT**. IP owner: **Robert Agterhuis** (individual). | Source: Q-33-003, Q-33-004. LICENSE file and copyright headers are P0 items in Sprint 1. | 2026-03-08 |
+| DEC-R2-004 | HIGH | Phase 3 (Localization) | **English only** — no localization, no i18n infrastructure, no RTL support required. | Source: Q-35-001, Q-35-002. All localization sprint work SUPERSEDED. BLK-003 (i18n approach) SUPERSEDED. ~40 SP removed. | 2026-03-08 |
+| DEC-R2-005 | HIGH | All sprints | **Solo developer** — 1 full-time developer, 30 SP per 2-week sprint. Sequential execution only. | Source: Q-05-001, Q-06-001. No parallel Tech+UX tracks. All sprints merged into single sequential track. | 2026-03-08 |
+| DEC-R2-006 | MEDIUM | Phase 2 (Data) | **File-based storage only** — no database migration. All data improvements must work with filesystem. | Source: Q-06-002. Data layer recommendations adjusted to file-based patterns (temp-file-then-rename, JSON schema validation). | 2026-03-08 |
+
 ### Operational Decisions
 
 | ID | Priority | Scope | Decision | Notes | Date |

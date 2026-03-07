@@ -979,27 +979,27 @@ async function load(silent) {
     if (silent && newDecHash === lastDecHash && newProgHash === lastProgHash) return;
     questionnaires = qData.questionnaires;
     decisions = dData;
-    if (pData) progress = pData;
     if (silent && lastDecHash && newDecHash !== lastDecHash) {
       toast('Data updated externally \u2014 refreshed', 't-info');
     }
-    lastDecHash = newDecHash;
-    lastProgHash = newProgHash;
 
-    // Detect pipeline transitions and show toasts
+    // Detect pipeline transitions and show toasts (compare BEFORE overwriting progress)
     if (silent && pData && progress) {
-      const prev = progress;
-      if (pData.active && prev.active) {
-        if (pData.session.current_agent !== prev.session.current_agent && pData.session.current_agent) {
+      if (pData.active && progress.active) {
+        if (pData.session.current_agent !== progress.session.current_agent && pData.session.current_agent) {
           toast('Agent started: ' + pData.session.current_agent, 't-ok');
         }
-        if (pData.session.current_phase !== prev.session.current_phase && pData.session.current_phase) {
+        if (pData.session.current_phase !== progress.session.current_phase && pData.session.current_phase) {
           toast('Phase started: ' + pData.session.current_phase, 't-info');
         }
-      } else if (pData.active && !prev.active) {
+      } else if (pData.active && !progress.active) {
         toast('Session started!', 't-ok');
       }
     }
+
+    if (pData) progress = pData;
+    lastDecHash = newDecHash;
+    lastProgHash = newProgHash;
 
     // Adaptive polling: faster when active, slower when idle
     updatePollInterval();

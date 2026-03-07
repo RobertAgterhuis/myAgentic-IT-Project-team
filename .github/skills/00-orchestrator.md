@@ -316,7 +316,7 @@ Excluded directories: `.github/`, `build/`, `out/`, `dist/`, `coverage/`, `node_
 **RULE ORC-30: Checkpoint-and-Yield Protocol (MANDATORY — prevents network timeouts)**
 The Orchestrator MUST complete exactly **one agent per conversation turn**. After each agent completes its handoff, the Orchestrator:
 1. Writes the agent output to disk (per phase_outputs in session-state.json)
-2. Updates `session-state.json` with `current_agent`, `completed_agents`, and `last_updated`
+2. Updates `session-state.json`: adds the completed agent to `completed_agents`, sets `current_agent` to the **next** agent's filename (e.g. `"02-domain-expert"` after `01-business-analyst` completes), updates `last_updated`. This ensures the web UI immediately reflects the upcoming agent.
 3. Updates `.github/docs/session/pipeline-progress.json` for the web UI. Schema: `{ "active": boolean, "command": string, "phases": [{ "name": string, "status": string, "agents": [{ "name": string, "status": string }] }] }`. Written by Orchestrator, consumed by web UI `/api/progress` endpoint.
 4. **Yields back to the user** with a concise status message:
    ```
@@ -324,7 +324,7 @@ The Orchestrator MUST complete exactly **one agent per conversation turn**. Afte
    Next: [Next Agent Name]
    Type CONTINUE (or press Enter) to proceed.
    ```
-5. On the next user turn (CONTINUE or Enter), the Orchestrator reads `session-state.json`, determines the next agent, and activates it.
+5. On the next user turn (CONTINUE or Enter), the Orchestrator reads `session-state.json`, determines the next agent, and activates it. Before invoking the agent, the Orchestrator MUST verify that `current_agent` in `session-state.json` matches the agent about to run — if not (e.g. manual edit or recovery), update `current_agent` and `last_updated` first.
 
 **Why this rule exists:** Without yielding, the Orchestrator attempts to run all agents in a single LLM generation turn. For large projects with detailed briefs, this causes the response to exceed network timeout limits (typically 60–120 seconds), resulting in partial output, skipped agents, or direct file creation by the wrong agent.
 

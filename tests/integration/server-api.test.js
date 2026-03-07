@@ -732,3 +732,164 @@ describe('GET /api/help', () => {
     expect(r.json.error).toContain('not found');
   });
 });
+
+/* ── SSE Endpoint (SP-R2-004-005) ─────────────────────────────── */
+
+describe('GET /api/events (SSE)', () => {
+  it('returns event-stream content type and sends heartbeat', async () => {
+    return new Promise((resolve, reject) => {
+      const url = new URL('/api/events', baseUrl);
+      const r = http.get({ hostname: url.hostname, port: url.port, path: url.pathname }, (res) => {
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['content-type']).toBe('text/event-stream');
+        expect(res.headers['cache-control']).toBe('no-cache');
+        expect(res.headers['connection']).toBe('keep-alive');
+        let data = '';
+        res.on('data', chunk => {
+          data += chunk.toString();
+          // Once we get the init heartbeat, we're good
+          if (data.includes('event: heartbeat')) {
+            res.destroy();
+            resolve();
+          }
+        });
+        setTimeout(() => { res.destroy(); resolve(); }, 2000);
+      });
+      r.on('error', e => {
+        // Connection reset is expected after destroy
+        if (e.code === 'ECONNRESET') resolve();
+        else reject(e);
+      });
+    });
+  });
+});
+
+/* ── Metrics Endpoint (SP-R2-004-007) ─────────────────────────── */
+
+describe('GET /api/metrics', () => {
+  it('returns metrics with expected shape', async () => {
+    // Fire a request first to generate some metrics
+    await req('GET', '/api/health');
+    const r = await req('GET', '/api/metrics');
+    expect(r.status).toBe(200);
+    expect(r.json).toHaveProperty('uptime_seconds');
+    expect(r.json).toHaveProperty('request_count');
+    expect(r.json).toHaveProperty('error_count');
+    expect(r.json).toHaveProperty('file_ops_count');
+    expect(r.json).toHaveProperty('response_time_p50');
+    expect(r.json).toHaveProperty('response_time_p95');
+    expect(r.json).toHaveProperty('response_time_p99');
+    expect(r.json).toHaveProperty('cache_hit_ratio');
+    expect(r.json).toHaveProperty('per_endpoint');
+    expect(typeof r.json.request_count).toBe('number');
+    expect(r.json.request_count).toBeGreaterThan(0);
+  });
+});
+
+/* ── Health Endpoint (enhanced) ───────────────────────────────── */
+
+describe('GET /api/health (enhanced)', () => {
+  it('returns health with sseConnections field', async () => {
+    const r = await req('GET', '/api/health');
+    expect(r.status).toBe(200);
+    expect(r.json).toHaveProperty('status', 'ok');
+    expect(r.json).toHaveProperty('sse_connections');
+    expect(typeof r.json.sse_connections).toBe('number');
+  });
+});
+
+/* ── Analytics Endpoints (SP-R2-004-008) ──────────────────────── */
+
+describe('POST /api/analytics', () => {
+  it('accepts and stores analytics events', async () => {
+    const r = await req('POST', '/api/analytics', {
+      events: [
+        { event: 'page_view', properties: { page: 'home' }, timestamp: '2025-01-01T00:00:00Z' },
+        { event: 'tab_switch', properties: { tab: 'decisions' }, timestamp: '2025-01-01T00:01:00Z' },
+      ]
+    });
+    expect(r.status).toBe(200);
+    expect(r.json).toHaveProperty('accepted', 2);
+    expect(r.json).toHaveProperty('rejected', 0);
+  });
+
+  it('rejects missing events array', async () => {
+    const r = await req('POST', '/api/analytics', {});
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects non-array events', async () => {
+    const r = await req('POST', '/api/analytics', { events: 'not-array' });
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects events exceeding max batch size', async () => {
+    const events = Array.from({ length: 101 }, (_, i) => ({
+      event: `evt_${i}`, properties: {}, timestamp: new Date().toISOString()
+    }));
+    const r = await req('POST', '/api/analytics', { events });
+    expect(r.status).toBe(400);
+  });
+});
+
+describe('GET /api/analytics', () => {
+  it('returns empty when no events stored', async () => {
+    const r = await req('GET', '/api/analytics');
+    expect(r.status).toBe(200);
+    expect(r.json.events).toEqual([]);
+    expect(r.json.total).toBe(0);
+  });
+
+  it('returns stored events after POST', async () => {
+    await req('POST', '/api/analytics', {
+      events: [{ event: 'session_start', properties: {}, timestamp: '2025-01-01T00:00:00Z' }]
+    });
+    const r = await req('GET', '/api/analytics');
+    expect(r.status).toBe(200);
+    expect(r.json.total).toBeGreaterThanOrEqual(1);
+    expect(r.json.events.some(e => e.event === 'session_start')).toBe(true);
+  });
+});
+
+/* ── computePercentiles unit ──────────────────────────────────── */
+
+describe('computePercentiles', () => {
+  const { computePercentiles } = require('../../.github/webapp/server');
+
+  it('returns zeroes for empty array', () => {
+    const r = computePercentiles([]);
+    expect(r).toEqual({ p50: 0, p95: 0, p99: 0 });
+  });
+
+  it('computes correct percentiles for known data', () => {
+    const data = Array.from({ length: 100 }, (_, i) => i + 1);
+    const r = computePercentiles(data);
+    expect(r.p50).toBe(50);
+    expect(r.p95).toBe(95);
+    expect(r.p99).toBe(99);
+  });
+});
+
+/* ── recordMetric unit ────────────────────────────────────────── */
+
+describe('recordMetric', () => {
+  const { recordMetric, _metrics } = require('../../.github/webapp/server');
+
+  it('increments request count', () => {
+    const before = _metrics.requestCount;
+    recordMetric('GET', '/api/test', 10, 200);
+    expect(_metrics.requestCount).toBe(before + 1);
+  });
+
+  it('increments error count for 4xx/5xx', () => {
+    const before = _metrics.errorCount;
+    recordMetric('GET', '/api/fail', 5, 500);
+    expect(_metrics.errorCount).toBe(before + 1);
+  });
+
+  it('tracks per-endpoint stats', () => {
+    recordMetric('GET', '/api/unique-test', 7, 200);
+    expect(_metrics.perEndpoint['GET /api/unique-test']).toBeDefined();
+    expect(_metrics.perEndpoint['GET /api/unique-test'].count).toBe(1);
+  });
+});

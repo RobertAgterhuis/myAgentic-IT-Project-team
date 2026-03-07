@@ -12,6 +12,8 @@ class FileCache {
   constructor() {
     /** @type {Map<string, {content: string, mtime: number}>} */
     this._entries = new Map();
+    this._hits = 0;
+    this._misses = 0;
   }
 
   /**
@@ -25,8 +27,9 @@ class FileCache {
     const currentMtime = store.mtime(filePath);
     if (currentMtime > 0) {
       const cached = this._entries.get(filePath);
-      if (cached && cached.mtime === currentMtime) return cached.content;
+      if (cached && cached.mtime === currentMtime) { this._hits++; return cached.content; }
     }
+    this._misses++;
     const content = store.readFile(filePath, encoding);
     if (currentMtime > 0) {
       this._entries.set(filePath, { content, mtime: currentMtime });
@@ -67,6 +70,11 @@ class FileCache {
   /** Number of currently cached entries. */
   get size() {
     return this._entries.size;
+  }
+
+  /** Return cache hit/miss statistics. */
+  stats() {
+    return { hits: this._hits, misses: this._misses };
   }
 }
 

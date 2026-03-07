@@ -719,6 +719,56 @@
     }
     .error-msg::before { content: '\26A0'; font-size: 13px; }
     @keyframes errorFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Skeleton Loading (SP-R2-004-003) ──────────── */
+    .skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--bg-subtle) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-sm); }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-card { height: 120px; margin-bottom: 16px; border-radius: var(--radius); }
+    .skeleton-line { height: 14px; margin-bottom: 10px; }
+    .skeleton-line.w60 { width: 60%; }
+    .skeleton-line.w80 { width: 80%; }
+    .skeleton-line.w40 { width: 40%; }
+    .skeleton-sidebar { height: 36px; margin: 6px 16px; border-radius: var(--radius-sm); }
+
+    /* ── SVG Icon System (SP-R2-004-002) ──────────── */
+    .icon { display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; vertical-align: -0.125em; fill: currentColor; flex-shrink: 0; }
+    .icon-sm { width: 14px; height: 14px; }
+    .icon-md { width: 18px; height: 18px; }
+    .icon-lg { width: 24px; height: 24px; }
+    .icon-xl { width: 32px; height: 32px; }
+
+    /* ── Onboarding Wizard (SP-R2-004-001) ─────────── */
+    .onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9500; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); animation: overlay-in var(--motion-fast) var(--ease-default); }
+    .onboarding-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; max-width: 520px; width: 92%; box-shadow: var(--shadow-lg); animation: modal-in var(--motion-normal) var(--ease-bounce); text-align: center; }
+    .onboarding-card h2 { font-size: var(--text-h2); font-weight: 800; margin-bottom: 8px; }
+    .onboarding-card p { font-size: var(--text-md); color: var(--text-sec); line-height: 1.7; margin-bottom: 20px; }
+    .onboarding-steps { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+    .onboarding-dot { width: 10px; height: 10px; border-radius: var(--radius-full); background: var(--border); transition: all var(--motion-fast); }
+    .onboarding-dot.active { background: var(--primary); transform: scale(1.3); }
+    .onboarding-dot.done { background: var(--success); }
+    .onboarding-actions { display: flex; justify-content: center; gap: 10px; }
+    .onboarding-highlight { font-weight: 700; color: var(--primary); }
+    .onboarding-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ── Questionnaire Progress (SP-R2-004-004) ───── */
+    .q-progress-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .q-progress-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .q-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); border-radius: 4px; transition: width var(--motion-slow) var(--ease-default); }
+    .q-progress-text { font-size: var(--text-sm); font-weight: 700; color: var(--text-sec); white-space: nowrap; }
+    .q-jump-btn { padding: 5px 12px; font-size: var(--text-sm); font-weight: 600; border: 1px solid var(--primary); color: var(--primary); background: var(--primary-light); border-radius: var(--radius-sm); cursor: pointer; transition: all var(--motion-fast); white-space: nowrap; }
+    .q-jump-btn:hover { background: var(--primary); color: #fff; }
+
+    /* ── Collapsible sections (SP-R2-004-004) ──────── */
+    .section-toggle { cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none; }
+    .section-toggle::before { content: ''; display: inline-block; width: 0; height: 0; border-left: 5px solid var(--text-sec); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform var(--motion-fast); flex-shrink: 0; }
+    .section-toggle.open::before { transform: rotate(90deg); }
+    .section-content { overflow: hidden; transition: max-height var(--motion-normal) var(--ease-default); }
+    .section-content.collapsed { max-height: 0 !important; }
+
+    /* ── SSE connection indicator (SP-R2-004-006) ──── */
+    .sse-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-label); padding: 2px 8px; border-radius: var(--radius-pill); }
+    .sse-badge.live { background: var(--success-light); color: var(--success); }
+    .sse-badge.polling { background: var(--warning-light); color: #b45309; }
   </style>
 </head>
 <body>
@@ -739,6 +789,7 @@
       <span class="status-spinner" id="statusSpinner"></span>
       <span class="status-dot connected" id="statusDot" title="Server connected"></span>
       <span class="status-refresh" id="statusRefresh"></span>
+      <span class="sse-badge hidden" id="sseBadge"></span>
     </div>
     <div class="header-actions">
       <button class="btn" id="btnSaveAll" disabled><span aria-hidden="true">&#128190;</span> Save All</button>
@@ -995,6 +1046,21 @@
     </div>
   </div>
 
+  <!-- ── Onboarding Wizard (SP-R2-004-001) ──────── -->
+  <div class="onboarding-overlay hidden" id="onboardingOverlay">
+    <div class="onboarding-card" role="dialog" aria-modal="true" aria-label="Welcome wizard">
+      <div class="onboarding-icon" id="onboardingIcon" aria-hidden="true"></div>
+      <h2 id="onboardingTitle"></h2>
+      <p id="onboardingText"></p>
+      <div class="onboarding-steps" id="onboardingSteps"></div>
+      <div class="onboarding-actions">
+        <button class="btn btn-sm" id="onboardingSkip">Skip tour</button>
+        <button class="btn btn-sm" id="onboardingPrev" style="display:none">Back</button>
+        <button class="btn btn-primary btn-sm" id="onboardingNext">Next</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 /* ── State ───────────────────────────────────────────── */
 let questionnaires = [];
@@ -1015,6 +1081,23 @@ let silentFailCount = 0;          // consecutive silent polling failures
 const MAX_SILENT_FAILS = 5;       // show warning after this many
 let _consecutiveFails = 0;        // for connection status dot (3 = disconnect)
 let _lastRefreshTime  = null;     // last successful load timestamp
+
+/* ── SSE State (SP-R2-004-006) ───────────────────────── */
+let _sseSource        = null;     // EventSource instance
+let _sseConnected     = false;
+let _sseReconnectDelay = 1000;
+
+/* ── Analytics State (SP-R2-004-008) ─────────────────── */
+let _analyticsQueue   = [];
+let _analyticsTimer   = null;
+const ANALYTICS_FLUSH_MS = 5000;
+let _analyticsOptOut  = false;
+try { _analyticsOptOut = localStorage.getItem('analytics_optout') === '1'; } catch {}
+
+/* ── Onboarding State (SP-R2-004-001) ────────────────── */
+let _onboardingStep   = 0;
+let _onboardingDone   = false;
+try { _onboardingDone = localStorage.getItem('onboarding_complete') === '1'; } catch {}
 
 /* ── API layer ───────────────────────────────────────── */
 async function api(method, url, body, signal) {
@@ -1074,6 +1157,14 @@ async function load(silent) {
   _loadInFlight = true;
   const spinner = document.getElementById('statusSpinner');
   if (spinner) spinner.classList.add('active');
+  /* Show skeleton placeholders on first visible load (SP-R2-004-003) */
+  if (!silent && !questionnaires.length) {
+    const main = document.getElementById('main');
+    if (main && activeTab === 'questionnaires') {
+      main.innerHTML = '<div class="skeleton-card"><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line"></div><div class="skeleton-line" style="width:80%"></div></div>'
+        .repeat(3);
+    }
+  }
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 15000);
@@ -1182,6 +1273,13 @@ function updateConnectionStatus() {
   const dot = document.getElementById('statusDot');
   const refresh = document.getElementById('statusRefresh');
   const banner = document.getElementById('serverBanner');
+  /* SSE badge (SP-R2-004-006) */
+  const sseBadge = document.getElementById('sseBadge');
+  if (sseBadge) {
+    sseBadge.classList.toggle('hidden', !_sseConnected && _consecutiveFails < 3);
+    sseBadge.className = 'sse-badge ' + (_sseConnected ? 'live' : 'polling');
+    sseBadge.textContent = _sseConnected ? 'Live' : 'Polling';
+  }
   if (dot) {
     const connected = _consecutiveFails < 3;
     dot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
@@ -1319,17 +1417,32 @@ function selectQ(file) {
 /* ── Render questions ────────────────────────────────── */
 function renderQ(q) {
   const main = document.getElementById('main');
+  const total = q.questions.length;
+  const answered = q.questions.filter(x => x.status === 'ANSWERED' || (dirty.has(q.file + '::' + x.id) && dirty.get(q.file + '::' + x.id).status === 'ANSWERED')).length;
+  const pct = total ? Math.round(answered / total * 100) : 0;
+  const firstUnanswered = q.questions.find(x => x.status !== 'ANSWERED');
+
   let h = `<div class="main-header">
     <div><div class="main-title">${esc(q.agent)}</div>
     <div class="main-meta">${esc(q.phase)} &middot; ${esc(q.version)} &middot; Generated: ${esc(q.generated)}</div></div>
     <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> Save All Changes</button>
   </div>`;
 
+  /* Progress bar + Jump button (SP-R2-004-004) */
+  h += `<div class="q-progress-bar">
+    <div class="q-progress-track"><div class="q-progress-fill" style="width:${pct}%" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div></div>
+    <span class="q-progress-text">${answered}/${total} answered (${pct}%)</span>
+    ${firstUnanswered ? `<button class="q-jump-btn" data-jump="${firstUnanswered.id}">Jump to next unanswered</button>` : ''}
+  </div>`;
+
   let currentSection = '';
   for (const x of q.questions) {
     if (x.section && x.section !== currentSection) {
+      if (currentSection) h += '</div>'; // close previous collapsible
       currentSection = x.section;
-      h += `<div class="section-divider">${esc(currentSection)}</div>`;
+      /* Collapsible section (SP-R2-004-004) */
+      h += `<div class="section-divider section-toggle" data-section="${escAttr(currentSection)}">${esc(currentSection)}</div>`;
+      h += `<div class="section-content">`;
     }
     const k  = q.file + '::' + x.id;
     const d  = dirty.get(k);
@@ -1366,12 +1479,31 @@ function renderQ(q) {
       </div>
     </div>`;
   }
+  if (currentSection) h += '</div>'; // close last collapsible section
   main.innerHTML = h;
 
   // auto-resize textareas
   main.querySelectorAll('.card-ans textarea').forEach(ta => {
     ta.style.height = 'auto';
     ta.style.height = Math.max(72, ta.scrollHeight) + 'px';
+  });
+
+  /* Collapsible section toggles (SP-R2-004-004) */
+  main.querySelectorAll('.section-toggle').forEach(tog => {
+    tog.addEventListener('click', () => {
+      const content = tog.nextElementSibling;
+      if (content && content.classList.contains('section-content')) {
+        content.classList.toggle('collapsed');
+      }
+    });
+  });
+
+  /* Jump-to-next-unanswered (SP-R2-004-004) */
+  main.querySelectorAll('.q-jump-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById('c-' + btn.dataset.jump);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   });
 }
 
@@ -2515,11 +2647,183 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
+/* ── SSE Client (SP-R2-004-006) ──────────────────────── */
+function connectSSE() {
+  if (_sseSource) { _sseSource.close(); _sseSource = null; }
+  try {
+    _sseSource = new EventSource('/api/events');
+  } catch { return; }
+
+  _sseSource.onopen = () => {
+    _sseConnected = true;
+    _sseReconnectDelay = 1000;
+    _consecutiveFails = 0;
+    updateConnectionStatus();
+    /* Suppress polling when SSE is active — use longer interval as fallback */
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    pollInterval = 60000;
+    startPolling();
+  };
+
+  _sseSource.onerror = () => {
+    _sseConnected = false;
+    updateConnectionStatus();
+    if (_sseSource) { _sseSource.close(); _sseSource = null; }
+    /* Exponential backoff reconnect (max 30s) */
+    const delay = _sseReconnectDelay;
+    _sseReconnectDelay = Math.min(_sseReconnectDelay * 2, 30000);
+    setTimeout(connectSSE, delay);
+    /* Restore normal polling while SSE is down */
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    pollInterval = 10000;
+    startPolling();
+  };
+
+  _sseSource.addEventListener('questionnaire_save', () => load(true));
+  _sseSource.addEventListener('decision_update', () => load(true));
+  _sseSource.addEventListener('file_change', () => load(true));
+  _sseSource.addEventListener('heartbeat', () => {
+    _lastRefreshTime = new Date();
+    updateConnectionStatus();
+  });
+}
+
+/* ── Analytics Client (SP-R2-004-008) ────────────────── */
+function trackEvent(eventName, properties) {
+  if (_analyticsOptOut) return;
+  _analyticsQueue.push({
+    event: eventName,
+    properties: properties || {},
+    timestamp: new Date().toISOString()
+  });
+  if (!_analyticsTimer) {
+    _analyticsTimer = setTimeout(flushAnalytics, ANALYTICS_FLUSH_MS);
+  }
+}
+
+async function flushAnalytics() {
+  _analyticsTimer = null;
+  if (!_analyticsQueue.length) return;
+  const batch = _analyticsQueue.splice(0, 50);
+  try {
+    await fetch('/api/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events: batch })
+    });
+  } catch { /* silently drop — analytics is non-critical */ }
+}
+
+/* Track key user actions */
+const _origSwitchTab = switchTab;
+switchTab = async function(tab) {
+  trackEvent('tab_switch', { tab });
+  return _origSwitchTab(tab);
+};
+
+/* ── Onboarding Wizard (SP-R2-004-001) ───────────────── */
+const ONBOARDING_STEPS = [
+  { title: 'Welcome!', text: 'This is the Questionnaire & Decisions Manager — your central hub for managing project inputs, decisions, and the agent pipeline.', icon: '<span aria-hidden="true">&#128075;</span>' },
+  { title: 'Command Center', text: 'Launch CREATE, AUDIT, or other commands from the Command Center tab. The agent pipeline progress appears here in real-time.', icon: '<span aria-hidden="true">&#128640;</span>' },
+  { title: 'Questionnaires', text: 'Agents generate questions when they need your input. Browse by phase, answer questions, and save. Your answers feed back into the analysis.', icon: '<span aria-hidden="true">&#128221;</span>' },
+  { title: 'Decisions', text: 'Open decisions block the Sprint Gate until answered. Use priority filters to focus on what matters most.', icon: '<span aria-hidden="true">&#9878;</span>' },
+  { title: 'You\'re all set!', text: 'Use keyboard shortcuts (Ctrl+S to save, ? for help) and watch the status indicator for live updates. Happy building!', icon: '<span aria-hidden="true">&#127881;</span>' }
+];
+
+function showOnboarding() {
+  if (_onboardingDone) return;
+  _onboardingStep = 0;
+  renderOnboardingStep();
+  document.getElementById('onboardingOverlay').classList.remove('hidden');
+}
+
+function renderOnboardingStep() {
+  const step = ONBOARDING_STEPS[_onboardingStep];
+  document.getElementById('onboardingIcon').innerHTML = step.icon;
+  document.getElementById('onboardingTitle').textContent = step.title;
+  document.getElementById('onboardingText').textContent = step.text;
+
+  /* Dots */
+  const dotsEl = document.getElementById('onboardingSteps');
+  dotsEl.innerHTML = ONBOARDING_STEPS.map((_, i) =>
+    `<span class="onboarding-dot${i === _onboardingStep ? ' active' : ''}"></span>`
+  ).join('');
+
+  /* Buttons */
+  document.getElementById('onboardingPrev').style.display = _onboardingStep > 0 ? '' : 'none';
+  const nextBtn = document.getElementById('onboardingNext');
+  nextBtn.textContent = _onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next';
+}
+
+function finishOnboarding() {
+  _onboardingDone = true;
+  try { localStorage.setItem('onboarding_complete', '1'); } catch {}
+  document.getElementById('onboardingOverlay').classList.add('hidden');
+  trackEvent('onboarding_complete', { steps_seen: _onboardingStep + 1 });
+}
+
+document.getElementById('onboardingSkip').addEventListener('click', () => {
+  trackEvent('onboarding_skip', { step: _onboardingStep });
+  finishOnboarding();
+});
+document.getElementById('onboardingPrev').addEventListener('click', () => {
+  if (_onboardingStep > 0) { _onboardingStep--; renderOnboardingStep(); }
+});
+document.getElementById('onboardingNext').addEventListener('click', () => {
+  if (_onboardingStep < ONBOARDING_STEPS.length - 1) { _onboardingStep++; renderOnboardingStep(); }
+  else finishOnboarding();
+});
+
+/* ── SVG Icon System (SP-R2-004-002) ─────────────────── */
+const SVG_ICONS = {
+  save: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+  check: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  warning: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  help: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  rocket: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+  export: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  plus: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  refresh: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+  moon: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>',
+  sun: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  clipboard: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+  pin: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  calendar: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  pause: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+  undo: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>',
+  edit: '<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+};
+
+/** Return the SVG string for a named icon (falls back to empty string). */
+function svgIcon(name) {
+  return SVG_ICONS[name] || '';
+}
+
+/* ── "Take the tour" link in Help ────────────────────── */
+const _origOpenHelp = openHelp;
+openHelp = async function() {
+  await _origOpenHelp();
+  /* Inject "Take the tour again" link if not already present */
+  const nav = document.getElementById('helpNav');
+  if (nav && !nav.querySelector('.help-tour-link')) {
+    const link = document.createElement('div');
+    link.className = 'help-nav-item help-tour-link';
+    link.tabIndex = 0;
+    link.innerHTML = '<span aria-hidden="true">&#127891;</span> Take the tour again';
+    link.addEventListener('click', () => { closeHelp(); _onboardingDone = false; showOnboarding(); });
+    link.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeHelp(); _onboardingDone = false; showOnboarding(); } });
+    nav.appendChild(link);
+  }
+};
+
 /* ── Init ────────────────────────────────────────────── */
 initTheme();
 if (activeTab !== 'commandcenter') switchTab(activeTab);
 load();
 startPolling();
+connectSSE();
+showOnboarding();
+trackEvent('app_start', { tab: activeTab });
 </script>
 </body>
 </html>

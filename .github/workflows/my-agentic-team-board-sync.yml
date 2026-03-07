@@ -1,0 +1,90 @@
+name: My-Agentic-Team Board Sync
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, closed]
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  secret-scan:
+    name: Secret Scan (TruffleHog)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog secret scan
+        id: trufflehog
+        uses: trufflesecurity/trufflehog-actions-scan@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
+
+      - name: Write secret scan result
+        if: always()
+        run: |
+          STATUS="${{ steps.trufflehog.outcome == 'success' && 'CLEAN' || 'FAIL' }}"
+          mkdir -p .github/docs/security
+          echo "# Secret Scan Report" > .github/docs/security/sprint-secret-scan.md
+          echo "PR: ${{ github.event.pull_request.number }}" >> .github/docs/security/sprint-secret-scan.md
+          echo "Status: $STATUS" >> .github/docs/security/sprint-secret-scan.md
+          echo "Run: ${{ github.run_id }}" >> .github/docs/security/sprint-secret-scan.md
+
+      - name: Fail build on detected secrets
+        if: steps.trufflehog.outcome == 'failure'
+        run: |
+          echo "::error::SECRET_SCAN_FAIL – TruffleHog detected verified secrets. Merge is blocked. Escalate to Security Architect."
+          exit 1
+
+  sync-board:
+    needs: secret-scan
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      repository-projects: write
+
+    steps:
+      - name: Move issue to In Review when PR opened
+        if: github.event_name == 'pull_request' && github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const issueNumbers = [...body.matchAll(/(?:closes?|fixes?|resolves?)\s+#(\d+)/gi)]
+              .map(m => parseInt(m[1]));
+            for (const num of issueNumbers) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: num,
+                labels: ['status: in-review']
+              });
+            }
+
+      - name: Move issue to Done when PR merged
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const issueNumbers = [...body.matchAll(/(?:closes?|fixes?|resolves?)\s+#(\d+)/gi)]
+              .map(m => parseInt(m[1]));
+            for (const num of issueNumbers) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: num,
+                state: 'closed'
+              });
+            }

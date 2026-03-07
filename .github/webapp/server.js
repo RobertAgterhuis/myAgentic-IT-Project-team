@@ -14,6 +14,54 @@ const { errorResponse, statusToCode } = require('./utils/errors');
 
 const _cache = new FileCache();
 
+/* ── SSE Client Registry (SP-R2-004-005) ──────────────────────── */
+const _sseClients = new Set();
+
+function sseNotify(eventType, data) {
+  const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const client of _sseClients) {
+    try { client.write(payload); } catch { _sseClients.delete(client); }
+  }
+}
+
+/* ── Metrics Collector (SP-R2-004-007) ────────────────────────── */
+const _metrics = {
+  requestCount: 0,
+  errorCount: 0,
+  responseTimes: [],          // keep last 1000 entries
+  fileOpsCount: 0,
+  startedAt: Date.now(),
+  perEndpoint: {},            // { "GET /api/foo": { count, times[] } }
+};
+const METRICS_MAX_SAMPLES = 1000;
+
+function recordMetric(method, pathname, durationMs, statusCode) {
+  _metrics.requestCount++;
+  if (statusCode >= 400) _metrics.errorCount++;
+  _metrics.responseTimes.push(durationMs);
+  if (_metrics.responseTimes.length > METRICS_MAX_SAMPLES) _metrics.responseTimes.shift();
+  const key = `${method} ${pathname}`;
+  if (!_metrics.perEndpoint[key]) _metrics.perEndpoint[key] = { count: 0, times: [] };
+  const ep = _metrics.perEndpoint[key];
+  ep.count++;
+  ep.times.push(durationMs);
+  if (ep.times.length > METRICS_MAX_SAMPLES) ep.times.shift();
+}
+
+function percentile(sorted, p) {
+  if (sorted.length === 0) return 0;
+  const idx = Math.ceil(p / 100 * sorted.length) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
+function computePercentiles(times) {
+  const sorted = [...times].sort((a, b) => a - b);
+  return { p50: percentile(sorted, 50), p95: percentile(sorted, 95), p99: percentile(sorted, 99) };
+}
+
+/* ── Analytics Store (SP-R2-004-008) ──────────────────────────── */
+const ANALYTICS_MAX_EVENTS = 5000;
+
 /* ── Configuration ────────────────────────────────────────────── */
 
 const PORT          = (() => { const p = parseInt(process.env.PORT, 10); return (p >= 1 && p <= 65535) ? p : 3000; })();
@@ -28,7 +76,9 @@ const Q_INDEX_FILE  = path.join(BUSINESS_DOCS, 'questionnaire-index.md');
 const DECISIONS_FILE = path.join(GITHUB_DOCS, 'decisions.md');
 const COMMAND_QUEUE  = path.join(SESSION_DIR, 'command-queue.json');
 const HELP_DIR       = path.join(PROJECT_ROOT, '.github', 'help');
+const ANALYTICS_FILE = path.join(GITHUB_DOCS, 'analytics-events.json');
 const MAX_BODY      = 1_048_576; // 1 MB
+const SSE_HEARTBEAT_MS = 30000;  // 30s keep-alive
 
 /* ── Utilities ────────────────────────────────────────────────── */
 
@@ -55,6 +105,9 @@ function setSecurityHeaders(res) {
 function safeWriteSync(filePath, data, encoding) {
   getStore().writeFile(filePath, data, encoding);
   _cache.invalidate(filePath);
+  _metrics.fileOpsCount++;
+  const relative = path.relative(PROJECT_ROOT, filePath).replace(/\\/g, '/');
+  sseNotify('file_change', { file: relative, timestamp: new Date().toISOString() });
 }
 
 function json(res, status, data) {
@@ -302,6 +355,7 @@ async function apiSave(req, res) {
 
   const uniqueWarnings = detectSaveSecrets(body.updates);
   scheduleRebuildIndex();
+  sseNotify('questionnaire_save', { file: body.file, count: body.updates.length });
   const response = { ok: true, saved: body.updates.length };
   attachSecretWarnings(response, uniqueWarnings);
   json(res, 200, response);
@@ -426,6 +480,7 @@ async function apiPostDecision(req, res) {
     const outcome = body.action === 'create' ? handleDecisionCreate(body, content) : handleDecisionMutate(body, content);
     if (outcome.error) return json(res, 400, errorResponse('INVALID_ACTION', outcome.error));
     safeWriteSync(DECISIONS_FILE, outcome.content);
+    sseNotify('decision_update', { action: body.action, id: outcome.result.id || body.id });
     return json(res, 200, attachSecretWarnings(outcome.result, secretWarnings));
   });
 }
@@ -786,6 +841,114 @@ async function apiGetHelp(req, res) {
   json(res, 200, { slug, title: entry ? entry.title : slug, content });
 }
 
+/* ── SSE Endpoint (SP-R2-004-005) ─────────────────────────────── */
+
+async function apiGetEvents(req, res) {
+  setSecurityHeaders(res);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.write(`event: connected\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`);
+  _sseClients.add(res);
+  structuredLog('info', 'sse_client_connected', { clients: _sseClients.size });
+
+  const heartbeat = setInterval(() => {
+    try { res.write(`:heartbeat ${new Date().toISOString()}\n\n`); }
+    catch { clearInterval(heartbeat); _sseClients.delete(res); }
+  }, SSE_HEARTBEAT_MS);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    _sseClients.delete(res);
+    structuredLog('info', 'sse_client_disconnected', { clients: _sseClients.size });
+  });
+}
+
+/* ── Metrics Endpoint (SP-R2-004-007) ─────────────────────────── */
+
+async function apiGetMetrics(_req, res) {
+  const uptimeS = Math.round((Date.now() - _metrics.startedAt) / 1000);
+  const pcts = computePercentiles(_metrics.responseTimes);
+  const cacheStats = _cache.stats ? _cache.stats() : { hits: 0, misses: 0 };
+  const totalCache = (cacheStats.hits || 0) + (cacheStats.misses || 0);
+  const result = {
+    uptime_seconds: uptimeS,
+    request_count: _metrics.requestCount,
+    error_count: _metrics.errorCount,
+    error_rate: _metrics.requestCount > 0 ? +( _metrics.errorCount / _metrics.requestCount).toFixed(4) : 0,
+    response_time_p50: pcts.p50,
+    response_time_p95: pcts.p95,
+    response_time_p99: pcts.p99,
+    sse_connections: _sseClients.size,
+    file_ops_count: _metrics.fileOpsCount,
+    cache_hit_ratio: totalCache > 0 ? +((cacheStats.hits || 0) / totalCache).toFixed(4) : 0,
+    per_endpoint: {},
+  };
+  for (const [ep, data] of Object.entries(_metrics.perEndpoint)) {
+    const epPcts = computePercentiles(data.times);
+    result.per_endpoint[ep] = { count: data.count, p50: epPcts.p50, p95: epPcts.p95, p99: epPcts.p99 };
+  }
+  json(res, 200, result);
+}
+
+async function apiGetHealth(_req, res) {
+  json(res, 200, { status: 'ok', uptime: Math.round(process.uptime()), sse_connections: _sseClients.size, timestamp: new Date().toISOString() });
+}
+
+/* ── Analytics Endpoint (SP-R2-004-008) ───────────────────────── */
+
+const VALID_ANALYTICS_EVENTS = ['page_view', 'tab_switch', 'command_launch', 'questionnaire_save', 'decision_update', 'error_displayed', 'feature_usage', 'session_start', 'session_end'];
+
+function validateAnalyticsEvent(evt) {
+  if (!evt || typeof evt !== 'object') return 'Event must be an object';
+  if (!VALID_ANALYTICS_EVENTS.includes(evt.event)) return `Unknown event type: ${evt.event}`;
+  if (evt.properties && typeof evt.properties !== 'object') return 'Properties must be an object';
+  return null;
+}
+
+async function apiPostAnalytics(req, res) {
+  const body = await parseBody(req);
+  if (!Array.isArray(body.events) || body.events.length === 0 || body.events.length > 100) {
+    return json(res, 400, errorResponse('VALIDATION_ERROR', 'events must be 1–100 items'));
+  }
+  const errors = [];
+  const valid = [];
+  for (const evt of body.events) {
+    const err = validateAnalyticsEvent(evt);
+    if (err) { errors.push(err); continue; }
+    valid.push({
+      event: evt.event,
+      properties: evt.properties || {},
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  if (valid.length > 0) {
+    await withFileLock(ANALYTICS_FILE, () => {
+      let existing = [];
+      if (getStore().exists(ANALYTICS_FILE)) {
+        try { existing = JSON.parse(_cache.read(ANALYTICS_FILE)); } catch { existing = []; }
+      }
+      existing.push(...valid);
+      if (existing.length > ANALYTICS_MAX_EVENTS) existing = existing.slice(-ANALYTICS_MAX_EVENTS);
+      getStore().mkdirp(path.dirname(ANALYTICS_FILE));
+      safeWriteSync(ANALYTICS_FILE, JSON.stringify(existing, null, 2));
+    });
+  }
+
+  json(res, 200, { ok: true, accepted: valid.length, rejected: errors.length });
+}
+
+async function apiGetAnalytics(_req, res) {
+  if (!getStore().exists(ANALYTICS_FILE)) return json(res, 200, { events: [], total: 0 });
+  let events = [];
+  try { events = JSON.parse(_cache.read(ANALYTICS_FILE)); } catch {}
+  json(res, 200, { events, total: events.length });
+}
+
 /* ── Static file serving ──────────────────────────────────────── */
 
 let cachedHtml = null;
@@ -814,7 +977,12 @@ const ROUTES = {
   'GET /api/command':        apiGetCommand,
   'GET /api/progress':       apiGetProgress,
   'GET /api/export':         apiGetExport,
-  'GET /api/help':             apiGetHelp,
+  'GET /api/help':           apiGetHelp,
+  'GET /api/events':         apiGetEvents,
+  'GET /api/metrics':        apiGetMetrics,
+  'GET /api/health':         apiGetHealth,
+  'POST /api/analytics':     apiPostAnalytics,
+  'GET /api/analytics':      apiGetAnalytics,
   'GET /health':             (_req, res) => json(res, 200, { status: 'ok', uptime: Math.round(process.uptime()) }),
 };
 
@@ -854,7 +1022,12 @@ const server = http.createServer(async (req, res) => {
   } else if (!handleMethodNotAllowed(res, pathname)) {
     json(res, 404, errorResponse('NOT_FOUND', 'Not found'));
   }
-  log(req.method, pathname, res.statusCode, Date.now() - start);
+  const duration = Date.now() - start;
+  // Don't log SSE connections every tick — they are long-lived
+  if (pathname !== '/api/events') {
+    recordMetric(req.method, pathname, duration, res.statusCode);
+    log(req.method, pathname, res.statusCode, duration);
+  }
 });
 
 server.setTimeout(30000);
@@ -894,6 +1067,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     sanitizeMarkdown, sanitizeQID, detectSecrets, checkSecretsInBody,
     structuredLog, withFileLock, safePath, setSecurityHeaders, server,
-    _cache,
+    _cache, _sseClients, sseNotify, _metrics, recordMetric, computePercentiles,
   };
 }

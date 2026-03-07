@@ -40,14 +40,31 @@ function setSecurityHeaders(res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:");
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
 }
 
 function safeWriteSync(filePath, data, encoding) {
   try {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, data, encoding || 'utf8');
+    // Atomic write: write to temp file, then rename (IMPL-CONSTRAINT-007)
+    const tmpPath = filePath + '.tmp.' + process.pid + '.' + Date.now();
+    fs.writeFileSync(tmpPath, data, encoding || 'utf8');
+    fs.renameSync(tmpPath, filePath);
   } catch (err) {
+    // Clean up temp file on failure
+    try {
+      const tmpPattern = filePath + '.tmp.';
+      const dir = path.dirname(filePath);
+      const base = path.basename(filePath) + '.tmp.';
+      for (const f of fs.readdirSync(dir)) {
+        if (f.startsWith(base)) {
+          try { fs.unlinkSync(path.join(dir, f)); } catch {}
+        }
+      }
+    } catch {}
     throw Object.assign(new Error(`File write failed (${path.basename(filePath)}): ${err.message}`), { status: 500 });
   }
 }
@@ -85,6 +102,55 @@ function escPipe(s) { return (s || '').replace(/\|/g, '\\|'); }
 const Q_ID_RE = /^Q-\d{1,3}-\d{1,4}$/;
 const DEC_ID_RE = /^DEC-[\w-]{1,30}$/;
 
+/* ── Content sanitization (IMPL-CONSTRAINT-002) ───────────────── */
+function sanitizeMarkdown(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/^(#{1,6})\s/gm, '\\$1 ')           // Escape heading syntax
+    .replace(/^(\s*---+\s*)$/gm, '\\---')         // Escape horizontal rules
+    .replace(/(Q-\d{1,3}-\d{1,4})/g, 'Q\\u2010$1'.replace('Q\\u2010Q-', 'Q\u2010')) // Break Q-ID patterns with non-breaking hyphen
+    .replace(/^\|/gm, '\\|')                       // Escape table row syntax
+    .replace(/^(\s*>\s*#{1,6})\s/gm, '$1\\');      // Escape headings inside blockquotes
+}
+function sanitizeQID(text) {
+  // Specifically neutralize fake question ID patterns in user text
+  if (typeof text !== 'string') return text;
+  return text.replace(/Q-(\d{1,3})-(\d{1,4})/g, 'Q\u2010$1\u2010$2');
+}
+
+/* ── Secret detection in user input (IMPL-CONSTRAINT-008) ─────── */
+const SECRET_PATTERNS = [
+  { name: 'AWS Access Key',     re: /AKIA[0-9A-Z]{16}/ },
+  { name: 'GitHub Token',       re: /gh[ps]_[A-Za-z0-9_]{36,}/ },
+  { name: 'Azure Storage Key',  re: /[A-Za-z0-9/+]{86}==/ },
+  { name: 'Generic API Key',    re: /(?:api[_-]?key|apikey|secret[_-]?key)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}/i },
+  { name: 'Private Key',        re: /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/ },
+  { name: 'Bearer Token',       re: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/i },
+];
+
+function detectSecrets(text) {
+  if (typeof text !== 'string') return [];
+  const found = [];
+  for (const { name, re } of SECRET_PATTERNS) {
+    if (re.test(text)) found.push(name);
+  }
+  return found;
+}
+
+function checkSecretsInBody(body, fieldsToCheck) {
+  const warnings = [];
+  for (const field of fieldsToCheck) {
+    if (body[field]) {
+      const hits = detectSecrets(body[field]);
+      if (hits.length > 0) {
+        structuredLog('warn', 'secret_pattern_detected', { field, patterns: hits });
+        warnings.push(...hits);
+      }
+    }
+  }
+  return [...new Set(warnings)];
+}
+
 function assertString(val, name, maxLen = 1000) {
   if (typeof val !== 'string') throw Object.assign(new Error(`${name} must be a string`), { status: 400 });
   if (val.length > maxLen) throw Object.assign(new Error(`${name} exceeds max length (${maxLen})`), { status: 400 });
@@ -93,16 +159,39 @@ function assertString(val, name, maxLen = 1000) {
 const _writeLocks = new Map();
 async function withFileLock(filePath, fn) {
   const key = path.resolve(filePath);
-  while (_writeLocks.has(key)) await _writeLocks.get(key);
+  // Chain on the previous lock's promise to avoid race conditions (IMPL-CONSTRAINT-010)
+  const prev = _writeLocks.get(key) || Promise.resolve();
   let resolve;
-  _writeLocks.set(key, new Promise(r => { resolve = r; }));
+  const current = new Promise(r => { resolve = r; });
+  _writeLocks.set(key, current);
+  await prev;
   try { return await fn(); }
-  finally { _writeLocks.delete(key); resolve(); }
+  finally {
+    if (_writeLocks.get(key) === current) _writeLocks.delete(key);
+    resolve();
+  }
+}
+
+/* ── Structured logging (IMPL-CONSTRAINT-006: no PII in logs) ── */
+const LOG_LEVEL = (process.env.LOG_LEVEL || 'info').toLowerCase();
+const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
+const CURRENT_LOG_LEVEL = LOG_LEVELS[LOG_LEVEL] ?? 2;
+
+function structuredLog(level, message, fields = {}) {
+  if ((LOG_LEVELS[level] ?? 2) > CURRENT_LOG_LEVEL) return;
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...fields,
+  };
+  const line = JSON.stringify(entry);
+  if (level === 'error') process.stderr.write(line + '\n');
+  else process.stdout.write(line + '\n');
 }
 
 function log(method, url, status, ms) {
-  const ts = new Date().toISOString();
-  console.log(`  ${ts} ${method} ${url} → ${status} (${ms}ms)`);
+  structuredLog('info', 'http_request', { method, url, status, duration_ms: ms });
 }
 
 async function parseBody(req) {
@@ -308,6 +397,7 @@ async function apiSave(req, res) {
   for (const u of body.updates) {
     if (!Q_ID_RE.test(u.questionId)) return json(res, 400, { error: `Invalid Q-ID: ${u.questionId}` });
     if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return json(res, 400, { error: `Invalid status: ${u.status}` });
+    if (u.answer) u.answer = sanitizeMarkdown(sanitizeQID(u.answer));
   }
 
   await withFileLock(filePath, () => {
@@ -316,8 +406,20 @@ async function apiSave(req, res) {
     safeWriteSync(filePath, content);
   });
 
+  // Secret detection in answers (IMPL-CONSTRAINT-008)
+  const secretWarnings = [];
+  for (const u of body.updates) {
+    if (u.answer) secretWarnings.push(...detectSecrets(u.answer));
+  }
+  const uniqueWarnings = [...new Set(secretWarnings)];
+  if (uniqueWarnings.length > 0) {
+    structuredLog('warn', 'secret_pattern_in_save', { patterns: uniqueWarnings });
+  }
+
   scheduleRebuildIndex();
-  json(res, 200, { ok: true, saved: body.updates.length });
+  const response = { ok: true, saved: body.updates.length };
+  if (uniqueWarnings.length > 0) response.warnings = [`Possible secrets detected (${uniqueWarnings.join(', ')}). Please verify no sensitive data was submitted.`];
+  json(res, 200, response);
 }
 
 async function apiReevaluate(req, res) {
@@ -592,6 +694,20 @@ async function apiPostDecision(req, res) {
   if (body.answer) assertString(body.answer, 'answer', 2000);
   if (body.reason) assertString(body.reason, 'reason', 2000);
 
+  // Sanitize user-supplied text fields (IMPL-CONSTRAINT-002)
+  if (body.text) body.text = sanitizeMarkdown(sanitizeQID(body.text));
+  if (body.notes) body.notes = sanitizeMarkdown(sanitizeQID(body.notes));
+  if (body.answer) body.answer = sanitizeMarkdown(sanitizeQID(body.answer));
+  if (body.reason) body.reason = sanitizeMarkdown(sanitizeQID(body.reason));
+  if (body.scope) body.scope = sanitizeMarkdown(sanitizeQID(body.scope));
+
+  // Secret detection in user-supplied fields (IMPL-CONSTRAINT-008)
+  const _decSecrets = [];
+  for (const f of ['text', 'notes', 'answer', 'reason']) { if (body[f]) _decSecrets.push(...detectSecrets(body[f])); }
+  const _decUniqueSecrets = [...new Set(_decSecrets)];
+  if (_decUniqueSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_decision', { patterns: _decUniqueSecrets, action: body.action });
+  const _ok = (obj) => { if (_decUniqueSecrets.length > 0) obj.warnings = [`Possible secrets detected (${_decUniqueSecrets.join(', ')}). Please verify no sensitive data was submitted.`]; return json(res, 200, obj); };
+
   if (!fs.existsSync(DECISIONS_FILE)) return json(res, 404, { error: 'decisions.md not found' });
 
   return withFileLock(DECISIONS_FILE, () => {
@@ -612,14 +728,14 @@ async function apiPostDecision(req, res) {
       }
       content = appendAuditTrail(content, 'create', id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id, action: body.type === 'OPEN_QUESTION' ? 'created_open_question' : 'created_decision' });
+      return _ok({ ok: true, id, action: body.type === 'OPEN_QUESTION' ? 'created_open_question' : 'created_decision' });
     }
     case 'answer': {
       if (!body.id || !body.answer) return json(res, 400, { error: 'Missing id or answer' });
       content = answerOpenQuestion(content, body.id, body.answer);
       content = appendAuditTrail(content, 'answer', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'answered' });
+      return _ok({ ok: true, id: body.id, action: 'answered' });
     }
     case 'decide': {
       if (!body.id || !body.answer) return json(res, 400, { error: 'Missing id or answer' });
@@ -627,35 +743,35 @@ async function apiPostDecision(req, res) {
       content = moveToDecided(content, body.id);
       content = appendAuditTrail(content, 'decide', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'decided' });
+      return _ok({ ok: true, id: body.id, action: 'decided' });
     }
     case 'defer': {
       if (!body.id) return json(res, 400, { error: 'Missing id' });
       content = deferOpenQuestion(content, body.id, body.reason || '');
       content = appendAuditTrail(content, 'defer', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'deferred' });
+      return _ok({ ok: true, id: body.id, action: 'deferred' });
     }
     case 'expire': {
       if (!body.id) return json(res, 400, { error: 'Missing id' });
       content = expireDecidedItem(content, body.id, body.reason || '');
       content = appendAuditTrail(content, 'expire', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'expired' });
+      return _ok({ ok: true, id: body.id, action: 'expired' });
     }
     case 'reopen': {
       if (!body.id) return json(res, 400, { error: 'Missing id' });
       content = reopenItem(content, body.id);
       content = appendAuditTrail(content, 'reopen', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'reopened' });
+      return _ok({ ok: true, id: body.id, action: 'reopened' });
     }
     case 'edit': {
       if (!body.id) return json(res, 400, { error: 'Missing id' });
       content = editDecidedRow(content, body.id, { priority: body.priority, scope: body.scope, text: body.text, notes: body.notes });
       content = appendAuditTrail(content, 'edit', body.id);
       safeWriteSync(DECISIONS_FILE, content);
-      return json(res, 200, { ok: true, id: body.id, action: 'edited' });
+      return _ok({ ok: true, id: body.id, action: 'edited' });
     }
     default:
       return json(res, 400, { error: `Unknown action: ${body.action}` });
@@ -678,6 +794,16 @@ async function apiPostCommand(req, res) {
   if (body.description) assertString(body.description, 'description', 2000);
   if (body.scope) assertString(body.scope, 'scope', 200);
   if (body.brief) assertString(body.brief, 'brief', 200000);
+  // Sanitize user-supplied text fields (IMPL-CONSTRAINT-002)
+  if (body.description) body.description = sanitizeMarkdown(sanitizeQID(body.description));
+  if (body.brief) body.brief = sanitizeMarkdown(sanitizeQID(body.brief));
+
+  // Secret detection in user-supplied fields (IMPL-CONSTRAINT-008)
+  const _cmdSecrets = [];
+  for (const f of ['description', 'brief']) { if (body[f]) _cmdSecrets.push(...detectSecrets(body[f])); }
+  const _cmdUniqueSecrets = [...new Set(_cmdSecrets)];
+  if (_cmdUniqueSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_command', { patterns: _cmdUniqueSecrets, command: body.command });
+
   const cmd = body.command.trim().toUpperCase();
   const parts = cmd.split(/\s+/);
   const isValid = VALID_COMMANDS.includes(cmd)
@@ -730,7 +856,9 @@ async function apiPostCommand(req, res) {
   queue.push(entry);
   if (queue.length > MAX_QUEUE_SIZE) queue = queue.slice(-MAX_QUEUE_SIZE);
   safeWriteSync(COMMAND_QUEUE, JSON.stringify(queue, null, 2));
-  json(res, 200, { ok: true, clipboard_text: clipText, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${clipText}` });
+  const cmdResponse = { ok: true, clipboard_text: clipText, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${clipText}` };
+  if (_cmdUniqueSecrets.length > 0) cmdResponse.warnings = [`Possible secrets detected (${_cmdUniqueSecrets.join(', ')}). Please verify no sensitive data was submitted.`];
+  json(res, 200, cmdResponse);
 }
 
 async function apiGetCommand(_req, res) {
@@ -1051,31 +1179,39 @@ const server = http.createServer(async (req, res) => {
 server.setTimeout(30000);
 server.keepAliveTimeout = 5000;
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\n  ERROR: Port ${PORT} is already in use.`);
-    console.error(`  Stop the other process or set a different port: PORT=3001 node server.js\n`);
-  } else {
-    console.error(`\n  Server error: ${err.message}\n`);
+/* istanbul ignore next -- only when run directly */
+if (require.main === module) {
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      structuredLog('error', 'port_in_use', { port: PORT, hint: 'Set PORT=3001 or stop the other process' });
+    } else {
+    structuredLog('error', 'server_error', { error: err.message });
   }
   process.exit(1);
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`\n  Questionnaire & Decisions Manager`);
-  console.log(`  ──────────────────────────────────`);
-  console.log(`  Server       : http://${HOST}:${PORT}\n`);
-});
+  server.listen(PORT, HOST, () => {
+    structuredLog('info', 'server_started', { host: HOST, port: PORT, url: `http://${HOST}:${PORT}` });
+  });
 
 /* ── Graceful shutdown ─────────────────────────────────────────── */
 
-function shutdown() {
-  console.log('\n  Shutting down gracefully...');
-  server.close(() => { console.log('  Server closed.'); process.exit(0); });
-  const forceTimer = setTimeout(() => { console.error('  Forced shutdown after timeout.'); process.exit(1); }, 5000);
-  forceTimer.unref();
+  function shutdown() {
+    structuredLog('info', 'shutdown_initiated');
+    server.close(() => { structuredLog('info', 'server_closed'); process.exit(0); });
+    const forceTimer = setTimeout(() => { structuredLog('error', 'forced_shutdown'); process.exit(1); }, 5000);
+    forceTimer.unref();
+  }
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+  process.on('unhandledRejection', (reason) => { structuredLog('error', 'unhandled_rejection', { error: String(reason) }); });
+  process.on('uncaughtException', (err) => { structuredLog('error', 'uncaught_exception', { error: err.message }); shutdown(); });
+} // end require.main === module
+
+/* ── Test exports (conditional) ─────────────────────────────────── */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    sanitizeMarkdown, sanitizeQID, detectSecrets, checkSecretsInBody,
+    structuredLog, withFileLock, safePath, setSecurityHeaders, server,
+  };
 }
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-process.on('unhandledRejection', (reason) => { console.error('  Unhandled rejection:', reason); });
-process.on('uncaughtException', (err) => { console.error('  Uncaught exception:', err); shutdown(); });

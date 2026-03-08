@@ -1,0 +1,147 @@
+{
+  "sprint_id": "SP-R2-007",
+  "sprint_goal": "Documentation + Hardening",
+  "measured_at": "2026-03-08T12:00:00Z",
+  "kpis": {
+    "test_coverage": {
+      "target": ">=70%",
+      "actual": {
+        "statements": 96.76,
+        "branches": 82.53,
+        "functions": 94.25,
+        "lines": 96.76
+      },
+      "status": "PASS",
+      "delta_from_baseline": "+1.44pp statements (was 95.32%)"
+    },
+    "test_suite": {
+      "total_tests": 366,
+      "test_files": 19,
+      "failures": 0,
+      "duration_ms": 2710,
+      "new_this_sprint": {
+        "regression_suite": 67,
+        "audit_trail_unit": 9
+      }
+    },
+    "owasp_critical_high": {
+      "target": "0 critical, <=5 high",
+      "actual_critical": 0,
+      "actual_high": 0,
+      "status": "PASS",
+      "controls": [
+        "Input sanitization (sanitizeMarkdown, sanitizeQID, assertString)",
+        "No eval/Function constructors",
+        "Path traversal protection (safePath)",
+        "Localhost-only binding (127.0.0.1)",
+        "CSP headers (default-src 'self')",
+        "No hardcoded secrets (verified by tests + TruffleHog CI)"
+      ]
+    },
+    "cicd_maturity": {
+      "target": "Level 2",
+      "actual": "Level 2",
+      "status": "PASS",
+      "capabilities": [
+        "Automated syntax check (node -c)",
+        "Unit + integration tests with coverage thresholds",
+        "Secret scanning (TruffleHog --only-verified)",
+        "PR-to-issue label automation"
+      ],
+      "workflows": ["ci.yml", "my-agentic-team-board-sync.yml"]
+    },
+    "tech_debt_score": {
+      "target": "<35/100",
+      "actual": 28,
+      "status": "PASS",
+      "breakdown": {
+        "eslint_rules": 7,
+        "eslint_errors": 0,
+        "eslint_warnings": 0,
+        "max_complexity": 8,
+        "prefer_const_enforced": true,
+        "no_var_enforced": true,
+        "eqeqeq_enforced": true,
+        "no_eval_enforced": true
+      }
+    },
+    "solid_violations": {
+      "target": "<=15",
+      "actual": 9,
+      "status": "PASS",
+      "breakdown": {
+        "single_responsibility": 3,
+        "open_closed": 2,
+        "liskov_substitution": 0,
+        "interface_segregation": 2,
+        "dependency_inversion": 2
+      }
+    },
+    "wcag_21_aa": {
+      "target": "0 failures",
+      "actual_failures": 1,
+      "status": "PARTIAL",
+      "note": "Missing semantic heading hierarchy (h1/h2) — all other 7 checks pass. DOM structure uses CSS class .main-title instead of heading elements. Non-blocking: screen readers can still navigate via ARIA landmarks.",
+      "checks_passed": [
+        "lang attribute on <html>",
+        "Skip-to-content link (.skip-nav)",
+        "No unlabeled images",
+        "All form inputs labeled",
+        "Color contrast (token-based palette)",
+        "Focus styles (:focus-visible)",
+        "ARIA landmarks (main, nav, tablist, dialog, alert, region)"
+      ],
+      "checks_failed": [
+        "Heading hierarchy (no <h1>/<h2> in DOM)"
+      ]
+    },
+    "design_token_coverage": {
+      "target": "8/8 categories",
+      "actual": "8/8",
+      "status": "PASS",
+      "categories": {
+        "color_primary": ["--primary", "--primary-dark", "--primary-light", "--primary-glow"],
+        "color_secondary": ["--accent", "--accent-light"],
+        "color_background": ["--bg", "--bg-subtle"],
+        "color_surface": ["--surface", "--surface-raised", "--surface-overlay"],
+        "color_text": ["--text", "--text-sec", "--text-muted"],
+        "font_family": ["--font-sans", "--font-mono"],
+        "border_radius": ["--radius-none", "--radius-xs", "--radius-sm", "--radius", "--radius-lg", "--radius-pill", "--radius-full"],
+        "spacing": ["--space-0 through --space-8 (16 tokens)"]
+      },
+      "total_tokens": 39
+    },
+    "error_message_quality": {
+      "target": "100%",
+      "actual": "100%",
+      "status": "PASS",
+      "total_errors": 16,
+      "all_have_user_message": true,
+      "all_have_recovery_guidance": true,
+      "catalog_file": ".github/webapp/utils/errors.js"
+    },
+    "license": {
+      "target": "MIT LICENSE present",
+      "actual": "MIT License (c) 2026 Robert Agterhuis",
+      "status": "PASS",
+      "file": "LICENSE"
+    },
+    "sus_baseline": {
+      "target": "Baseline established",
+      "actual": 76.0,
+      "status": "PASS",
+      "median": 75.0,
+      "std_dev": 24.2,
+      "participants": 5,
+      "rating": "Good (above industry average of 68)",
+      "source": ".github/docs/sprints/SP-R2-006-002-sus-baseline.md"
+    }
+  },
+  "summary": {
+    "total_kpis": 10,
+    "pass": 9,
+    "partial": 1,
+    "fail": 0,
+    "overall_status": "PASS"
+  }
+}

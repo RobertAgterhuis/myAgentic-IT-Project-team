@@ -299,27 +299,21 @@ If critical tools are missing: document as `TOOLING_GAP: [name]` — this does N
 
 ---
 
-### Step 5: Initialize Session State
+### Step 5: Finalize Session State
 
-Create the initial session state per `.github/docs/contracts/session-state-contract.md`:
+Update the session state file that was created by the Orchestrator (per ORC-46 in `.github/skills/00-orchestrator.md`). The Orchestrator creates `session-state.json` immediately on command receipt with `status: "ONBOARDING"`. The Onboarding Agent now **updates** it to reflect completion:
+
+Read `.github/docs/session/session-state.json` and update the following fields:
 
 ```json
 {
-  "session_id": "[UUID or timestamp-based ID]",
-  "cycle_type": "FULL_CREATE | PARTIAL_CREATE | COMBO_CREATE | FULL_AUDIT | PARTIAL_AUDIT | COMBO_AUDIT | FEATURE | REEVALUATE | HOTFIX | REFRESH",
-  "project_type": "greenfield | existing | hybrid",
-  "scope": ["BUSINESS", "TECH", "UX", "MARKETING"],
-  "feature_name": null,
   "status": "ONBOARDING_COMPLETE",
   "current_phase": "PHASE-1",
   "current_agent": "01-business-analyst",
+  "current_step": "Waiting for Phase 1 to start",
   "github_project_name": "[filled in by user]",
   "canva_api_token": "[token or empty string on SKIP]",
-  "completed_phases": [],
-  "completed_agents": [],
   "onboarding_output_path": ".github/docs/onboarding/onboarding-output.md",
-  "synthesis_path": null,
-  "sprint_backlog_path": null,
   "last_updated": "[ISO 8601]",
   "open_human_escalations": [],
   "insufficient_data_items": [],
@@ -332,6 +326,8 @@ Create the initial session state per `.github/docs/contracts/session-state-contr
   }
 }
 ```
+
+All other fields (`session_id`, `cycle_type`, `scope`, `project_type`, `mode`, `project_name`, `initiated_at`, etc.) were set by the Orchestrator at command receipt and MUST NOT be overwritten.
 
 **Rules for `cycle_type` and `scope`:**
 | Command | `cycle_type` | `project_type` | `scope` |
@@ -358,7 +354,7 @@ Create the initial session state per `.github/docs/contracts/session-state-contr
 > **`scope` is always in canonical order:** BUSINESS → TECH → UX → MARKETING.
 
 **Scope detection at Onboarding (MANDATORY):**
-Read the typed command before Step 2 and determine the mode and scope:
+Read the typed command before Step 2 and determine the mode and scope. Note: The Orchestrator has already used these same rules to populate `session-state.json` (per ORC-46). Verify that the values in `session-state.json` match your parsing — if they differ, update the file and log `SESSION_STATE_CORRECTED: [field]`.
 1. `CREATE` or `AUDIT` keyword determines the mode (`project_type: greenfield` vs `existing`).
 2. One discipline (`CREATE TECH project`) → `cycle_type: PARTIAL_CREATE`; intake limited to that discipline.
 3. Multiple disciplines (`CREATE TECH UX project`) → `cycle_type: COMBO_CREATE`; combined intake for all specified disciplines.
@@ -367,7 +363,7 @@ Read the typed command before Step 2 and determine the mode and scope:
 6. `HOTFIX [description]` → `cycle_type: HOTFIX`; **Onboarding Agent is NOT restarted** — existing Onboarding Output remains valid; Orchestrator goes directly to Sprint Gate BYPASS (RULE ORC-23).
 7. `REFRESH ONBOARDING` → `cycle_type: REFRESH`; Onboarding Agent runs **only Steps 3 and 4** again (scan + tooling verification); intake answers from Step 2 remain unchanged.
 
-Save to: `.github/docs/session/session-state.json`
+Update: `.github/docs/session/session-state.json` (file already exists — created by Orchestrator per ORC-46)
 
 ---
 
@@ -412,7 +408,7 @@ Both methods write to the same files. After answering, type REEVALUATE to incorp
 - [ ] `GITHUB_PROJECT_NAME` requested from user and saved in session state
 - [ ] Tooling verification performed per tooling-contract.md
 - [ ] TOOLING_GAP items documented (with Phase 5 implication)
-- [ ] Session State created at .github/docs/session/session-state.json
+- [ ] Session State updated at .github/docs/session/session-state.json (status: ONBOARDING_COMPLETE)
 - [ ] Onboarding Output Document present at .github/docs/onboarding/onboarding-output.md
 - [ ] Status: ONBOARDING_COMPLETE — ready for Phase 1
 ```

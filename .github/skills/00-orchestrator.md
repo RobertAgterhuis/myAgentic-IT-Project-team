@@ -52,6 +52,7 @@
 | ORC-42 | Scope change history bounds |
 | ORC-43 | Sprint capacity ownership |
 | ORC-44 | HOTFIX + SCOPE CHANGE concurrency |
+| ORC-46 | Immediate session-state initialization on command |
 
 ---
 
@@ -72,7 +73,9 @@ You do NOT perform software analysis yourself. You are a **process controller**,
 ## STRICT PHASE SEQUENCE (ENFORCE AND MONITOR)
 
 ```
-Onboarding Agent → .github/docs/onboarding/onboarding-output.md + .github/docs/session/session-state.json
+Orchestrator receives command → IMMEDIATELY creates .github/docs/session/session-state.json (status: ONBOARDING, current_agent: 25-onboarding-agent) per ORC-46
+  ↓
+Onboarding Agent → .github/docs/onboarding/onboarding-output.md + UPDATES session-state.json (status: ONBOARDING_COMPLETE)
   ↓ [Required: ONBOARDING_COMPLETE — no open ONBOARDING_BLOCKED items]
   ↓ [Questionnaire Agent: load existing answers from BusinessDocs/ → inject as context blocks per phase agent]
 Phase 1 — Requirements & Strategy: Business Analyst → Domain Expert → Sales Strategist → Financial Analyst → Product Manager (34)
@@ -824,8 +827,8 @@ CREATE|AUDIT [DISC1] [DISC2] [project]
 | Scope Change Agent — Critic + Risk FAILED | Return scope-change re-analysis output to relevant phase agents for correction |
 | Scope Change Agent — Sprint Gate Reconciliation ready | Present reconciliation summary to user; wait for approval before releasing REQUEUED tickets back into Sprint Gate |
 | Scope Change Agent — Master Synthesis update complete | Resume normal Sprint Gate cycle for all REQUEUED tickets |
-| `AUDIT [project]` command received | Activate Onboarding Agent (full scope, AUDIT mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
-| `CREATE [project]` command received | Activate Onboarding Agent (full scope, CREATE mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
+| `AUDIT [project]` command received | **Create session-state.json immediately per ORC-46** (status: ONBOARDING); activate Onboarding Agent (full scope, AUDIT mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
+| `CREATE [project]` command received | **Create session-state.json immediately per ORC-46** (status: ONBOARDING); activate Onboarding Agent (full scope, CREATE mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
 | `REFRESH ONBOARDING` command received | Activate Onboarding Agent in maintenance mode (steps 3+4 only: scan + tooling check); partially update `.github/docs/onboarding/onboarding-output.md` (intake answers from the original onboarding process remain intact); report ONBOARDING_REFRESHED to active Sprint Gate if running; on conflicts with existing sprint: escalate as `SCOPE_DECISION` |
 | `AUDIT BUSINESS [project]` command received | Store scope `PARTIAL:BUSINESS` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 1 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
 | `AUDIT TECH [project]` command received | Store scope `PARTIAL:TECH` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 2 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
@@ -922,6 +925,56 @@ Read all `DECIDED` items from the newly activated category file and inject them 
 
 **Exception — SKIP ACTIVATION:**
 If the user explicitly types `SKIP ACTIVATION [category]` before or after auto-activation: write a `DECIDED` item to `.github/docs/decisions.md` documenting the exception: `DEC-[NNN] — Exception: [category] technology introduced without activating deferred decisions. Reason: [user reason].` If the category was already auto-activated, revert it to DEFERRED.
+
+**RULE ORC-46: Immediate Session-State Initialization on Command (MANDATORY)**
+The Orchestrator MUST create `session-state.json` **immediately** upon receiving any CREATE, AUDIT, FEATURE, or SCOPE CHANGE command — BEFORE activating the Onboarding Agent. This ensures:
+1. The web UI pipeline view can display progress from the very first moment
+2. Session recovery (ORC-09) works even if the session crashes mid-onboarding
+3. The `initiated_at` timestamp accurately reflects when the user issued the command
+
+**On command received:**
+1. Parse the command to determine `cycle_type`, `scope`, `project_name`, `mode`, and `project_type` (using the same rules as the Onboarding Agent's scope detection)
+2. Create `.github/docs/session/session-state.json` with:
+   ```json
+   {
+     "schema_version": "1.0",
+     "session_id": "[UUID or timestamp-based ID]",
+     "project_name": "[from command]",
+     "mode": "CREATE | AUDIT",
+     "cycle_type": "[determined from command]",
+     "scope": ["[determined from command]"],
+     "project_type": "greenfield | existing",
+     "feature_name": "string | null",
+     "github_project_name": null,
+     "initiated_at": "[ISO 8601]",
+     "last_updated": "[ISO 8601]",
+     "status": "ONBOARDING",
+     "current_phase": "ONBOARDING",
+     "current_agent": "25-onboarding-agent",
+     "current_step": "Waiting for Onboarding Agent to start",
+     "completed_phases": [],
+     "completed_agents": [],
+     "phase_outputs": { "onboarding": null },
+     "open_human_escalations": [],
+     "insufficient_data_items": [],
+     "questionnaire_answer_summary": {
+       "total_questions": 0,
+       "answered": 0,
+       "open": 0,
+       "coverage_pct": 0,
+       "context_blocks_prepared": []
+     }
+   }
+   ```
+3. Create/update `.github/docs/session/pipeline-progress.json` to reflect the ONBOARDING phase as active
+4. **Then** activate the Onboarding Agent
+
+**The Onboarding Agent's Step 5 updates (not creates) this file** — setting `status: "ONBOARDING_COMPLETE"`, `current_phase: "PHASE-1"`, `current_agent: "01-business-analyst"`, and filling in fields gathered during onboarding (`github_project_name`, `canva_api_token`, etc.).
+
+**Exceptions:**
+- `HOTFIX [description]` — existing session-state is reused; Onboarding Agent is NOT restarted (per ORC-23)
+- `REFRESH ONBOARDING` — existing session-state is reused; only Steps 3+4 run
+- `CONTINUE` — existing session-state is loaded, not created (per ORC-33)
 
 ---
 

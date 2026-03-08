@@ -38,7 +38,7 @@ After you queue a command but before you paste it in Copilot Chat, the pipeline 
 - A step-by-step checklist of what's happened and what's next
 - A tip that the page auto-refreshes every 10 seconds
 
-**Be patient** — after you paste the command in Copilot Chat, the Orchestrator needs to initialize the session and start the first agent. This can take up to a minute. The waiting state will transition to the full pipeline view automatically once the Orchestrator creates `session-state.json`.
+**Be patient** — after you paste the command in Copilot Chat, the Orchestrator immediately creates `session-state.json` (per ORC-46) and starts the Onboarding Agent. The waiting state will transition to the full pipeline view within seconds once the Orchestrator writes the initial session state.
 
 ## One agent at a time
 

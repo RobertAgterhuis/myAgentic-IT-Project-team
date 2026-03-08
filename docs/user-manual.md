@@ -113,6 +113,9 @@ Once you've answered the key questions, run `REEVALUATE [scope]` in Copilot Chat
 
 The **Decisions** tab is your direct communication channel with the agent team. Decisions you create here become hard constraints that all agents follow.
 
+> **For the complete decision lifecycle, category system, deferred activation, and Sprint Gate blocking rules, see [`.github/help/decisions.md`](../.github/help/decisions.md).**  
+> **For technical architecture (file layout, data flow, enforcement chain), see [`docs/decisions-architecture.md`](decisions-architecture.md).**
+
 ### Decision Types
 | Status | Meaning |
 |--------|---------|

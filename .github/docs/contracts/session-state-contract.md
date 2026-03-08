@@ -17,7 +17,7 @@ This contract defines:
 ## SESSION STATE FILE
 
 **Location:** `.github/docs/session/session-state.json`
-**Owner:** Only the Orchestrator writes to this file. Other agents submit state updates **to** the Orchestrator via their HANDOFF CHECKLIST.
+**Owner:** Only the Orchestrator writes to this file. The Orchestrator **creates** this file immediately upon receiving a command (per ORC-46 in `.github/skills/00-orchestrator.md`) with `status: "ONBOARDING"`. The Onboarding Agent **updates** it to `status: "ONBOARDING_COMPLETE"` at the end of onboarding. Other agents submit state updates **to** the Orchestrator via their HANDOFF CHECKLIST.
 
 ---
 
@@ -243,7 +243,9 @@ This file is a separate signal file (same pattern as `reevaluate-trigger.json`).
 
 ```
 ONBOARDING
-  → PHASE-1          (after ONBOARDING_COMPLETE)
+  → ONBOARDING_COMPLETE  (Onboarding Agent updates session-state; internal transition)
+ONBOARDING_COMPLETE
+  → PHASE-1          (Orchestrator advances after ONBOARDING_COMPLETE)
 PHASE-1
   → PHASE-2          (after Critic + Risk PASSED)
 PHASE-2

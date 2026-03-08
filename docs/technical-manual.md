@@ -24,6 +24,7 @@ This manual covers the server architecture, API reference, data model, configura
 8. [Testing](#testing)
 9. [Development Setup](#development-setup)
 10. [Monitoring & Observability](#monitoring--observability)
+11. [Analytics Events Reference](#analytics-events-reference)
 
 ---
 
@@ -389,9 +390,11 @@ Submit UI analytics events.
 }
 ```
 
-**Valid event types:** `page_view`, `tab_switch`, `question_answered`, `decision_created`, `command_queued`, `theme_toggle`, `font_size_change`, `help_opened`, `onboarding_complete`, `onboarding_skip`, `export_triggered`
+**Valid event types:** `page_view`, `tab_switch`, `command_launch`, `questionnaire_save`, `decision_update`, `error_displayed`, `feature_usage`, `session_start`, `session_end`
 
-**Response:** `{ "accepted": 1, "rejected": 0 }`
+See [Analytics Events Reference](#analytics-events-reference) for full details on each event type.
+
+**Response:** `{ "ok": true, "accepted": 1, "rejected": 0 }`
 
 #### GET /api/analytics
 Returns stored analytics events.
@@ -527,12 +530,15 @@ Location: `.github/docs/session/session-state.json`
 ### decisions.md
 Location: `.github/docs/decisions.md`
 
-Markdown file with three main tables:
-- **Open Questions** — items waiting for user answers
-- **Decided Items** — active constraints (subsections: Transformation, Reevaluation, Operational)
-- **Deferred & Expired** — parked or obsolete items
+Markdown file with two main sections:
+- **Open Questions table** — items waiting for user answers
+- **Category Registry table** — lookup table mapping each technology stack to its category file, decision count, status (`ACTIVE`/`PARTIAL`/`DEFERRED`), and applicability flag
+
+Per-technology decisions live in category files under `.github/docs/decisions/[stack].md`. Each category file has a header (`> Stack: … | Status: … | Applicable: …`) and a table of `DECIDED` items.
 
 Each row: `| ID | Priority | Scope | Decision/Question | Notes/Answer | Date |`
+
+> **For the full file architecture, data flow, deferred activation sequence (ORC-45), and triple-check enforcement chain, see [`docs/decisions-architecture.md`](../decisions-architecture.md).**
 
 ### Questionnaires
 Location: `BusinessDocs/Phase[N]-[Discipline]/Questionnaires/*.md`
@@ -754,3 +760,132 @@ The server emits JSON-formatted log lines to stdout:
 ### Audit Trail
 
 All data mutations (questionnaire answers, decision changes) are logged to the append-only audit trail at `.github/docs/audit/audit.jsonl`. Query via `GET /api/audit?limit=100`.
+
+---
+
+## Analytics Events Reference
+
+_Sprint reference: SP-R2-004-008_
+
+### Architecture
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│  Browser (index.html)                                         │
+│                                                               │
+│  trackEvent(name, props) → _analyticsQueue[]                  │
+│       ↓ (batched, every 5 s or 50 events)                     │
+│  flushAnalytics() → POST /api/analytics { events: [...] }    │
+└────────────────────────────┬──────────────────────────────────┘
+                             │
+┌────────────────────────────▼──────────────────────────────────┐
+│  server.js  apiPostAnalytics()                                │
+│                                                               │
+│  1. Validate each event against VALID_ANALYTICS_EVENTS        │
+│  2. Reject unknown event types (counted, not fatal)           │
+│  3. Append valid events to analytics-events.json              │
+│  4. Cap file at 5 000 events (FIFO — oldest trimmed)          │
+└────────────────────────────┬──────────────────────────────────┘
+                             │
+┌────────────────────────────▼──────────────────────────────────┐
+│  .github/docs/analytics-events.json                           │
+│  [{ "event": "…", "properties": {}, "timestamp": "…" }, …]   │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### Server-Side Valid Event Types
+
+The server validates events against a strict allowlist defined in `server.js`:
+
+```js
+const VALID_ANALYTICS_EVENTS = [
+  'page_view', 'tab_switch', 'command_launch', 'questionnaire_save',
+  'decision_update', 'error_displayed', 'feature_usage',
+  'session_start', 'session_end'
+];
+```
+
+Events not in this list are **rejected** (counted in the `rejected` field of the response).
+
+### Event Catalog
+
+| Event | Description | Expected Properties | Source |
+|-------|-------------|---------------------|--------|
+| `page_view` | User viewed a page/section | `{ page: string }` | Client (not yet wired) |
+| `tab_switch` | User switched to a different tab | `{ tab: string }` | Client — `switchTab()` wrapper |
+| `command_launch` | User launched a command from the Command Center | `{ command: string }` | Client (not yet wired) |
+| `questionnaire_save` | User saved questionnaire answers | `{ file: string, count: number }` | Client (not yet wired) |
+| `decision_update` | User created, answered, decided, or deferred a decision | `{ action: string, id: string }` | Client (not yet wired) |
+| `error_displayed` | An error was shown to the user | `{ message: string, endpoint?: string }` | Client (not yet wired) |
+| `feature_usage` | User used a specific feature | `{ feature: string }` | Client (not yet wired) |
+| `session_start` | User session started | `{}` | Client (not yet wired) |
+| `session_end` | User session ended | `{}` | Client (not yet wired) |
+
+### Client-Side Events Currently Emitted
+
+The front-end (`index.html`) fires these events via `trackEvent()`:
+
+| Call Site | Event Name | Properties | Server Accepts? |
+|-----------|-----------|------------|-----------------|
+| Page load | `app_start` | `{ tab }` | **No** — not in allowlist |
+| Tab switch | `tab_switch` | `{ tab }` | Yes |
+| Onboarding finish | `onboarding_complete` | `{ steps_seen }` | **No** — not in allowlist |
+| Onboarding skip | `onboarding_skip` | `{ step }` | **No** — not in allowlist |
+
+> **Note:** Three of the four client-side events (`app_start`, `onboarding_complete`, `onboarding_skip`) are silently rejected by the server because they are not in `VALID_ANALYTICS_EVENTS`. Only `tab_switch` events are actually persisted. This is a known gap — either the server allowlist should be expanded or the client event names should be changed to match.
+
+### Client Integration
+
+**`trackEvent(eventName, properties)`** — Queues an event for batch submission.
+
+```js
+trackEvent('tab_switch', { tab: 'decisions' });
+```
+
+**Batching:** Events queue in `_analyticsQueue` and flush every 5 seconds (`ANALYTICS_FLUSH_MS`) or when 50 events accumulate. Flushes are fire-and-forget — failures are silently dropped (analytics is non-critical).
+
+**Opt-out:** Users can opt out by setting `localStorage.analytics_optout = '1'`. When opted out, `trackEvent()` returns immediately without queuing.
+
+### Storage
+
+| Property | Value |
+|----------|-------|
+| File | `.github/docs/analytics-events.json` |
+| Format | JSON array of event objects |
+| Max events | 5 000 (`ANALYTICS_MAX_EVENTS`) |
+| Overflow | Oldest events trimmed (FIFO) |
+| Write safety | `withFileLock()` + `safeWriteSync()` |
+
+**Event object schema:**
+
+```json
+{
+  "event": "tab_switch",
+  "properties": { "tab": "decisions" },
+  "timestamp": "2026-03-08T12:00:00.000Z"
+}
+```
+
+The `timestamp` is set server-side (not from the client payload) to prevent clock-skew issues.
+
+### Validation
+
+Server-side validation (`validateAnalyticsEvent`):
+1. Event must be a non-null object
+2. `event` field must be in the `VALID_ANALYTICS_EVENTS` allowlist
+3. `properties`, if present, must be an object
+
+Request-level validation:
+- `events` must be a non-empty array with at most 100 items per batch
+- Invalid events are counted in `rejected` but do not fail the entire request — valid events in the same batch are still persisted
+
+### API Quick Reference
+
+```
+POST /api/analytics
+  Body: { "events": [{ "event": "…", "properties": {} }, …] }
+  Response: { "ok": true, "accepted": N, "rejected": N }
+
+GET /api/analytics
+  Response: { "events": [...], "total": N }
+```

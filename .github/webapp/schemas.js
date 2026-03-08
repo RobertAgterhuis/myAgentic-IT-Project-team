@@ -19,6 +19,11 @@ function opt(val, name, type, errors) {
 
 /* ── Session State ────────────────────────────────────────────── */
 
+/**
+ * Validate a session-state object for required fields and types.
+ * @param {object} data - Parsed session state.
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
 function validateSessionState(data) {
   const errors = [];
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -42,6 +47,11 @@ function validateSessionState(data) {
 
 /* ── Command Queue Entry ──────────────────────────────────────── */
 
+/**
+ * Validate a single command queue entry.
+ * @param {object} data - Parsed command entry.
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
 function validateCommandEntry(data) {
   const errors = [];
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -58,6 +68,11 @@ function validateCommandEntry(data) {
   return { valid: errors.length === 0, errors };
 }
 
+/**
+ * Validate an entire command queue array.
+ * @param {Array} data - Array of command entries.
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
 function validateCommandQueue(data) {
   if (!Array.isArray(data)) {
     return { valid: false, errors: ['command queue must be an array'] };

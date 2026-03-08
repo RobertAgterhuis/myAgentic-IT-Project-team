@@ -12,13 +12,26 @@ const path = require('path');
 
 /* ── Shared utilities ─────────────────────────────────────────── */
 
+/** Escape special regex characters in a string. @param {string} s @returns {string} */
 function escRx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+/** @returns {string} Today's date as YYYY-MM-DD. */
 function today() { return new Date().toISOString().split('T')[0]; }
+/** @returns {string} Current timestamp in ISO 8601 format. */
 function isoNow() { return new Date().toISOString(); }
+/** Escape pipe characters for safe markdown table embedding. @param {string} s @returns {string} */
 function escPipe(s) { return (s || '').replace(/\|/g, '\\|'); }
+/**
+ * Replace a literal substring (no regex expansion of $ in replacement).
+ * @param {string} str - Source string.
+ * @param {string} search - Literal substring to find.
+ * @param {string} replacement - Replacement text.
+ * @returns {string}
+ */
 function literalReplace(str, search, replacement) { return str.replace(search, () => replacement); }
 
+/** Regex for validating question IDs (e.g. Q-05-001). */
 const Q_ID_RE = /^Q-\d{1,3}-\d{1,4}$/;
+/** Regex for validating decision IDs (e.g. DEC-R2-001). */
 const DEC_ID_RE = /^DEC-[\w-]{1,30}$/;
 
 /* ── Questionnaire Model ──────────────────────────────────────── */
@@ -63,6 +76,14 @@ function applyQuestionField(line, cur) {
   else if ((fm = line.match(/^\*\*Example:\*\*\s*(.+)/)))          cur.example        = fm[1].trim();
 }
 
+/**
+ * Parse a questionnaire markdown file into a structured object.
+ * Extracts metadata, sections, questions, answers, and status.
+ * @param {string} content - Markdown file content.
+ * @param {string} filePath - Absolute path to the questionnaire file.
+ * @param {string} basePath - Base directory for computing relative paths.
+ * @returns {{ file: string, agent: string, phase: string, sections: object[], questions: object[] }}
+ */
 function parseQuestionnaire(content, filePath, basePath) {
   const lines = content.split(/\r?\n/);
   const meta = parseQuestionnaireMetadata(content);
@@ -157,6 +178,14 @@ function replaceStatusRow(lines, questionId, newStatus) {
   return result;
 }
 
+/**
+ * Update a question's answer and status in questionnaire markdown content.
+ * @param {string} content - Current markdown content.
+ * @param {string} questionId - Question ID (e.g. 'Q-05-001').
+ * @param {string} newAnswer - New answer text.
+ * @param {string} newStatus - New status (e.g. 'ANSWERED', 'OPEN').
+ * @returns {string} Updated markdown content.
+ */
 function updateAnswerInContent(content, questionId, newAnswer, newStatus) {
   const lines = content.split(/\r?\n/);
   const esc = escRx(questionId);
@@ -179,6 +208,11 @@ function parseDecisionTable(content, sectionRegex, rowRegex, mapRow) {
   return results;
 }
 
+/**
+ * Parse the decisions markdown into structured open, decided, and deferred lists.
+ * @param {string} content - Full decisions.md content.
+ * @returns {{ open: object[], decided: object[], deferred: object[] }}
+ */
 function parseDecisions(content) {
   if (!content) return { open: [], decided: [], deferred: [] };
 
@@ -240,6 +274,12 @@ function insertTableRow(content, marker, sectionRe, row) {
 
 /* ── Decision content mutation functions ──────────────────────── */
 
+/**
+ * Compute the next sequential decision ID for a given prefix.
+ * @param {string} content - Decisions markdown to scan.
+ * @param {string} prefix - ID prefix (e.g. 'DEC-R2-').
+ * @returns {string} Next ID (e.g. 'DEC-R2-011').
+ */
 function nextDecisionId(content, prefix) {
   const re = new RegExp(`${escRx(prefix)}(\\d+)`, 'g');
   let max = 0, m;
@@ -247,18 +287,37 @@ function nextDecisionId(content, prefix) {
   return `${prefix}${String(max + 1).padStart(3, '0')}`;
 }
 
+/**
+ * Add a new open question row to the Open Questions table.
+ * @param {string} content - Decisions markdown.
+ * @param {{ id: string, priority: string, scope: string, question: string, answer?: string, date: string }} entry
+ * @returns {string} Updated markdown.
+ */
 function addOpenQuestion(content, entry) {
   const marker = /\|\s*\|\s*\|\s*\|\s*\*\(No open questions\)\*\s*\|\s*\|\s*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.question)} | ${escPipe(entry.answer || '')} | ${escPipe(entry.date)} |`;
   return insertTableRow(content, marker, /(## Open Questions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
 }
 
+/**
+ * Add an operational decision row to the Operational Decisions table.
+ * @param {string} content - Decisions markdown.
+ * @param {{ id: string, priority: string, scope: string, decision: string, notes?: string, date: string }} entry
+ * @returns {string} Updated markdown.
+ */
 function addOperationalDecision(content, entry) {
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes || '')} | ${escPipe(entry.date)} |`;
   return insertTableRow(content, marker, /(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
 }
 
+/**
+ * Update the answer field of an existing open question.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID.
+ * @param {string} answer - The answer text.
+ * @returns {string} Updated markdown.
+ */
 function answerOpenQuestion(content, id, answer) {
   const esc = escRx(id);
   const re = new RegExp(`(\\|\\s*${esc}\\s*\\|\\s*(?:HIGH|MEDIUM|LOW)\\s*\\|\\s*[^|]*\\|\\s*[^|]*\\|)\\s*[^|]*\\|\\s*[\\d-]*\\s*\\|`);
@@ -278,6 +337,12 @@ function restoreOpenPlaceholderIfEmpty(content) {
   return content.slice(0, endIdx) + '\n| | | | *(No open questions)* | | |' + content.slice(endIdx);
 }
 
+/**
+ * Move an open question to the decided (Operational Decisions) table.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID to move.
+ * @returns {string} Updated markdown.
+ */
 function moveToDecided(content, id) {
   const esc = escRx(id);
   const rowRe = new RegExp(`\\|\\s*${esc}\\s*\\|\\s*(HIGH|MEDIUM|LOW)\\s*\\|\\s*([^|]*)\\|\\s*([^|]*)\\|\\s*([^|]*)\\|\\s*([\\d-]*)\\s*\\|[^\\n]*\\n?`);
@@ -293,6 +358,13 @@ function moveToDecided(content, id) {
   return content;
 }
 
+/**
+ * Defer an open question — remove from Open, add to Deferred & Expired.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID.
+ * @param {string} [reason] - Reason for deferring.
+ * @returns {string} Updated markdown.
+ */
 function deferOpenQuestion(content, id, reason) {
   const esc = escRx(id);
   const rowRe = new RegExp(`\\|\\s*${esc}\\s*\\|\\s*(HIGH|MEDIUM|LOW)\\s*\\|\\s*([^|]*)\\|\\s*([^|]*)\\|`);
@@ -304,6 +376,13 @@ function deferOpenQuestion(content, id, reason) {
   return insertDeferredRow(content, id, 'DEFERRED', scope, question, reason || 'Deferred via webapp');
 }
 
+/**
+ * Expire a decided item — remove from decided, add to Deferred & Expired as EXPIRED.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID.
+ * @param {string} [reason] - Reason for expiring.
+ * @returns {string} Updated markdown.
+ */
 function expireDecidedItem(content, id, reason) {
   const esc = escRx(id);
   const rowRe = new RegExp(`\\|\\s*${esc}\\s*\\|\\s*(HIGH|MEDIUM|LOW|—)\\s*\\|\\s*([^|]*)\\|\\s*([^|]*)\\|`);
@@ -314,6 +393,12 @@ function expireDecidedItem(content, id, reason) {
   return insertDeferredRow(content, id, 'EXPIRED', scope, text, reason || 'Expired via webapp');
 }
 
+/**
+ * Reopen a deferred/expired/decided item back into the open questions table.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID.
+ * @returns {string} Updated markdown.
+ */
 function reopenItem(content, id) {
   const esc = escRx(id);
   const defRe = new RegExp(`\\|\\s*${esc}\\s*\\|\\s*(?:DEFERRED|EXPIRED)\\s*\\|\\s*([^|]*)\\|\\s*([^|]*)\\|`);
@@ -333,6 +418,13 @@ function reopenItem(content, id) {
   return content;
 }
 
+/**
+ * Edit fields of an existing decided row in-place.
+ * @param {string} content - Decisions markdown.
+ * @param {string} id - Decision ID.
+ * @param {{ priority?: string, scope?: string, text?: string, notes?: string }} fields - Fields to update.
+ * @returns {string} Updated markdown.
+ */
 function editDecidedRow(content, id, fields) {
   const esc = escRx(id);
   const rowRe = new RegExp(`\\|\\s*${esc}\\s*\\|\\s*(HIGH|MEDIUM|LOW|—)\\s*\\|\\s*([^|]*)\\|\\s*([^|]*)\\|\\s*([^|]*)\\|\\s*([\\d-]*)\\s*\\|`);
@@ -385,6 +477,13 @@ function insertDeferredRow(content, id, status, scope, subject, reason) {
   return content;
 }
 
+/**
+ * Append an audit trail entry to the Change Log section.
+ * @param {string} content - Decisions markdown.
+ * @param {string} action - Action name (e.g. 'ANSWERED', 'DECIDED').
+ * @param {string} id - Decision ID involved.
+ * @returns {string} Updated markdown with new audit entry.
+ */
 function appendAuditTrail(content, action, id) {
   const entry = `- ${isoNow()} | \`${action}\` | \`${id}\` | source: webapp`;
   if (/## Change Log/.test(content)) {
@@ -399,6 +498,11 @@ function appendAuditTrail(content, action, id) {
 
 /* ── Pipeline Model (session-state helpers) ───────────────────── */
 
+/**
+ * Parse a session-state JSON string into an object.
+ * @param {string} content - JSON string.
+ * @returns {object|null} Parsed session state, or null if invalid.
+ */
 function parseSessionState(content) {
   if (!content) return null;
   try { return JSON.parse(content); }

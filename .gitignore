@@ -26,3 +26,6 @@ coverage/
 # Logs
 *.log
 npm-debug.log*
+
+# Backup snapshots (SP-R2-006-006)
+.backups/

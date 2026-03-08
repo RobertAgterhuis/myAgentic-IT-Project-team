@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Technical Manual
+nav_order: 3
 ---
 
 # Technical Manual — Agentic IT Project Team

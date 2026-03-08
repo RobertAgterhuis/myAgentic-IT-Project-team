@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Contributing
+nav_order: 6
 ---
 
 # Contributing to Agentic IT Project Team

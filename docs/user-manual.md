@@ -1,6 +1,7 @@
 ---
 layout: default
 title: User Manual
+nav_order: 2
 ---
 
 # User Manual — Agentic IT Project Team

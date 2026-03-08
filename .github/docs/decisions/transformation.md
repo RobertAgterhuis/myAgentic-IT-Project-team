@@ -1,0 +1,24 @@
+# Decisions: Transformation (Agentic System)
+> Stack: transformation | Status: ACTIVE | Applicable: YES
+
+---
+
+## Decided Items
+
+| ID | Priority | Scope | Decision | Notes | Date |
+|----|-----------|-------|-----------|-------------|-------|
+| DEC-T-001 | HIGH | All phases | System operates in dual-mode: CREATE (primary) and AUDIT (secondary) | CREATE mode is the default. AUDIT mode is preserved for backward compatibility. Both modes share the same agent pipeline, contracts, and guardrails. | 2025-07-18 |
+| DEC-T-002 | HIGH | All agents | Every phase agent has explicit CREATE and AUDIT subsections | Each agent skill file contains mode-specific instructions under clearly labeled headers. Agents switch behavior based on `cycle_type` in session state. | 2025-07-18 |
+| DEC-T-003 | HIGH | Phase 1 | Phase 1 agents design new business models and requirements (CREATE) instead of analyzing existing ones (AUDIT) | Business Analyst defines the business model. Domain Expert maps the problem space. Sales Strategist designs go-to-market. Financial Analyst builds revenue projections. Product Manager produces the product roadmap. | 2025-07-18 |
+| DEC-T-004 | HIGH | Phase 2 | Phase 2 agents design new architecture (CREATE) instead of auditing existing code | Software Architect designs from scratch using ADRs. Senior Developer defines implementation standards. DevOps plans CI/CD pipelines. Security Architect defines security posture. Data Architect designs data models. Legal Counsel maps compliance requirements. | 2025-07-18 |
+| DEC-T-005 | HIGH | Phase 3 | Phase 3 agents design new UX/UI (CREATE) instead of evaluating existing interfaces | UX Researcher creates personas and journey maps from market research. UX Designer produces information architecture and wireframes. UI Designer creates visual design system. Accessibility Specialist defines WCAG baseline. Content Strategist designs content model. Localization Specialist plans i18n architecture. | 2025-07-18 |
+| DEC-T-006 | HIGH | Phase 4 | Phase 4 agents create new brand identity (CREATE) instead of auditing existing brand | Brand Strategist designs brand from positioning through visual identity. Growth Marketer designs acquisition funnels. CRO Specialist designs conversion optimization framework. | 2025-07-18 |
+| DEC-T-007 | HIGH | Synthesis | Synthesis Agent frames output as "Solution Blueprint" (CREATE) or "Capability Heatmap" (AUDIT) | Master report structure adapts to mode. Cross-Team Blocker Matrix applies to both modes. | 2025-07-18 |
+| DEC-T-008 | MEDIUM | Onboarding | Onboarding intake adapts to mode: project brief + goals (CREATE) vs. codebase + documentation (AUDIT) | Onboarding Agent detects mode from the command and adjusts its intake questionnaire accordingly. | 2025-07-18 |
+| DEC-T-009 | HIGH | Session state | Session state contract supports 11 cycle types including CREATE variants | FULL_CREATE, PARTIAL_CREATE, COMBO_CREATE added alongside existing AUDIT variants. FEATURE, REEVALUATE, SCOPE_CHANGE, HOTFIX, REFRESH are mode-agnostic. | 2025-07-18 |
+| DEC-T-010 | MEDIUM | copilot-instructions | copilot-instructions.md routes CREATE and AUDIT commands through the same pipeline with mode differentiation | Command table in copilot-instructions includes CREATE commands (primary), AUDIT commands (secondary), and on-demand commands (both modes). | 2025-07-18 |
+| DEC-T-011 | HIGH | Playbooks | Two separate playbooks: software-creation-playbook.md (CREATE) and commercial-software-audit-playbook.md (AUDIT) | The creation playbook was written from scratch. The audit playbook was preserved as-is for backward compatibility. | 2025-07-18 |
+| DEC-T-012 | MEDIUM | Contracts, Guardrails | Contracts and guardrails are mode-agnostic with targeted mode-specific sections where needed | analysis-output-contract and sprintplan-output-contract received terminology updates. session-state-contract was rewritten. All guardrails apply universally. | 2025-07-18 |
+| DEC-T-013 | LOW | Phase 5 | Phase 5 implementation pipeline requires zero changes for dual-mode support | Implementation, Test, PR/Review, Documentation, GitHub Integration, KPI, and Retrospective agents are inherently mode-agnostic — they operate on sprint stories regardless of origin mode. | 2025-07-18 |
+| DEC-T-014 | LOW | Support agents | Support agents (Reevaluate, Feature, Questionnaire, Scope Change, Brand & Assets, Storybook) require zero changes | These agents operate on structured input independent of the originating mode. | 2025-07-18 |
+| DEC-T-015 | MEDIUM | All phases | Critic and Risk agents validate CREATE outputs using the same scoring rubric as AUDIT | Quality gates do not differentiate by mode — the same standards apply to designed solutions as to audited solutions. Critic Agent received minor context updates. | 2025-07-18 |

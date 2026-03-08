@@ -48,6 +48,7 @@ Before any re-analysis takes place, determine WHAT changed relative to the previ
    - **Resolved findings** — something that has been fixed or become irrelevant
    - **Changed findings** — context, severity class, or impact has changed
    - **Unchanged findings** — document deliberately as UNCHANGED
+   - **Deferred technology activations** — check if the codebase now contains files matching any DEFERRED decision category in `.github/docs/decisions/` (e.g., `Dockerfile` → `docker.md`, `*.bicep` → `bicep-iac.md`, `*.cs` → `dotnet.md`, `azure-pipelines.yml` → `azure-devops.md`, `vite.config.*` → `vite.md`, `next.config.*` → `nextjs.md`). For each match where the category file has `> Status: DEFERRED`: flag as `DEFERRED_ACTIVATION_REQUIRED: [category] — technology now present in codebase`. Include in the Delta-Scan Report and escalate to Orchestrator — the Orchestrator will **auto-activate** the category (RULE ORC-45) without requiring user intervention.
 4. Produce a `DELTA-SCAN REPORT`:
 
 ```markdown

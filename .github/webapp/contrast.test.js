@@ -77,6 +77,17 @@ describe('WCAG AA non-text contrast (3:1)', () => {
     { name: 'dark border-control on input-bg', fg: dark['border-control'].$value,  bg: dark['input-bg'].$value },
     // Hover state borders
     { name: 'dark border-hover on surface',    fg: dark['border-hover'].$value,    bg: dark.surface.$value },
+    // Focus ring (primary) against backgrounds (WCAG 1.4.11)
+    { name: 'light focus ring (primary) on bg',      fg: light.primary.$value,     bg: light.bg.$value },
+    { name: 'light focus ring (primary) on surface',  fg: light.primary.$value,     bg: light.surface.$value },
+    { name: 'dark focus ring (primary) on bg',        fg: dark.primary.$value,      bg: dark.bg.$value },
+    { name: 'dark focus ring (primary) on surface',   fg: dark.primary.$value,      bg: dark.surface.$value },
+    // Status colors against their respective backgrounds
+    { name: 'light success on surface',  fg: light.success.$value,  bg: light.surface.$value },
+    { name: 'light warning on surface',  fg: light.warning.$value,  bg: light.surface.$value },
+    { name: 'light danger on surface',   fg: light.danger.$value,   bg: light.surface.$value },
+    { name: 'dark success on surface',   fg: dark.success.$value,   bg: dark.surface.$value },
+    { name: 'dark danger on surface',    fg: dark.danger.$value,    bg: dark.surface.$value },
   ];
 
   for (const { name, fg, bg } of uiPairs) {

@@ -101,6 +101,59 @@ If `.github/docs/brand/brand-guidelines.md` **does not exist**: document `BRAND-
 
 **PROHIBITION:** Skipping brand compliance check for CONTENT or DESIGN stories when `.github/docs/brand/brand-guidelines.md` is present.
 
+**2g. Decision Compliance Check (MANDATORY)**
+
+Verify that the PR does not violate any active `DECIDED` items from the decisions system:
+
+1. **Load decisions:** Read `.github/docs/decisions.md` for uncategorized DECIDED items. Scan `.github/docs/decisions/` — from each ACTIVE or PARTIAL category file (check `> Status:` header line), read all `DECIDED` rows. **Skip DEFERRED category files entirely.**
+2. **Scope matching:** For each changed file in the PR, determine which decision categories apply:
+   - `.js`/`.ts`/`.mjs` files → TypeScript/ESLint, Cross-Cutting categories
+   - `.yml`/`.yaml` in `.github/workflows/` → GitHub Actions category
+   - `Dockerfile`, `docker-compose.*` → Docker category
+   - `.bicep` files → Bicep/IaC category
+   - `.cs`/`.csproj` files → .NET category
+   - All files → Cross-Cutting and Transformation categories
+3. **Verify:** For each applicable DECIDED item, check whether the PR diff is consistent with that decision. Look for:
+   - Technology choices that contradict a decision (e.g., introducing a banned dependency)
+   - Patterns that violate an architectural decision (e.g., using a disallowed configuration format)
+   - Deviations from mandatory practices established by decisions
+4. **Document:**
+   - `DEC-REVIEW: COMPLIANT` if all applicable decisions are respected
+   - `DEC-REVIEW: VIOLATION [DEC-ID] — [what the decision requires vs what the PR introduces]` for each violation
+5. **On violation:**
+   - Return the PR to the Implementation Agent with the exact violation and decision ID
+   - **Block merge** until the violation is resolved or the decision is formally changed via the decisions process
+   - Add `decision_violations: [array of DEC-IDs]` to the Sprint Completion Report JSON under the relevant story
+
+**PROHIBITION:** Merging a PR that violates an active `DECIDED` item without the decision being formally changed or deferred via `.github/docs/decisions.md`.
+
+**2h. Deferred Technology Detection (MANDATORY)**
+
+After decision compliance, scan the PR diff for technology markers that match DEFERRED decision categories:
+
+| File pattern in diff | DEFERRED category to check |
+|---------------------|----------------------------|
+| `Dockerfile`, `docker-compose.*`, `.dockerignore` | `docker.md` |
+| `*.bicep`, `*.arm.json`, `azuredeploy.*` | `bicep-iac.md` |
+| `*.cs`, `*.csproj`, `*.sln`, `global.json` | `dotnet.md` |
+| `azure-pipelines.yml`, `.azure-devops/` | `azure-devops.md` |
+| `vite.config.*`, `vitest.config.*` (with Vite imports) | `vite.md` |
+| `next.config.*`, `pages/`, `app/` (with Next.js imports) | `nextjs.md` |
+
+1. For each technology marker found in the diff, check `.github/docs/decisions/[category].md` — read the `> Status:` header line.
+2. If `Status: DEFERRED` → the PR introduces a technology that has pre-defined but deferred decisions:
+   ```
+   DEFERRED_TECH_DETECTED: [category]
+   File(s) in diff: [list of matching files]
+   Category file: .github/docs/decisions/[category].md
+   Decisions count: [N]
+   Action required: Activate category before merge OR document exception
+   ```
+3. **Block merge** until the category is activated (via webapp `POST /api/decisions/activate-category` or manual header edit) OR the Orchestrator explicitly approves an exception.
+4. Document: `DEFERRED-TECH-CHECK: [N] categories checked, [N] activations required` (or `NO DEFERRED TECH DETECTED`)
+
+**PROHIBITION:** Merging a PR that introduces a deferred technology without the corresponding decision category being activated. NOTE: The Orchestrator auto-activates deferred categories when agents report `DEFERRED_TECH_DETECTED` (RULE ORC-45). If this PR reached review with a deferred category still inactive, escalate to the Orchestrator — this indicates the earlier agents missed the detection.
+
 ### Step 3: Finalize Sprint Completion Report
 
 Fill in the Sprint Completion Report JSON completely based on all inputs:
@@ -124,7 +177,9 @@ Fill in the Sprint Completion Report JSON completely based on all inputs:
       "arch_review": "COMPLIANT",
       "sec_review": "COMPLIANT",
       "quality_review": "COMPLIANT",
-      "brand_review": "COMPLIANT | VIOLATION | N/A"
+      "brand_review": "COMPLIANT | VIOLATION | N/A",
+      "decision_review": "COMPLIANT | VIOLATION",
+      "decision_violations": []
     }
   ],
   "sprint_kpi_measurement": {
@@ -173,6 +228,7 @@ Create a PR with the following mandatory description:
 - Architecture: COMPLIANT
 - Security: COMPLIANT
 - Implementation: COMPLIANT
+- Decision Compliance: COMPLIANT
 
 ### Sprint KPI Measurement
 | KPI | Baseline | Realized | Target | Status |
@@ -198,6 +254,7 @@ PR MERGE CHECKLIST: SP-N
 - [ ] Security Review COMPLIANT
 - [ ] Architectural Review COMPLIANT
 - [ ] Brand Compliance Review performed for CONTENT/DESIGN stories (COMPLIANT, or VIOLATION resolved, or SKIPPED documented)
+- [ ] Decision Compliance Review COMPLIANT (or violations resolved before merge)
 - [ ] Sprint Completion Report JSON attached and valid
 - [ ] KPI measurement present (or MEASUREMENT_IMPOSSIBLE documented)
 - [ ] No new CRITICAL_FINDING without escalation

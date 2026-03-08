@@ -235,7 +235,7 @@ function parseDecisions(content) {
   );
 
   const ops = parseDecisionTable(content,
-    /### Operational Decisions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/,
+    /### (?:Operational|Uncategorized) Decisions[^\n]*\n([\s\S]*?)(?=\n---|\n## )/,
     /\|\s*(DEC-[\d]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g,
     m => m[4].includes('Add a decision here') ? null : { id: m[1], type: 'DECIDED', status: 'DECIDED', priority: m[2], scope: m[3].trim(), decision: m[4].trim(), notes: m[5].trim(), date: m[6].trim() }
   );
@@ -247,6 +247,63 @@ function parseDecisions(content) {
   );
 
   return { open, decided: [...trans, ...reev, ...ops], deferred };
+}
+
+/* ── Category file parsers (multi-file decisions) ─────────────── */
+
+/**
+ * Parse the header metadata block from a category decision file.
+ * @param {string} content - Full category file content.
+ * @returns {{ name: string, stack: string, status: string, applicable: string, reason: string }}
+ */
+function parseCategoryHeader(content) {
+  const name = (content.match(/^# Decisions:\s*(.+)/m) || [])[1]?.trim() || 'Unknown';
+  const stack = (content.match(/Stack:\s*([^\s|]+)/) || [])[1] || 'unknown';
+  const status = (content.match(/Status:\s*(ACTIVE|DEFERRED)/) || [])[1] || 'ACTIVE';
+  const applicable = (content.match(/Applicable:\s*(YES|NO|PARTIAL)/) || [])[1] || 'YES';
+  const reason = (content.match(/Deferred-Reason:\s*(.+)/) || [])[1]?.trim() || '';
+  return { name, stack, status, applicable, reason };
+}
+
+/**
+ * Parse decided items from a category decision file.
+ * Handles both single-table and split Active/Deferred table layouts.
+ * @param {string} content - Full category file content.
+ * @param {string} category - The category/stack tag for tagging results.
+ * @returns {object[]} Array of decided item objects.
+ */
+function parseCategoryDecisions(content, category) {
+  const rows = [];
+  const re = /\|\s*(DEC-[\w-]+)\s*\|\s*(HIGH|MEDIUM|LOW|—)\s*\|\s*([^|]*)\|\s*([^|]*)\|\s*([^|]*)\|\s*([\d-]*)\s*\|/g;
+  let m;
+  while ((m = re.exec(content))) {
+    if (m[4].includes('Add a decision here')) continue;
+    // Detect if this row is in a "Deferred Decisions" subsection
+    const before = content.slice(0, m.index);
+    const inDeferred = /## Deferred Decisions[^\n]*$/m.test(before.slice(-200));
+    rows.push({
+      id: m[1], type: 'DECIDED',
+      status: inDeferred ? 'CAT_DEFERRED' : 'DECIDED',
+      priority: m[2], scope: m[3].trim(),
+      decision: m[4].trim(), notes: m[5].trim(),
+      date: m[6].trim(), category,
+    });
+  }
+  return rows;
+}
+
+/**
+ * Mutate a category file header from DEFERRED to ACTIVE.
+ * Updates Status: DEFERRED → ACTIVE, Applicable: NO → YES,
+ * and removes the Deferred-Reason line.
+ * @param {string} content - Full category file content.
+ * @returns {string} Updated content with ACTIVE header.
+ */
+function activateCategoryHeader(content) {
+  content = content.replace(/Status:\s*DEFERRED/, 'Status: ACTIVE');
+  content = content.replace(/Applicable:\s*NO/, 'Applicable: YES');
+  content = content.replace(/^> Deferred-Reason:.*\n?/m, '');
+  return content;
 }
 
 /* ── Shared table-row insertion helper ─────────────────────────── */
@@ -308,7 +365,7 @@ function addOpenQuestion(content, entry) {
 function addOperationalDecision(content, entry) {
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes || '')} | ${escPipe(entry.date)} |`;
-  return insertTableRow(content, marker, /(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
+  return insertTableRow(content, marker, /(### (?:Operational|Uncategorized) Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
 }
 
 /**
@@ -354,7 +411,7 @@ function moveToDecided(content, id) {
   const entry = { id, priority, scope, decision: question, notes: answer, date: today() };
   const marker = /\|\s*DEC-100\s*\|\s*—\s*\|\s*—\s*\|\s*\*\(Add a decision here\)\*\s*\|[^\n]*\|/;
   const row = `| ${escPipe(entry.id)} | ${escPipe(entry.priority)} | ${escPipe(entry.scope)} | ${escPipe(entry.decision)} | ${escPipe(entry.notes)} | ${escPipe(entry.date)} |`;
-  content = insertTableRow(content, marker, /(### Operational Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
+  content = insertTableRow(content, marker, /(### (?:Operational|Uncategorized) Decisions[^\n]*\n[\s\S]*?\|[^\n]+\|)\s*\n+---/, row);
   return content;
 }
 
@@ -509,6 +566,57 @@ function parseSessionState(content) {
   catch { return null; }
 }
 
+/* ── Markdown Corruption Detection (GAP-009) ──────────────────── */
+
+/**
+ * Detect structural corruption in a markdown file.
+ * Checks for: broken YAML frontmatter, incomplete table rows,
+ * unclosed fences, and malformed question blocks.
+ * @param {string} content - Markdown file content.
+ * @returns {string[]} List of corruption descriptions (empty if clean).
+ */
+function detectMarkdownCorruption(content) {
+  if (typeof content !== 'string') return ['Content is not a string'];
+  const issues = [];
+
+  // Check for broken YAML frontmatter (opened but not closed)
+  if (/^---\s*\n/.test(content)) {
+    const secondFence = content.indexOf('\n---', 4);
+    if (secondFence === -1) issues.push('Unclosed YAML frontmatter (opening --- without closing ---)');
+  }
+
+  // Check for unclosed code fences
+  const fenceMatches = content.match(/^```/gm);
+  if (fenceMatches && fenceMatches.length % 2 !== 0) {
+    issues.push('Unclosed code fence (odd number of ``` delimiters)');
+  }
+
+  // Check for incomplete table rows (lines starting with | but not ending with |)
+  const lines = content.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\|/.test(line) && !/\|\s*$/.test(line) && !/^\|[-|:\s]+$/.test(line)) {
+      issues.push(`Incomplete table row at line ${i + 1}`);
+      break; // report only first occurrence
+    }
+  }
+
+  // Check for malformed question blocks (### Q-nn-nnnn without [REQUIRED] or [OPTIONAL])
+  const qHeaders = content.match(/^###\s+Q-\d+-\d+(?!\s+\[)/gm);
+  if (qHeaders && qHeaders.length > 0) {
+    issues.push(`Malformed question header (missing [REQUIRED]/[OPTIONAL] tag): ${qHeaders[0].trim()}`);
+  }
+
+  // Check for orphaned answer blocks (** Your answer:** outside a question context)
+  const answerBlocks = (content.match(/\*\*Your answer:\*\*/g) || []).length;
+  const questionBlocks = (content.match(/^###\s+Q-\d+-\d+/gm) || []).length;
+  if (answerBlocks > 0 && answerBlocks > questionBlocks) {
+    issues.push(`Orphaned answer blocks: ${answerBlocks} answers for ${questionBlocks} questions`);
+  }
+
+  return issues;
+}
+
 /* ── Exports ──────────────────────────────────────────────────── */
 
 module.exports = {
@@ -519,7 +627,7 @@ module.exports = {
   parseQuestionnaire, updateAnswerInContent,
 
   // Decisions
-  parseDecisions, nextDecisionId,
+  parseDecisions, parseCategoryHeader, parseCategoryDecisions, activateCategoryHeader, nextDecisionId,
   addOpenQuestion, addOperationalDecision, answerOpenQuestion,
   moveToDecided, deferOpenQuestion, expireDecidedItem,
   reopenItem, editDecidedRow, restoreOpenPlaceholderIfEmpty,
@@ -527,4 +635,7 @@ module.exports = {
 
   // Pipeline
   parseSessionState,
+
+  // Corruption detection
+  detectMarkdownCorruption,
 };

@@ -302,7 +302,7 @@ Excluded directories: `.github/`, `build/`, `out/`, `dist/`, `coverage/`, `node_
    c. After the Reevaluate Agent completes, update the trigger file: set `status` to `"CONSUMED"` and add `consumed_at: [ISO 8601]`
 2. Questionnaire answers may arrive via two channels: (a) direct file edits by the user, (b) the Questionnaire & Decisions Manager web UI at `.github/webapp/`. Both write to the same `BusinessDocs/` markdown files and produce identical output. The Orchestrator does NOT distinguish between channels — the markdown file is the single source of truth.
 3. When informing the user about open questionnaires (after phase completion per RULE ORC-25), include: `ℹ️ You can answer questionnaires and manage decisions by editing the files directly or by using the web UI: run \`node .github/webapp/server.js\` and open http://127.0.0.1:3000`
-4. **Decisions via web UI:** The user may create new decisions (`DECIDED` or `OPEN_QUESTION`) and answer open questions through the web UI. The web UI writes directly to `.github/docs/decisions.md`. The Orchestrator reads this file at Sprint Gate Step 0 as the single source of truth — it does NOT distinguish whether entries were added via file edit or web UI.
+4. **Decisions via web UI:** The user may create new decisions (`DECIDED` or `OPEN_QUESTION`) and answer open questions through the web UI. The web UI writes to `.github/docs/decisions.md` (index + uncategorized decisions) and to category files under `.github/docs/decisions/` (decided items organized by technology stack). The Orchestrator reads all decision files at Sprint Gate Step 0 as the single source of truth — it does NOT distinguish whether entries were added via file edit or web UI.
 
 **RULE ORC-29: Command Queue integration (Web UI Command Center)**
 1. At every session start and before every Sprint Gate, check whether `.github/docs/session/command-queue.json` exists with `status: "PENDING"`. If found:
@@ -478,10 +478,12 @@ If a phase agent fails to produce a valid handoff after 3 consecutive attempts (
 
 Before every sprint, the Orchestrator performs the following checks:
 
-**Step 0: Consult `.github/docs/decisions.md` (MANDATORY)**
-1. Read all items with status `OPEN` and priority `HIGH`
-2. Filter on scope that affects the current sprint or its stories
-3. On one or more matches: **BLOCK the Sprint Gate** and present the open question(s) to the user:
+**Step 0: Consult decisions (MANDATORY)**
+1. Read `.github/docs/decisions.md` — extract all items with status `OPEN` and priority `HIGH`
+2. Scan `.github/docs/decisions/` — for each `.md` file, read the category header (`> Status:` line). **Skip files with `Status: DEFERRED`** — these represent inapplicable technology stacks.
+3. From ACTIVE and PARTIAL category files, read all `DECIDED` items. From PARTIAL category files, also note individually deferred items (rows in the "Deferred Decisions" subsection) — these are informational only.
+4. Filter OPEN HIGH items on scope that affects the current sprint or its stories
+5. On one or more matches: **BLOCK the Sprint Gate** and present the open question(s) to the user:
    ```
    ⚠️ SPRINT GATE BLOCKED – Outstanding decision required
    Decision ID: [DEC-NNN]
@@ -491,8 +493,8 @@ Before every sprint, the Orchestrator performs the following checks:
    → Or use the web UI: run `node .github/webapp/server.js` → http://127.0.0.1:3000 → Decisions tab.
    → Type RESUME to restart the Sprint Gate.
    ```
-4. Read all items with status `OPEN` and priority `MEDIUM` or `LOW` that affect the sprint; list them as informational without blocking
-5. Read all items with status `DECIDED`; store them as **sprint constraints** for injection in step 5 below
+6. Read all items with status `OPEN` and priority `MEDIUM` or `LOW` that affect the sprint; list them as informational without blocking
+7. Store all `DECIDED` items (from index + ACTIVE category files) as **sprint constraints** for injection in step 5 below
 
 After Step 0 the Orchestrator asks the user:
 
@@ -529,10 +531,11 @@ Choose an action:
 3. Identify parallel tracks from sprint plan Step F2
 4. **Read `story_type` of each story and route per the table below**
 5. **Decision injection (mandatory if `.github/docs/decisions.md` exists):**
-   - Load all items with status `DECIDED` from `.github/docs/decisions.md`
+   - Load all items with status `DECIDED` from `.github/docs/decisions.md` (index + uncategorized)
+   - Scan `.github/docs/decisions/` — from each ACTIVE or PARTIAL category file, load all `DECIDED` items. **Skip DEFERRED category files entirely.** Skip individually deferred rows within PARTIAL files.
    - Filter on scope that affects the current sprint, its stories, or active agents
    - Inject as hard constraints in the context of each relevant agent
-   - Document which decisions were injected in the Orchestrator Log
+   - Document which decisions were injected in the Orchestrator Log (include category file source)
 6. **Definition of Ready check (mandatory per CODE/INFRA story):**
    - Does the story have at least 2 concrete acceptance criteria?
    - Are all dependencies resolved or explicitly accepted?
@@ -889,6 +892,36 @@ Sprint capacity is set by the Orchestrator prompting the user at the first Sprin
 
 **RULE ORC-44: HOTFIX + SCOPE CHANGE concurrency**
 HOTFIXes always take priority. SCOPE CHANGE processing pauses for HOTFIX duration. After HOTFIX merge, SCOPE CHANGE resumes. If the HOTFIX invalidates scope change assumptions, the Scope Change Agent must re-validate.
+
+**RULE ORC-45: Deferred Decision Category Activation (AUTO-ACTIVATE)**
+When any agent reports `DEFERRED_TECH_REQUIRED`, `DEFERRED_TECH_DETECTED`, or `DEFERRED_ACTIVATION_REQUIRED` for a decision category, the Orchestrator **automatically activates** the category without requiring user intervention:
+
+**Step 1 — Auto-activate the category file:**
+Open `.github/docs/decisions/[file]` and edit the header block:
+- Change `Status: DEFERRED` → `Status: ACTIVE`
+- Change `Applicable: NO` → `Applicable: YES`
+- Remove the `> Deferred-Reason:` line entirely
+
+**Step 2 — Update the index file:**
+Open `.github/docs/decisions.md` and locate the matching row in the Category Registry table. Change `DEFERRED` → `ACTIVE` in the Status column and `NO` → `YES` in the Applicable column.
+
+**Step 3 — Append audit trail:**
+At the bottom of the activated category file, append:
+```
+> Activated: [YYYY-MM-DD] | Trigger: [DEFERRED_TECH_REQUIRED|DETECTED|ACTIVATION_REQUIRED] | Agent: [reporting agent] | Story: [SP-ID or REEVALUATE]
+```
+
+**Step 4 — Update session state:**
+Update `session-state.json` with `category_activated: [file]`.
+
+**Step 5 — Notify user (informational, non-blocking):**
+`ℹ️ AUTO-ACTIVATED DEFERRED CATEGORY — [stack name] ([file]). [N] decisions are now active hard constraints. Trigger: [agent signal]. The Orchestrator has activated this category because the codebase now requires this technology. To revert: change Status back to DEFERRED in the category file header via the web UI or manual edit.`
+
+**Step 6 — Re-inject decisions:**
+Read all `DECIDED` items from the newly activated category file and inject them as hard constraints for all active agents in the current sprint. Resume the halted agent immediately.
+
+**Exception — SKIP ACTIVATION:**
+If the user explicitly types `SKIP ACTIVATION [category]` before or after auto-activation: write a `DECIDED` item to `.github/docs/decisions.md` documenting the exception: `DEC-[NNN] — Exception: [category] technology introduced without activating deferred decisions. Reason: [user reason].` If the category was already auto-activated, revert it to DEFERRED.
 
 ---
 

@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Data Dictionary
+nav_order: 4
 ---
 
 # Data Dictionary — Agentic IT Project Team

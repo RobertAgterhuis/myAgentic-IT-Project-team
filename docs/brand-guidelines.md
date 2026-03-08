@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Brand Guidelines
+nav_order: 5
 ---
 
 # Brand Guidelines

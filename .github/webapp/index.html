@@ -221,6 +221,30 @@
     .prog-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
     .prog-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); border-radius: 2px; transition: width var(--motion-slow) var(--ease-default); }
 
+    /* ── Breadcrumb (DD-004) ───────────────────────── */
+    .breadcrumb { margin: 0 0 16px; padding: 0; }
+    .breadcrumb ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 0; padding: 0; font-size: var(--text-body); }
+    .breadcrumb li { display: flex; align-items: center; min-width: 0; }
+    .breadcrumb li + li::before { content: '\203A'; margin: 0 8px; color: var(--text-muted); font-weight: 400; }
+    .breadcrumb li + li::before { pointer-events: none; }
+    .breadcrumb a { color: var(--primary); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
+    .breadcrumb [aria-current="page"] { color: var(--text); font-weight: 600; cursor: default; pointer-events: none; }
+    @media (max-width: 600px) {
+      .breadcrumb a { max-width: 100px; }
+      .breadcrumb li.bc-mid { display: none; }
+    }
+
+    /* ── Pagination (DD-013) ───────────────────────── */
+    .q-pagination { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 20px 0 8px; flex-wrap: wrap; }
+    .q-pagination button { min-width: 36px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: var(--text-body); cursor: pointer; transition: all var(--motion-fast) var(--ease-default); }
+    .q-pagination button:hover:not(:disabled) { background: var(--bg-subtle); border-color: var(--border-hover); }
+    .q-pagination button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .q-pagination button:disabled { opacity: .4; cursor: default; }
+    .q-pagination button.pg-active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; }
+    .q-pagination .pg-info { font-size: var(--text-caption); color: var(--text-muted); margin: 0 8px; }
+
     /* ── Main ───────────────────────────────────────── */
     .main { flex: 1; overflow-y: auto; padding: 24px; transition: background var(--motion-normal) var(--ease-default); }
     .main-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
@@ -414,6 +438,24 @@
     /* ── Decision stats bar ─────────────────────── */
     .dec-stats-bar { display: flex; gap: 16px; padding: 12px 24px 0; font-size: var(--text-sm); color: var(--text-sec); flex-wrap: wrap; align-items: center; }
     .stat-blocking { color: var(--danger); font-weight: 800; }
+
+    /* ── Decision Status Lifecycle (DD-014) ─────── */
+    .dec-lifecycle { margin: 8px 24px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+    .dec-lifecycle-toggle { padding: 8px 12px; cursor: pointer; font-weight: var(--fw-semibold); color: var(--text-sec); user-select: none; }
+    .dec-lifecycle-toggle:hover { color: var(--text); }
+    .dec-lifecycle-content { padding: 4px 12px 12px; }
+    .dec-lifecycle-desc { color: var(--text-sec); margin: 0 0 8px; font-size: var(--text-sm); }
+    .dec-lifecycle-flow { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .dec-lifecycle-alt { margin-bottom: 10px; }
+    .dec-lf-node { padding: 3px 10px; border-radius: var(--radius-xs); font-weight: var(--fw-semibold); font-size: var(--text-label); }
+    .dec-lf-open { background: #fef3c7; color: #92400e; }
+    .dec-lf-decided { background: #d1fae5; color: #065f46; }
+    .dec-lf-deferred { background: #e5e7eb; color: #374151; }
+    .dec-lf-expired { background: #fee2e2; color: #991b1b; }
+    .dec-lf-arrow { font-size: var(--text-body); color: var(--text-sec); }
+    .dec-lf-dashed { opacity: 0.5; font-style: italic; }
+    .dec-lifecycle-legend { margin: 0; padding-left: 20px; color: var(--text-sec); line-height: 1.7; }
+    .dec-lifecycle-legend strong { color: var(--text); }
 
     /* ── Decision action buttons ────────────────── */
     .dec-card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
@@ -930,6 +972,34 @@
   <div class="container hidden" id="panelDecisions" role="tabpanel" aria-labelledby="tab-d">
     <main class="main" style="padding:0;overflow-y:auto;">
       <div class="dec-stats-bar" id="decStats"></div>
+      <!-- Decision Status Lifecycle (DD-014) -->
+      <details class="dec-lifecycle" id="decLifecycle">
+        <summary class="dec-lifecycle-toggle">Decision Status Lifecycle</summary>
+        <div class="dec-lifecycle-content">
+          <p class="dec-lifecycle-desc">Every decision moves through these statuses. Bold arrows show the primary path; dashed arrows show reversals.</p>
+          <div class="dec-lifecycle-flow" role="img" aria-label="Decision status flow: OPEN can become DECIDED or DEFERRED. DECIDED can be EXPIRED or reopened to OPEN. DEFERRED can be reopened to OPEN.">
+            <span class="dec-lf-node dec-lf-open">OPEN</span>
+            <span class="dec-lf-arrow" aria-hidden="true">&#8594;</span>
+            <span class="dec-lf-node dec-lf-decided">DECIDED</span>
+            <span class="dec-lf-arrow" aria-hidden="true">&#8594;</span>
+            <span class="dec-lf-node dec-lf-expired">EXPIRED</span>
+          </div>
+          <div class="dec-lifecycle-flow dec-lifecycle-alt">
+            <span class="dec-lf-node dec-lf-open">OPEN</span>
+            <span class="dec-lf-arrow" aria-hidden="true">&#8594;</span>
+            <span class="dec-lf-node dec-lf-deferred">DEFERRED</span>
+            <span class="dec-lf-arrow dec-lf-dashed" aria-hidden="true">&#8630;</span>
+            <span class="dec-lf-node dec-lf-open">OPEN</span>
+          </div>
+          <ul class="dec-lifecycle-legend">
+            <li><strong>OPEN <span aria-hidden="true">&#8594;</span> DECIDED</strong> &mdash; Answer provided and confirmed</li>
+            <li><strong>OPEN <span aria-hidden="true">&#8594;</span> DEFERRED</strong> &mdash; Postponed for later resolution</li>
+            <li><strong>DECIDED <span aria-hidden="true">&#8594;</span> EXPIRED</strong> &mdash; No longer applicable</li>
+            <li><strong>DECIDED <span aria-hidden="true">&#8594;</span> OPEN</strong> &mdash; Reopened for reconsideration</li>
+            <li><strong>DEFERRED <span aria-hidden="true">&#8594;</span> OPEN</strong> &mdash; Reopened from deferral</li>
+          </ul>
+        </div>
+      </details>
       <div class="dec-filter-bar">
         <label for="decFilterText" class="sr-only">Search decisions</label>
         <input type="text" id="decFilterText" placeholder="&#128269; Search decisions...">
@@ -1246,6 +1316,10 @@ let pollInterval   = 10000;       // adaptive: 3s active, 10s idle, 30s dormant
 const expandedSections = new Set(); // track expanded section keys for session persistence
 let silentFailCount = 0;          // consecutive silent polling failures
 const MAX_SILENT_FAILS = 5;       // show warning after this many
+
+/* ── Pagination State (DD-013) ───────────────────────── */
+const PAGE_SIZE    = 20;
+const qPage        = new Map();   // file → current page (1-based)
 let _consecutiveFails = 0;        // for connection status dot (3 = disconnect)
 let _lastRefreshTime  = null;     // last successful load timestamp
 
@@ -1328,6 +1402,7 @@ async function load(silent) {
   if (!silent && !questionnaires.length) {
     const main = document.getElementById('main');
     if (main && activeTab === 'questionnaires') {
+      main.setAttribute('aria-busy', 'true');
       main.innerHTML = '<div class="skeleton-card"><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line"></div><div class="skeleton-line" style="width:80%"></div></div>'
         .repeat(3);
     }
@@ -1350,6 +1425,14 @@ async function load(silent) {
     if (silent && newDecHash === lastDecHash && newProgHash === lastProgHash) return;
     questionnaires = qData.questionnaires;
     decisions = dData;
+
+    /* Markdown corruption notification (GAP-009) */
+    if (qData.corruptionWarnings && qData.corruptionWarnings.length > 0 && !silent) {
+      for (const w of qData.corruptionWarnings) {
+        toast('File corruption detected: ' + w.file + ' \u2014 ' + w.issues[0], 't-err');
+      }
+    }
+
     if (silent && lastDecHash && newDecHash !== lastDecHash) {
       toast(STRINGS.dataRefreshed, 't-info');
     }
@@ -1387,6 +1470,11 @@ async function load(silent) {
     } else if (activeTab === 'commandcenter') {
       renderPipeline();
     }
+    /* Clear aria-busy after content replaces skeleton (DD-012) */
+    const main = document.getElementById('main');
+    if (main) main.setAttribute('aria-busy', 'false');
+    const decMain = document.getElementById('decMain');
+    if (decMain) decMain.setAttribute('aria-busy', 'false');
     const loader = document.getElementById('loader');
     if (loader) loader.classList.add('hidden');
     const decLoader = document.getElementById('decLoader');
@@ -1593,7 +1681,15 @@ function renderQ(q) {
   const pct = total ? Math.round(answered / total * 100) : 0;
   const firstUnanswered = q.questions.find(x => x.status !== 'ANSWERED');
 
-  let h = `<div class="main-header">
+  let h = `<nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="#" data-bc="list">Questionnaires</a></li>
+      <li class="bc-mid"><a href="#" data-bc="phase" data-phase="${escAttr(q.phase)}">${esc(q.phase || 'Unknown')}</a></li>
+      <li><span aria-current="page">${esc(q.agent)}</span></li>
+    </ol>
+  </nav>`;
+
+  h += `<div class="main-header">
     <div><h2 class="main-title">${esc(q.agent)}</h2>
     <div class="main-meta">${esc(q.phase)} &middot; ${esc(q.version)} &middot; Generated: ${esc(q.generated)}</div></div>
     <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> Save All Changes</button>
@@ -1606,8 +1702,17 @@ function renderQ(q) {
     ${firstUnanswered ? `<button class="q-jump-btn" data-jump="${firstUnanswered.id}">Jump to next unanswered</button>` : ''}
   </div>`;
 
+  /* Pagination setup (DD-013) */
+  const allQuestions = q.questions;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (!qPage.has(q.file)) qPage.set(q.file, 1);
+  let curPage = qPage.get(q.file);
+  if (curPage > totalPages) { curPage = totalPages; qPage.set(q.file, curPage); }
+  const pageStart = (curPage - 1) * PAGE_SIZE;
+  const pageQuestions = total > PAGE_SIZE ? allQuestions.slice(pageStart, pageStart + PAGE_SIZE) : allQuestions;
+
   let currentSection = '';
-  for (const x of q.questions) {
+  for (const x of pageQuestions) {
     if (x.section && x.section !== currentSection) {
       if (currentSection) h += '</div>'; // close previous collapsible
       currentSection = x.section;
@@ -1626,12 +1731,12 @@ function renderQ(q) {
     /* Colorblind-safe status icons (SP-R2-005-006) */
     const si = sv === 'ANSWERED' ? '\u2714 ' : sv === 'DEFERRED' ? '\u23F8 ' : '\u25CB ';
 
-    h += `<div class="card${dirty.has(k) ? ' dirty' : ''}" id="c-${x.id}">
+    h += `<div class="card${dirty.has(k) ? ' dirty' : ''}" id="c-${x.id}" role="article" aria-labelledby="cq-${x.id}">
       <div class="card-top">
         <div class="badges"><span class="card-id">${x.id}</span> <span class="badge ${bc}">${x.classification}</span></div>
         <span class="badge ${sc}">${si}${esc(sv)}</span>
       </div>
-      <div class="card-q">${esc(x.question)}</div>
+      <div class="card-q" id="cq-${x.id}">${esc(x.question)}</div>
       <dl class="card-meta">
         ${x.whyNeeded ? `<dt>Why needed</dt><dd>${esc(x.whyNeeded)}</dd>` : ''}
         ${x.expectedFormat ? `<dt>Format</dt><dd>${esc(x.expectedFormat)}</dd>` : ''}
@@ -1655,6 +1760,23 @@ function renderQ(q) {
     </div>`;
   }
   if (currentSection) h += '</div>'; // close last collapsible section
+
+  /* Pagination controls (DD-013) */
+  if (totalPages > 1) {
+    h += `<nav class="q-pagination" aria-label="Questionnaire pagination">`;
+    h += `<button data-pg="prev"${curPage <= 1 ? ' disabled' : ''} aria-label="Previous page">&lsaquo; Prev</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages > 7 && p > 2 && p < totalPages - 1 && Math.abs(p - curPage) > 1) {
+        if (p === 3 || p === totalPages - 2) h += `<span class="pg-info">&hellip;</span>`;
+        continue;
+      }
+      h += `<button data-pg="${p}" class="${p === curPage ? 'pg-active' : ''}" aria-label="Page ${p}"${p === curPage ? ' aria-current="page"' : ''}>${p}</button>`;
+    }
+    h += `<button data-pg="next"${curPage >= totalPages ? ' disabled' : ''} aria-label="Next page">Next &rsaquo;</button>`;
+    h += `<span class="pg-info">Page ${curPage} of ${totalPages} (${total} questions)</span>`;
+    h += `</nav>`;
+  }
+
   main.innerHTML = h;
 
   // auto-resize textareas
@@ -1685,6 +1807,43 @@ function renderQ(q) {
     btn.addEventListener('click', () => {
       const target = document.getElementById('c-' + btn.dataset.jump);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  /* Breadcrumb navigation (DD-004) */
+  main.querySelectorAll('[data-bc]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const action = a.dataset.bc;
+      if (action === 'list') {
+        activeFile = null;
+        renderSidebar();
+        renderEmpty();
+      }
+    });
+  });
+
+  /* Pagination controls (DD-013) */
+  main.querySelectorAll('.q-pagination button[data-pg]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.pg;
+      let newPage = curPage;
+      if (val === 'prev') newPage = Math.max(1, curPage - 1);
+      else if (val === 'next') newPage = Math.min(totalPages, curPage + 1);
+      else newPage = parseInt(val, 10);
+      if (newPage !== curPage) {
+        qPage.set(q.file, newPage);
+        renderQ(q);
+        main.scrollTo({ top: 0, behavior: 'smooth' });
+        /* Screen reader announcement */
+        const ann = document.createElement('div');
+        ann.setAttribute('role', 'status');
+        ann.setAttribute('aria-live', 'polite');
+        ann.className = 'sr-only';
+        ann.textContent = 'Showing page ' + newPage + ' of ' + totalPages;
+        main.prepend(ann);
+        setTimeout(() => ann.remove(), 2000);
+      }
     });
   });
 }
@@ -1825,7 +1984,7 @@ function renderDecisions() {
     for (const d of openF) {
       const isBlocking = d.priority === 'HIGH';
       const xref = findCrossRefs(d);
-      h += `<div class="dec-card${isBlocking ? ' blocking' : ''}" id="dec-${escAttr(d.id)}">
+      h += `<div class="dec-card${isBlocking ? ' blocking' : ''}" id="dec-${escAttr(d.id)}" role="article" aria-labelledby="dct-${escAttr(d.id)}">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
           <div class="badges">
@@ -1833,7 +1992,7 @@ function renderDecisions() {
             ${prioBadge(d.priority)} <span class="badge b-open">\u25CB OPEN</span>${xref}
           </div>
         </div>
-        <div class="dec-card-text">${esc(d.question)}</div>
+        <div class="dec-card-text" id="dct-${escAttr(d.id)}">${esc(d.question)}</div>
         <div class="dec-card-meta">
           <span><span aria-hidden="true">&#128205;</span> ${esc(d.scope)}</span>
           <span><span aria-hidden="true">&#128197;</span> ${esc(d.date)}</span>
@@ -1857,12 +2016,12 @@ function renderDecisions() {
     for (const d of decidedF) {
       const xref = findCrossRefs(d);
       const catBadge = d.category ? ` <span class="badge b-cat" title="Category: ${escAttr(d.category)}">${esc(d.category)}</span>` : '';
-      h += `<div class="dec-card">
+      h += `<div class="dec-card" role="article" aria-labelledby="dct-${escAttr(d.id)}">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
           <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">\u2714 DECIDED</span>${catBadge}${xref}</div>
         </div>
-        <div class="dec-card-text">${esc(d.decision)}</div>
+        <div class="dec-card-text" id="dct-${escAttr(d.id)}">${esc(d.decision)}</div>
         <div class="dec-card-meta">
           <span><span aria-hidden="true">&#128205;</span> ${esc(d.scope)}</span>
           <span><span aria-hidden="true">&#128197;</span> ${esc(d.date)}</span>
@@ -1884,12 +2043,12 @@ function renderDecisions() {
       const cls = d.status === 'EXPIRED' ? 'b-expired' : 'b-deferred';
       const statusIcon = d.status === 'EXPIRED' ? '\u2716 ' : '\u23F8 ';
       const catBadge = d.category ? ` <span class="badge b-cat" title="Category: ${escAttr(d.category)}">${esc(d.category)}</span>` : '';
-      h += `<div class="dec-card">
+      h += `<div class="dec-card" role="article" aria-labelledby="dct-${escAttr(d.id)}">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
           <div class="badges"><span class="badge ${cls}">${statusIcon}${esc(d.status)}</span>${catBadge}</div>
         </div>
-        <div class="dec-card-text">${esc(d.subject)}</div>
+        <div class="dec-card-text" id="dct-${escAttr(d.id)}">${esc(d.subject)}</div>
         <div class="dec-card-meta">
           <span><span aria-hidden="true">&#128205;</span> ${esc(d.scope)}</span>
           <span><span aria-hidden="true">&#128197;</span> ${esc(d.date)}</span>
@@ -1908,12 +2067,12 @@ function renderDecisions() {
     h += `<div class="dec-group-title"><span aria-hidden="true">&#128683;</span> Deferred Technology Stacks (${deferredCats.length})</div>`;
     h += `<div style="color:var(--text-sec);font-size:13px;margin:-8px 0 12px;">These categories are deferred because the technology is not currently used. Activate when the technology is added to the project.</div>`;
     for (const c of deferredCats) {
-      h += `<div class="dec-card" style="border-left:3px solid var(--border);">
+      h += `<div class="dec-card" role="article" aria-labelledby="dct-cat-${escAttr(c.file)}" style="border-left:3px solid var(--border);">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(c.stack)}</span>
           <div class="badges"><span class="badge b-deferred"><span aria-hidden="true">&#9208;</span> DEFERRED</span> <span class="badge" style="background:#f3f4f6;color:#6b7280;">${c.count} decisions</span></div>
         </div>
-        <div class="dec-card-text">${esc(c.name)}</div>
+        <div class="dec-card-text" id="dct-cat-${escAttr(c.file)}">${esc(c.name)}</div>
         ${c.reason ? `<div class="dec-card-notes">${esc(c.reason)}</div>` : ''}
         <div class="dec-card-actions">
           <button class="btn btn-sm btn-success" data-activate-cat="${escAttr(c.file)}"><span aria-hidden="true">&#9889;</span> Activate Category</button>

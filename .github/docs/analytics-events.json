@@ -159,5 +159,26 @@
       "tab": "decisions"
     },
     "timestamp": "2026-03-08T11:19:51.956Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "questionnaires"
+    },
+    "timestamp": "2026-03-08T12:10:43.041Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T12:10:43.041Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T12:11:08.670Z"
   }
 ]

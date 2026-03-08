@@ -428,12 +428,22 @@ function scheduleRebuildIndex() {
 async function apiGetQuestionnaires(_req, res) {
   const files = discoverQuestionnaires();
   const questionnaires = [];
+  const corruptionWarnings = [];
   for (const f of files) {
     let content;
     try { content = _cache.read(f); } catch { continue; }
+    /* Markdown corruption detection (GAP-009) */
+    const issues = models.detectMarkdownCorruption(content);
+    if (issues.length > 0) {
+      const relative = path.relative(PROJECT_ROOT, f).replace(/\\/g, '/');
+      structuredLog('warn', 'markdown_corruption', { file: relative, issues });
+      corruptionWarnings.push({ file: relative, issues });
+    }
     questionnaires.push(models.parseQuestionnaire(content, f, BUSINESS_DOCS));
   }
-  json(res, 200, { questionnaires });
+  const response = { questionnaires };
+  if (corruptionWarnings.length > 0) response.corruptionWarnings = corruptionWarnings;
+  json(res, 200, response);
 }
 
 async function apiGetSession(_req, res) {

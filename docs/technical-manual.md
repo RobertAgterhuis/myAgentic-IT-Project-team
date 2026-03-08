@@ -1,3 +1,8 @@
+---
+layout: default
+title: Technical Manual
+---
+
 # Technical Manual — Agentic IT Project Team
 
 > Version 1.0 | Last updated: 2026-03-08
@@ -678,7 +683,7 @@ npm run test:watch   # Re-runs on changes
 npm start            # Start server for manual testing
 ```
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for coding standards and PR process.
+See [CONTRIBUTING.md](contributing) for coding standards and PR process.
 
 ---
 

@@ -125,7 +125,7 @@ CREATE MyProject
   help/                       ← Help content files for the web UI
 
 BusinessDocs/                 ← Questionnaires + official business documents (generated per phase)
-Documentation/                ← User manual + technical manual (generated in Phase 5)
+docs/                         ← GitHub Pages site: user manual, technical manual, data dictionary, brand guidelines
 Workitems/                    ← Isolated workspaces per FEATURE command (generated on demand)
 ```
 

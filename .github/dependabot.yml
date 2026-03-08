@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /
+    directory: /.github
     schedule:
       interval: weekly
       day: monday
@@ -25,6 +25,6 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - dependencies
-      - type: chore
+      - chore
     commit-message:
       prefix: "ci:"

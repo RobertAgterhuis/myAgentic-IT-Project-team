@@ -11,7 +11,7 @@ const {
   today,
   Q_ID_RE,
   DEC_ID_RE,
-} = require('../../.github/webapp/models');
+} = require('../../webapp/models');
 
 describe('parseQuestionnaire — edge cases', () => {
   it('ignores Q-IDs that are not in a question block', () => {

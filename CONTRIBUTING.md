@@ -60,7 +60,7 @@ npm start
 .github/skills/           ← Agent skill files (38 agents)
 .github/docs/             ← Contracts, guardrails, playbooks, templates
 
-tests/
+.github/tests/
   unit/                   ← Unit tests (models, cache, schemas, sanitization, etc.)
   integration/            ← Integration tests (API, SSE, store, regression suite)
 ```
@@ -79,7 +79,7 @@ tests/
 
 ### ESLint Configuration
 
-ESLint 9 with flat config ([eslint.config.mjs](eslint.config.mjs)) enforces:
+ESLint 9 with flat config (`.github/eslint.config.mjs`) enforces:
 
 | Rule | Setting | Rationale |
 |------|---------|-----------|
@@ -150,6 +150,7 @@ docs: update README with badges and technology stack
 
 3. **Run the full test suite** and ensure all tests pass:
    ```bash
+   cd .github
    npm test
    ```
 

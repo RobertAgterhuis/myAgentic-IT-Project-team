@@ -5,9 +5,9 @@
  * Demonstrates realistic multi-module integration testing. */
 
 const path = require('path');
-const { InMemoryStore, setStore } = require('../../.github/webapp/store');
-const { FileCache }               = require('../../.github/webapp/cache');
-const { parseDecisions, addOpenQuestion, nextDecisionId, today } = require('../../.github/webapp/models');
+const { InMemoryStore, setStore } = require('../../webapp/store');
+const { FileCache }               = require('../../webapp/cache');
+const { parseDecisions, addOpenQuestion, nextDecisionId, today } = require('../../webapp/models');
 
 const DECISIONS_PATH = path.resolve('/fake/project/.github/docs/decisions.md');
 
@@ -96,7 +96,7 @@ describe('decisions round-trip through Store + Cache + Models', () => {
   });
 
   it('validates schema on cached JSON read', () => {
-    const { validateSessionState } = require('../../.github/webapp/schemas');
+    const { validateSessionState } = require('../../webapp/schemas');
     const sessionPath = path.resolve('/fake/session-state.json');
     store.writeFile(sessionPath, JSON.stringify({
       session_id: 'test-001',

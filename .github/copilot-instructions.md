@@ -48,7 +48,9 @@ Combination creation (2 or 3 disciplines in one session, single Onboarding intak
   Examples: CREATE TECH UX project · CREATE BUSINESS MARKETING project · CREATE TECH UX MARKETING project
 
 Orchestrator
-  ↓ [required: Onboarding Output COMPLETE including session-state.json]
+  ↓ [On command: IMMEDIATELY creates session-state.json with status: ONBOARDING per ORC-46]
+  ↓ [Activates Onboarding Agent]
+  ↓ [required: Onboarding Output COMPLETE; session-state.json updated to ONBOARDING_COMPLETE]
   ↓ [Questionnaire Agent: load existing answers from BusinessDocs/ → inject into phase-agent contexts]
 Phase 1 — Requirements & Strategy: Business Analyst → Domain Expert → Sales Strategist → Financial Analyst → Product Manager (34)
   ↓ [CRITIC + RISK validation]

@@ -143,6 +143,33 @@
     .stat-val { font-weight: 700; color: #ffffff; }
     .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    /* ── Global Search (DD-006) ──────────────────── */
+    .global-search { position: relative; flex-shrink: 1; min-width: 0; max-width: 320px; }
+    .search-input {
+      width: 100%; padding: 6px 12px; border: 1px solid rgba(255,255,255,.25); border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.1); color: #fff; font-size: var(--text-sm);
+      outline: none; transition: border-color var(--motion-fast), background var(--motion-fast);
+    }
+    .search-input::placeholder { color: rgba(255,255,255,.5); }
+    .search-input:focus { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.15); }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; max-height: 400px; overflow-y: auto; z-index: var(--z-modal);
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,.15); margin-top: 4px;
+    }
+    .search-group-title { font-size: var(--text-caption); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); padding: 8px 12px 4px; }
+    .search-result-item {
+      padding: 8px 12px; cursor: pointer; font-size: var(--text-sm); color: var(--text); border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 8px; transition: background var(--motion-fast);
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover, .search-result-item.sr-active { background: var(--hover); }
+    .search-result-item .sr-id { font-weight: 600; color: var(--link); white-space: nowrap; flex-shrink: 0; }
+    .search-result-item .sr-text { flex: 1; min-width: 0; }
+    .search-result-item .sr-text mark { background: rgba(255, 214, 0, .35); color: inherit; border-radius: 2px; padding: 0 1px; }
+    .search-result-item .sr-meta { font-size: var(--text-caption); color: var(--text-muted); margin-top: 2px; }
+    .search-empty { padding: 16px 12px; font-size: var(--text-sm); color: var(--text-muted); text-align: center; }
+
     /* ── System status indicators (Story #7) ────── */
     .status-indicator { display: flex; align-items: center; gap: 6px; font-size: var(--text-label); color: rgba(255,255,255,.7); flex-shrink: 0; }
     .status-dot { width: 8px; height: 8px; border-radius: var(--radius-full); flex-shrink: 0; transition: background var(--motion-normal); }
@@ -274,7 +301,7 @@
     .b-open { background: var(--warning-light); color: #b45309; }
     .b-ans  { background: var(--success-light); color: var(--success); }
     .b-def  { background: var(--bg-subtle); color: var(--text-muted); }
-    .card-q { font-size: var(--text-lg); line-height: 1.6; margin-bottom: 12px; }
+    .card-q { font-size: var(--text-lg); line-height: var(--leading-relaxed); margin-bottom: 12px; }
     .card-meta { font-size: var(--text-sm); color: var(--text-sec); margin-bottom: 16px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
     .card-meta dt { font-weight: 700; }
     .card-ans label { display: block; font-size: var(--text-sm); font-weight: 700; margin-bottom: 6px; color: var(--text-sec); text-transform: uppercase; letter-spacing: .3px; }
@@ -295,7 +322,7 @@
     .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--text-sec); padding: 40px; }
     .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: .5; }
     .empty-title { font-size: var(--text-h2); font-weight: 700; color: var(--text); margin-bottom: 8px; }
-    .empty-desc { max-width: 440px; line-height: 1.7; font-size: var(--text-md); }
+    .empty-desc { max-width: 440px; line-height: var(--leading-relaxed); font-size: var(--text-md); }
     .empty-desc code { background: var(--code-bg); padding: 2px 8px; border-radius: var(--radius-xs); font-size: var(--text-body); color: var(--primary); }
 
     /* ── Toast ──────────────────────────────────────── */
@@ -324,7 +351,7 @@
     }
     @keyframes modal-in { from { transform: scale(.95) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
     .modal h2 { font-size: var(--text-h3); font-weight: 700; margin-bottom: 10px; }
-    .modal p { font-size: var(--text-md); color: var(--text-sec); line-height: 1.6; margin-bottom: 16px; }
+    .modal p { font-size: var(--text-md); color: var(--text-sec); line-height: var(--leading-relaxed); margin-bottom: 16px; }
     .modal p code { background: var(--code-bg); padding: 2px 8px; border-radius: var(--radius-xs); font-size: var(--text-body); font-weight: 700; color: var(--primary); }
     .modal .scope-pick { margin-bottom: 16px; }
     .modal .scope-pick label { display: block; font-size: var(--text-body); font-weight: 600; margin-bottom: 6px; }
@@ -377,13 +404,13 @@
     .b-expired { background: var(--bg-subtle); color: var(--text-muted); }
     .b-deferred { background: var(--warning-light); color: #b45309; }
     .b-cat { background: #e0e7ff; color: #3730a3; font-size: 11px; }
-    .dec-card-text { font-size: var(--text-md); line-height: 1.6; margin-bottom: 8px; }
+    .dec-card-text { font-size: var(--text-md); line-height: var(--leading-relaxed); margin-bottom: 8px; }
     .dec-card-meta { font-size: var(--text-sm); color: var(--text-sec); display: flex; gap: 16px; flex-wrap: wrap; }
     .dec-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
     .dec-card-notes {
       font-size: var(--text-body); color: var(--text-sec); margin-top: 10px; padding: 10px 14px;
       background: var(--bg-subtle); border-radius: var(--radius-sm);
-      border-left: 3px solid var(--primary); line-height: 1.6;
+      border-left: 3px solid var(--primary); line-height: var(--leading-relaxed);
     }
     .dec-answer-form { margin-top: 12px; }
     .dec-answer-form textarea {
@@ -402,7 +429,7 @@
       border-radius: var(--radius-sm); font-size: var(--text-md); font-family: inherit;
       background: var(--input-bg); color: var(--text); transition: all var(--motion-fast) var(--ease-default);
     }
-    .form-group textarea { min-height: 72px; resize: vertical; line-height: 1.6; }
+    .form-group textarea { min-height: 72px; resize: vertical; line-height: var(--leading-relaxed); }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
     }
@@ -454,7 +481,7 @@
     .dec-lf-expired { background: #fee2e2; color: #991b1b; }
     .dec-lf-arrow { font-size: var(--text-body); color: var(--text-sec); }
     .dec-lf-dashed { opacity: 0.5; font-style: italic; }
-    .dec-lifecycle-legend { margin: 0; padding-left: 20px; color: var(--text-sec); line-height: 1.7; }
+    .dec-lifecycle-legend { margin: 0; padding-left: 20px; color: var(--text-sec); line-height: var(--leading-relaxed); }
     .dec-lifecycle-legend strong { color: var(--text); }
 
     /* ── Decision action buttons ────────────────── */
@@ -479,8 +506,18 @@
     .cmd-section-title {
       font-size: var(--text-caption); font-weight: 800; text-transform: uppercase;
       letter-spacing: .8px; color: var(--text-muted); margin: 18px 0 8px; line-height: var(--leading-normal);
+      cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+      user-select: none; border-radius: var(--radius-sm); padding: 4px 6px;
+      transition: background var(--motion-fast) var(--ease-default);
     }
+    .cmd-section-title:hover { background: var(--hover); }
     .cmd-section-title:first-child { margin-top: 0; }
+    .cmd-section-title::after {
+      content: '\25B2'; font-size: 10px; transition: transform var(--motion-fast) var(--ease-default);
+    }
+    .cmd-section-title[aria-expanded="false"]::after { transform: rotate(180deg); }
+    .cmd-section-group { overflow: hidden; transition: max-height var(--motion-normal) var(--ease-default); }
+    .cmd-section-group.collapsed { max-height: 0 !important; }
     .cmd-btn {
       display: flex; align-items: center; gap: 10px;
       width: 100%; padding: 10px 12px; margin-bottom: 4px;
@@ -512,7 +549,7 @@
       font-size: var(--text-body); font-family: inherit; background: var(--input-bg); color: var(--text);
     }
     .cmd-form .form-group textarea { min-height: 60px; resize: vertical; }
-    .cmd-form .form-group textarea.brief-area { min-height: 200px; font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.6; }
+    .cmd-form .form-group textarea.brief-area { min-height: 200px; font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--leading-relaxed); }
     .cmd-form .form-group input:focus, .cmd-form .form-group select:focus, .cmd-form .form-group textarea:focus {
       outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
     }
@@ -522,7 +559,7 @@
     .tooltip-wrap { position: relative; display: inline-block; margin-left: 4px; vertical-align: middle; }
     .tooltip-btn { background: none; border: 1px solid var(--border); border-radius: 50%; width: 18px; height: 18px; font-size: 11px; line-height: 16px; text-align: center; cursor: pointer; color: var(--text-sec); padding: 0; font-weight: 700; vertical-align: middle; }
     .tooltip-btn:hover, .tooltip-btn:focus { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
-    .tooltip-text { display: none; position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: max-content; max-width: 260px; padding: 8px 12px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); font-size: var(--text-caption); font-weight: 400; color: var(--text); z-index: var(--z-tooltip); line-height: 1.4; white-space: normal; }
+    .tooltip-text { display: none; position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: max-content; max-width: 260px; padding: 8px 12px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); font-size: var(--text-caption); font-weight: 400; color: var(--text); z-index: var(--z-tooltip); line-height: var(--leading-normal); white-space: normal; }
     .tooltip-wrap:hover .tooltip-text, .tooltip-btn:focus + .tooltip-text { display: block; }
 
     /* Clipboard box */
@@ -637,7 +674,7 @@
     .pipe-empty { text-align: center; padding: 80px 20px; color: var(--text-sec); }
     .pipe-empty-icon { font-size: 64px; opacity: .35; margin-bottom: 20px; }
     .pipe-empty-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -.3px; }
-    .pipe-empty-desc { max-width: 440px; margin: 0 auto; font-size: var(--text-md); line-height: 1.7; }
+    .pipe-empty-desc { max-width: 440px; margin: 0 auto; font-size: var(--text-md); line-height: var(--leading-relaxed); }
 
     /* Waiting-for-session state (command queued, session not yet started) */
     .pipe-waiting { padding: 40px 24px; }
@@ -645,7 +682,7 @@
     .pipe-waiting-pulse { width: 14px; height: 14px; border-radius: var(--radius-full); background: var(--warning); flex-shrink: 0; margin-top: 3px; animation: waitPulse 1.8s ease-in-out infinite; }
     @keyframes waitPulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245,166,35,.5); } 50% { opacity: .6; box-shadow: 0 0 0 8px rgba(245,166,35,0); } }
     .pipe-waiting-title { font-size: var(--text-h4); font-weight: 700; color: var(--text); margin-bottom: 6px; }
-    .pipe-waiting-text { font-size: var(--text-body); color: var(--text-sec); line-height: 1.7; }
+    .pipe-waiting-text { font-size: var(--text-body); color: var(--text-sec); line-height: var(--leading-relaxed); }
     .pipe-waiting-steps { list-style: none; padding: 0; margin: 16px 0 0; counter-reset: wstep; }
     .pipe-waiting-steps li { counter-increment: wstep; display: flex; align-items: flex-start; gap: 10px; font-size: var(--text-body); color: var(--text-sec); padding: 6px 0; }
     .pipe-waiting-steps li::before { content: counter(wstep); display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: var(--radius-full); background: var(--border); color: var(--text); font-size: var(--text-label); font-weight: 700; flex-shrink: 0; }
@@ -653,7 +690,7 @@
     .pipe-waiting-steps li.step-active::before { background: var(--warning); color: #fff; }
     .pipe-waiting-steps li.step-done { color: var(--text-sec); text-decoration: line-through; opacity: .6; }
     .pipe-waiting-steps li.step-done::before { content: '\2713'; background: var(--success); color: #fff; }
-    .pipe-waiting-note { margin-top: 16px; padding: 12px 16px; background: var(--bg); border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--text-sec); line-height: 1.6; }
+    .pipe-waiting-note { margin-top: 16px; padding: 12px 16px; background: var(--bg); border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--text-sec); line-height: var(--leading-relaxed); }
 
     /* ── Help Panel ──────────────────────────────────── */
     .help-overlay {
@@ -688,7 +725,7 @@
     .help-nav-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
     .help-content {
       flex: 1; overflow-y: auto; padding: 32px 36px;
-      font-size: var(--text-md); line-height: 1.75; color: var(--text);
+      font-size: var(--text-md); line-height: var(--leading-relaxed); color: var(--text);
     }
     .help-close {
       position: absolute; top: 12px; right: 16px; background: none; border: none;
@@ -746,6 +783,7 @@
       .sidebar { width: 220px; }
       .cmd-sidebar { width: 240px; }
       .header-stats { display: none; }
+      .global-search { max-width: 200px; }
     }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .skip-nav { position: absolute; left: -9999px; top: auto; z-index: var(--z-skip-nav); padding: 8px 16px; background: var(--primary); color: #fff; text-decoration: none; border-radius: var(--radius-xs); font-size: var(--text-md); }
@@ -797,7 +835,7 @@
     .onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9500; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); animation: overlay-in var(--motion-fast) var(--ease-default); }
     .onboarding-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; max-width: 520px; width: 92%; box-shadow: var(--shadow-lg); animation: modal-in var(--motion-normal) var(--ease-bounce); text-align: center; }
     .onboarding-card h2 { font-size: var(--text-h2); font-weight: 800; margin-bottom: 8px; }
-    .onboarding-card p { font-size: var(--text-md); color: var(--text-sec); line-height: 1.7; margin-bottom: 20px; }
+    .onboarding-card p { font-size: var(--text-md); color: var(--text-sec); line-height: var(--leading-relaxed); margin-bottom: 20px; }
     .onboarding-steps { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
     .onboarding-dot { width: 10px; height: 10px; border-radius: var(--radius-full); background: var(--border); transition: all var(--motion-fast); }
     .onboarding-dot.active { background: var(--primary); transform: scale(1.3); }
@@ -927,6 +965,11 @@
       </div>
     </div>
     <div class="header-stats" id="hStats"></div>
+    <div class="global-search" id="globalSearch">
+      <input type="search" id="searchInput" class="search-input" placeholder="Search questionnaires and decisions&hellip;" aria-label="Search questionnaires and decisions" autocomplete="off">
+      <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+      <div id="searchAnnounce" class="sr-only" role="status" aria-live="polite"></div>
+    </div>
     <div class="status-indicator" id="statusIndicator">
       <span class="status-spinner" id="statusSpinner"></span>
       <span class="status-dot connected" id="statusDot" title="Server connected"></span>
@@ -1019,7 +1062,8 @@
   <!-- ── Command Center panel ──────────────── -->
   <div class="cmd-layout" id="panelCommandCenter" role="tabpanel" aria-labelledby="tab-cc">
     <nav class="cmd-sidebar" id="cmdSidebar" aria-label="Command navigation">
-      <h2 class="cmd-section-title">Create New Solution</h2>
+      <h2 class="cmd-section-title" role="button" tabindex="0" aria-expanded="true" data-group="create">Create New Solution</h2>
+      <div class="cmd-section-group" id="group-create">
       <button class="cmd-btn" data-cmd="CREATE">
         <span class="cmd-btn-icon" aria-hidden="true">&#128640;</span>
         <div><div class="cmd-btn-label">CREATE</div><div class="cmd-btn-sub">Full solution — all 4 phases</div></div>
@@ -1045,7 +1089,10 @@
         <div><div class="cmd-btn-label">CREATE SYNTHESIS</div><div class="cmd-btn-sub">Combine all phase outputs</div></div>
       </button>
 
-      <h2 class="cmd-section-title">Audit Existing Software</h2>
+      </div>
+
+      <h2 class="cmd-section-title" role="button" tabindex="0" aria-expanded="true" data-group="audit">Audit Existing Software</h2>
+      <div class="cmd-section-group" id="group-audit">
       <button class="cmd-btn" data-cmd="AUDIT">
         <span class="cmd-btn-icon" aria-hidden="true">&#128270;</span>
         <div><div class="cmd-btn-label">AUDIT</div><div class="cmd-btn-sub">Full audit — all 4 phases</div></div>
@@ -1067,7 +1114,10 @@
         <div><div class="cmd-btn-label">AUDIT MARKETING</div><div class="cmd-btn-sub">Phase 4 only</div></div>
       </button>
 
-      <h2 class="cmd-section-title">On-Demand Commands</h2>
+      </div>
+
+      <h2 class="cmd-section-title" role="button" tabindex="0" aria-expanded="true" data-group="ondemand">On-Demand Commands</h2>
+      <div class="cmd-section-group" id="group-ondemand">
       <button class="cmd-btn" data-cmd="FEATURE">
         <span class="cmd-btn-icon" aria-hidden="true">&#10024;</span>
         <div><div class="cmd-btn-label">FEATURE</div><div class="cmd-btn-sub">New feature — full cycle</div></div>
@@ -1088,6 +1138,7 @@
         <span class="cmd-btn-icon" aria-hidden="true">&#128259;</span>
         <div><div class="cmd-btn-label">REFRESH ONBOARDING</div><div class="cmd-btn-sub">Rescan workspace &amp; tooling</div></div>
       </button>
+      </div>
     </nav>
     <main class="cmd-main" id="cmdMain">
       <div class="pipe-empty" id="cmdWelcome">
@@ -1241,58 +1292,262 @@
   </div>
 
 <script>
-/* ── UI Strings (centralized for maintainability) ──── */
+/* ── UI Strings (centralized for maintainability & i18n readiness) ── */
+/* Organized by section: errors, success, questionnaires, decisions, commands, labels */
 const STRINGS = {
-  // Error / recovery
-  somethingWrong:      'Something went wrong',
-  tryAgain:            'Please try again.',
-  requestFailed:       'Request failed',
-  couldNotLoad:        'Could not load data',
-  checkServer:         'Check that the server is running.',
-  connectionLost:      'Connection lost \u2014 server may be down. Retrying automatically.',
-  serverUnreachable:   'Server unreachable \u2014 retrying automatically',
-  serverRestored:      'Server connection restored',
-  // Toast / status
-  dataRefreshed:       'Data updated externally \u2014 refreshed',
-  noChanges:           'No changes to save',
-  answerRequired:      'Enter an answer first',
-  answerRequiredDecide:'Enter an answer first before deciding',
-  scopeTextRequired:   'Scope and text are required',
-  fieldRequired:       (name) => `${name} is required`,
-  answerEmpty:         'Answer is empty \u2014 consider filling it in before marking ANSWERED',
-  answerFieldReq:      'An answer is required',
-  answerFieldReqDecide:'An answer is required before saving or deciding',
-  answerEmptyDecide:   'An answer is required before deciding',
-  exportSuccess:       'Session exported successfully',
-  exportFailed:        (msg) => 'Export failed: ' + msg,
-  copiedClipboard:     'Copied to clipboard',
-  cmdQueued:           'Command queued \u2014 paste in Copilot Chat to start',
-  cmdPaste:            'Paste CONTINUE in Copilot Chat to resume',
-  savedCount:          (n) => `Saved ${n} answer(s)`,
-  answerSaved:         (id) => 'Answer saved for ' + id,
-  decisionClosed:      (id) => `Decision closed: ${id}`,
-  decisionDeferred:    (id) => `Decision deferred: ${id}`,
-  decisionExpired:     (id) => `Decision expired: ${id}`,
-  decisionReopened:    (id) => `Decision reopened: ${id}`,
-  decisionCreated:     (id) => `Decision created: ${id}`,
-  decisionUpdated:     (id) => `Decision updated: ${id}`,
-  // Reevaluate
-  reevalCreated:       (scope) => `Reevaluation trigger created (scope: ${scope}). Now type REEVALUATE ${scope} in Copilot chat.`,
-  // Empty states
-  noQuestionnaires:    'No questionnaires found.',
-  noQuestionnairesYet: 'No questionnaires yet',
-  noDecisionsYet:      'No decisions yet',
-  noMatchFilters:      'No decisions match filters',
-  noActiveSession:     'No active session',
-  // Page / tab
-  pageTitle:           (tab) => (tab || 'Manager') + ' \u2014 Q&D Manager',
-  switchedTab:         (tab) => 'Switched to ' + tab.replace('commandcenter', 'Command Center') + ' tab',
-  // Connection
-  serverConnected:     'Server connected',
-  justNow:             'just now',
-  agoSuffix:           's ago',
-  liveBadge:           'Live',
-  pollingBadge:        'Polling',
+  errors: {
+    somethingWrong:          'Something went wrong',
+    tryAgain:                'Please try again.',
+    requestFailed:           'Request failed',
+    couldNotLoad:            'Could not load data',
+    checkServer:             'Check that the server is running.',
+    connectionLost:          'Connection lost \u2014 server may be down. Retrying automatically.',
+    serverUnreachable:       'Server unreachable \u2014 retrying automatically',
+    fieldRequired:           (name) => `${name} is required`,
+    scopeTextRequired:       'Scope and text are required',
+    answerRequired:          'Enter an answer first',
+    answerRequiredDecide:    'Enter an answer first before deciding',
+    answerFieldReq:          'An answer is required',
+    answerFieldReqDecide:    'An answer is required before saving or deciding',
+    answerEmptyDecide:       'An answer is required before deciding',
+    answerEmptyAnswered:     'Answer cannot be empty when status is ANSWERED',
+    fileCorruption:          (file, issue) => `File corruption detected: ${file} \u2014 ${issue}`,
+    decisionActionFailed:    'Decision action failed',
+    couldNotSaveAnswer:      'Could not save answer',
+    couldNotDecide:          'Could not decide',
+    couldNotUpdateDecision:  'Could not update decision',
+    couldNotCreateDecision:  'Could not create decision',
+    saveFailed:              'Save failed',
+    saveFailedFor:           (file) => `Save failed for ${file}`,
+    reevalFailed:            'Reevaluation failed',
+    commandFailed:           'Command failed',
+    categoryActivationFailed:'Category activation failed',
+    exportFailed:            (msg) => 'Export failed: ' + msg,
+    helpTopicLoadFailed:     'Could not load help topic.',
+    projectNameRequired:     'Project name is required',
+    descriptionRequired:     'Description is required',
+    briefSizeWarning:        'Brief is large (>50 KB). It will still be saved, but consider trimming to essential requirements.',
+    fieldRequired:           (label) => `${label} is required`,
+    scopeLabel:              'Scope',
+    decisionQuestionLabel:   'Decision / Question',
+    decisionLabel:           'Decision',
+  },
+  success: {
+    serverRestored:          'Server connection restored',
+    serverConnected:         'Server connected',
+    dataRefreshed:           'Data updated externally \u2014 refreshed',
+    exportSuccess:           'Session exported successfully',
+    copiedClipboard:         'Copied to clipboard',
+    cmdQueued:               'Command queued \u2014 paste in Copilot Chat to start',
+    sessionStarted:          'Session started',
+    agentStarted:            (name) => `Agent started: ${name}`,
+    phaseStarted:            (name) => `Phase started: ${name}`,
+    categoryActivated:       (name) => `Category "${name}" activated \u2014 decisions are now enforced`,
+    savedCount:              (n) => `Saved ${n} answer(s)`,
+    answerSaved:             (id) => 'Answer saved for ' + id,
+    decisionClosed:          (id) => `Decision closed: ${id}`,
+    decisionDeferred:        (id) => `Decision deferred: ${id}`,
+    decisionExpired:         (id) => `Decision expired: ${id}`,
+    decisionReopened:        (id) => `Decision reopened: ${id}`,
+    decisionCreated:         (id) => `Decision created: ${id}`,
+    decisionUpdated:         (id) => `Decision updated: ${id}`,
+    reevalCreated:           (scope) => `Reevaluation trigger created (scope: ${scope}). Now type REEVALUATE ${scope} in Copilot chat.`,
+  },
+  questionnaires: {
+    noQuestionnaires:        'No questionnaires found.',
+    noQuestionnairesYet:     'No questionnaires yet',
+    noQuestionnairesDesc:    'Questionnaires are generated during the analysis phases (Phase 1\u20134) when agents encounter items they need your input on.',
+    noQuestionnairesAction:  'Run CREATE [project] or AUDIT [project] in the Copilot chat to start.',
+    breadcrumb:              'Questionnaires',
+    saveAllChanges:          'Save All Changes',
+    jumpToUnanswered:        'Jump to next unanswered',
+    yourAnswer:              'Your Answer',
+    answerEmpty:             'Answer is empty \u2014 consider filling it in before marking ANSWERED',
+    showingPage:             (page, total) => `Showing page ${page} of ${total}`,
+    confirmUnsavedTitle:     'Unsaved Changes',
+    confirmUnsavedText:      'You have unsaved questionnaire changes. Switch tab anyway?',
+    confirmSwitchTab:        'Switch tab',
+    noChanges:               'No changes to save',
+    statTotal:               'Total:',
+    statAnswered:            'Answered:',
+    statOpen:                'Open:',
+    statCoverage:            'Coverage:',
+    questionnaireSummary:    (n, m) => `${n} questionnaire(s) across ${m} phase(s)`,
+    noQuestionnairesGenerated:'No questionnaires generated yet',
+    answered:                'answered',
+    whyNeeded:               'Why needed',
+    format:                  'Format',
+    example:                 'Example',
+    statusLabel:             'Status',
+    statusOpen:              'OPEN',
+    statusAnswered:          'ANSWERED',
+    statusDeferred:          'DEFERRED',
+    saveBtn:                 'Save',
+    prevBtn:                 'Prev',
+    nextPageBtn:             'Next',
+    pageInfo:                (cur, total, questions) => `Page ${cur} of ${total} (${questions} questions)`,
+    loadingQuestionnaires:   'Loading questionnaires\u2026',
+  },
+  decisions: {
+    noDecisionsYet:          'No decisions yet',
+    noMatchFilters:          'No decisions match filters',
+    tryAdjustFilters:        'Try adjusting the search or filter criteria.',
+    noDecisionsDesc:         'Click + New Decision to create one, or agents will add open questions during analysis.',
+    groupOpenQuestions:       'Open Questions',
+    groupDecidedItems:       'Decided Items',
+    groupDeferredExpired:    'Deferred & Expired',
+    groupDeferredTechStacks: 'Deferred Technology Stacks',
+    blocksSprint:            'BLOCKS SPRINT GATE',
+    deferredCatsDesc:        'These categories are deferred because the technology is not currently used. Activate when the technology is added to the project.',
+    activateCategoryBtn:     'Activate Category',
+    saveAnswerBtn:           'Save Answer',
+    decideCloseBtn:          'Decide & Close',
+    deferBtn:                'Defer',
+    editBtn:                 'Edit',
+    expireBtn:               'Expire',
+    reopenBtn:               'Reopen',
+    reopenAsOpenBtn:         'Reopen as Open Question',
+    placeholderAnswer:       'Type your answer here...',
+    confirmDecideTitle:      'Decide & Close',
+    confirmDecideText:       (id) => `Move ${id} to Decided Items? This action is visible to all agents.`,
+    confirmDeferTitle:       'Defer Decision',
+    confirmDeferText:        (id) => `Defer ${id}? The Orchestrator will ignore it until scope triggers.`,
+    confirmExpireTitle:      'Expire Decision',
+    confirmExpireText:       (id) => `Expire ${id}? The Orchestrator will ignore it entirely.`,
+    confirmReopenTitle:      'Reopen Decision',
+    confirmReopenText:       (id) => `Reopen ${id} as an open question?`,
+    confirmActivateTitle:    'Activate Category',
+    confirmActivateText:     (name, count) => `Activate "${name}"? Its ${count} decisions will become active hard constraints for the agentic team.`,
+    confirmActivateBtn:      'Activate',
+    triggerReevalTitle:      'Trigger Reevaluation?',
+    triggerReevalText:       (id) => `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`,
+    triggerReevalBtn:        'Trigger reevaluation',
+    highPrioBlocking:        (n) => `${n} HIGH-priority open question(s) are BLOCKING the Sprint Gate until answered`,
+    decisionCountSub:        (n) => `${n} decision(s)`,
+    statOpen:                'Open:',
+    statDecided:             'Decided:',
+    statDeferred:            'Deferred:',
+    statBlocking:            'Blocking:',
+  },
+  commands: {
+    noActiveSession:         'No active session',
+    launchToBegin:           'Command Center \u2014 Launch a command to begin',
+    waitingForChat:          'Waiting for Copilot Chat',
+    commandQueuedLabel:      'Command queued: ',
+    pasteToStart:            'Paste the copied command in Copilot Chat to start the Orchestrator',
+    cmdPaste:                'Paste CONTINUE in Copilot Chat to resume',
+    labelProjectName:        'Project Name',
+    tipProjectName:          'A short identifier for your project (e.g. MyApp). Used to name the session and output folder.',
+    labelProjectBrief:       'Project Brief',
+    labelBriefOptional:      '(optional \u2014 saved as file, not sent to chat)',
+    tipProjectBrief:         'Paste your full requirements here. Saved to BusinessDocs/project-brief.md so agents can read it without overloading the chat context.',
+    labelScope:              'Scope / Dimension',
+    tipScope:                'Select which discipline to target: BUSINESS, TECH, UX, MARKETING, or ALL for a full re-evaluation.',
+    labelFeatureDesc:        'Feature Name & Description',
+    labelDescription:        'Description',
+    tipFeatureDesc:          'Provide a short name followed by a description, e.g. "Dark Mode: Add system-wide dark theme toggle".',
+    tipDescription:          'Describe the change, issue, or scope adjustment in detail.',
+    placeholderProject:      'e.g. MyApp, TaskTracker',
+    placeholderBrief:        'Paste your full project requirements here.\nThis will be saved to BusinessDocs/project-brief.md so the Onboarding Agent can read it \u2014 it will NOT be included in the Copilot Chat command, preventing context overload and network timeouts.',
+    placeholderFeatureDesc:  'e.g. Dark Mode: Add system-wide dark theme toggle',
+    placeholderChangeDesc:   'Describe the change or issue...',
+    cmdNoParams:             'This command has no additional parameters. Click Launch to proceed.',
+    launchCommandBtn:        'Launch Command',
+    cancelBtn:               'Cancel',
+    cmdQueuedSuccess:        'Command queued successfully!',
+    briefSavedNote:          'Project brief saved to BusinessDocs/project-brief.md \u2014 the Onboarding Agent will read it from there.',
+    copyAndPasteInstr:       'Copy the short command below and paste it in Copilot Chat to start:',
+    showDetails:             'Show command details',
+    copiedBtn:               '\u2705 Copied!',
+    copyBtn:                 '\uD83D\uDCCB Copy',
+    continueBtn:             'Continue',
+    continueBtnTitle:        'Copy CONTINUE to clipboard for pasting into a new Copilot Chat',
+    sessionInfoSub:          (id, type) => `Session: ${id} \u00b7 ${type}`,
+    statPhase:               'Phase:',
+    statAgent:               'Agent:',
+    statProgress:            'Progress:',
+    pipeWaitingTitle:        'Waiting for Copilot Chat to start processing',
+    pipeWaitingText:         'The pipeline will appear automatically once the Orchestrator begins.',
+    pipeStepQueued:          'Command queued via Command Center',
+    pipeStepBriefSaved:      'Project brief saved to BusinessDocs/project-brief.md',
+    pipeStepPaste:           'Copy the command and paste it in Copilot Chat',
+    pipeStepOrchestrator:    'Orchestrator reads the command and activates the Onboarding Agent',
+    pipeStepProgress:        'Pipeline progress appears here as agents complete their work',
+    pipeWaitingTip:          'This page polls for updates every few seconds while a command is pending. Once you paste the command in Copilot Chat, the Orchestrator will create a session and the full agent pipeline will appear here automatically. You don\u2019t need to refresh \u2014 just be patient, the first agent may take a minute to start.',
+    pipePendingBanner:       'Command queued: ',
+    pipePendingHint:         'Paste the command in Copilot Chat to start processing.',
+    pipelineHeading:         (name) => `${name} Pipeline`,
+    pipeSessionLabel:        'Session:',
+    pipeStatusLabel:         'Status:',
+    pipeActiveAgentLabel:    'Active agent:',
+    pipeProgressLabel:       'Overall pipeline progress',
+    pipeProgressText:        (done, total, pct) => `${done}/${total} agents (${pct}%)`,
+    sprintsHeading:          'Sprints',
+  },
+  search: {
+    placeholder:             'Search questionnaires and decisions\u2026',
+    ariaLabel:               'Search questionnaires and decisions',
+    noResults:               (q) => `No results for \u201C${q}\u201D`,
+    resultCount:             (n) => `${n} result(s) found`,
+    groupQuestionnaires:     'Questionnaires',
+    groupDecisions:          'Decisions',
+  },
+  labels: {
+    pageTitle:               (tab) => (tab || 'Manager') + ' \u2014 Q&D Manager',
+    switchedTab:             (tab) => 'Switched to ' + tab.replace('commandcenter', 'Command Center') + ' tab',
+    justNow:                 'just now',
+    agoSuffix:               's ago',
+    liveBadge:               'Live',
+    pollingBadge:            'Polling',
+    loading:                 'Loading\u2026',
+    helpTopicsTitle:         'Help Topics',
+    keyboardShortcuts:       'Keyboard Shortcuts',
+    helpOpened:              'Help panel opened',
+    helpClosed:              'Help panel closed',
+    shortcutsOpened:         'Keyboard shortcuts panel opened',
+    takeTourAgain:           'Take the tour again',
+    getStarted:              'Get Started',
+    nextBtn:                 'Next',
+    serverUnreachableShort:  'Server unreachable',
+    confirm:                 'Confirm',
+    loadingDecisions:        'Loading decisions\u2026',
+    loadingHelp:             'Loading help\u2026',
+  },
+  help: {
+    shortcutHeader:          'Shortcut',
+    actionHeader:            'Action',
+    contextHeader:           'Context',
+    saveAllAction:           'Save all unsaved changes',
+    closeModalAction:        'Close active modal or help panel',
+    toggleHelpAction:        'Toggle help panel',
+    navigateTabsAction:      'Navigate between tabs',
+    activateFocusedAction:   'Activate focused tab or sidebar item',
+    moveFocusNextAction:     'Move focus to next interactive element',
+    moveFocusPrevAction:     'Move focus to previous interactive element',
+    contextGlobal:           'Global',
+    contextNotTextField:     'When not in a text field',
+    contextTabBarFocused:    'Tab bar focused',
+    contextTabBarSidebar:    'Tab bar / Sidebar',
+    contextModalOpen:        'Modal / Help open',
+    tipsHeading:             'Tips',
+    tipFocusTrapped:         'Focus is trapped inside modals and the help panel \u2014 press Escape to close.',
+    tipSkipNav:              'The skip-nav link at the top of the page jumps to the main content area.',
+    tipScreenReader:         'All status changes and errors are announced to screen readers automatically.',
+    notFound:                'Not found',
+    couldNotLoad:            'Could not load help topic.',
+  },
+  onboarding: {
+    stepWelcomeTitle:        'Welcome to the Manager',
+    stepWelcomeText:         'This is your central hub for project questionnaires, decisions, and the agent pipeline. Everything you need lives in three tabs \u2014 let\u2019s walk through them.',
+    stepCommandCenterTitle:  'Command Center',
+    stepCommandCenterText:   'Launch commands like CREATE or AUDIT and track agent pipeline progress in real time. Each phase shows its current status so you always know where things stand.',
+    stepQuestionnairesTitle: 'Questionnaires',
+    stepQuestionnairesText:  'Agents create questions when they need your input. Browse by phase, answer what you can, and save. Your answers feed directly into the analysis \u2014 no extra steps.',
+    stepDecisionsTitle:      'Decisions',
+    stepDecisionsText:       'Open decisions block the Sprint Gate until resolved. Filter by priority to tackle the most urgent items first. You can decide, defer, or mark them expired.',
+    stepReadyTitle:          'You\u2019re ready!',
+    stepReadyText:           'Start by opening the Command Center tab and launching your first command. Press Ctrl+S to save changes and ? to open the help panel at any time.',
+  },
 };
 
 /* ── State ───────────────────────────────────────────── */
@@ -1348,7 +1603,7 @@ async function api(method, url, body, signal) {
   const r = await fetch(url, opts);
   const d = await r.json();
   if (!r.ok) {
-    const err = new Error(d.message || d.error || STRINGS.requestFailed);
+    const err = new Error(d.message || d.error || STRINGS.errors.requestFailed);
     err.code = d.code || 'UNKNOWN';
     err.recovery = d.recovery || '';
     err.status = r.status;
@@ -1376,8 +1631,8 @@ async function apiWithRetry(method, url, body, { maxRetries = 2, signal } = {}) 
 
 /** Show a structured error message (What + Why + Action) and announce to screen readers. */
 function showError(e, context) {
-  const what = context ? context + ': ' + (e.message || STRINGS.somethingWrong) : (e.message || STRINGS.somethingWrong);
-  const action = e.recovery || STRINGS.tryAgain;
+  const what = context ? context + ': ' + (e.message || STRINGS.errors.somethingWrong) : (e.message || STRINGS.errors.somethingWrong);
+  const action = e.recovery || STRINGS.errors.tryAgain;
   const msg = what + ' \u2014 ' + action;
   toast(msg, 't-err');
   announceError(msg);
@@ -1429,25 +1684,25 @@ async function load(silent) {
     /* Markdown corruption notification (GAP-009) */
     if (qData.corruptionWarnings && qData.corruptionWarnings.length > 0 && !silent) {
       for (const w of qData.corruptionWarnings) {
-        toast('File corruption detected: ' + w.file + ' \u2014 ' + w.issues[0], 't-err');
+        toast(STRINGS.errors.fileCorruption(w.file, w.issues[0]), 't-err');
       }
     }
 
     if (silent && lastDecHash && newDecHash !== lastDecHash) {
-      toast(STRINGS.dataRefreshed, 't-info');
+      toast(STRINGS.success.dataRefreshed, 't-info');
     }
 
     // Detect pipeline transitions and show toasts (compare BEFORE overwriting progress)
     if (silent && pData && progress) {
       if (pData.active && progress.active) {
         if (pData.session.current_agent !== progress.session.current_agent && pData.session.current_agent) {
-          toast('Agent started: ' + pData.session.current_agent, 't-ok');
+          toast(STRINGS.success.agentStarted(pData.session.current_agent), 't-ok');
         }
         if (pData.session.current_phase !== progress.session.current_phase && pData.session.current_phase) {
-          toast('Phase started: ' + pData.session.current_phase, 't-info');
+          toast(STRINGS.success.phaseStarted(pData.session.current_phase), 't-info');
         }
       } else if (pData.active && !progress.active) {
-        toast('Session started', 't-ok');
+        toast(STRINGS.success.sessionStarted, 't-ok');
       }
     }
 
@@ -1481,7 +1736,7 @@ async function load(silent) {
     if (decLoader) decLoader.classList.add('hidden');
   } catch (e) {
     if (!silent) {
-      const errMsg = (e.message || STRINGS.couldNotLoad) + ' \u2014 ' + (e.recovery || STRINGS.checkServer);
+      const errMsg = (e.message || STRINGS.errors.couldNotLoad) + ' \u2014 ' + (e.recovery || STRINGS.errors.checkServer);
       const loader = document.getElementById('loader');
       if (loader) loader.textContent = errMsg;
       const decLoader = document.getElementById('decLoader');
@@ -1492,7 +1747,7 @@ async function load(silent) {
       _consecutiveFails++;
       updateConnectionStatus();
       if (silentFailCount >= MAX_SILENT_FAILS) {
-        const msg = STRINGS.connectionLost;
+        const msg = STRINGS.errors.connectionLost;
         toast(msg, 't-err');
         announceError(msg);
         silentFailCount = 0;
@@ -1533,23 +1788,23 @@ function updateConnectionStatus() {
   if (sseBadge) {
     sseBadge.classList.toggle('hidden', !_sseConnected && _consecutiveFails < 3);
     sseBadge.className = 'sse-badge ' + (_sseConnected ? 'live' : 'polling');
-    sseBadge.textContent = _sseConnected ? STRINGS.liveBadge : STRINGS.pollingBadge;
+    sseBadge.textContent = _sseConnected ? STRINGS.labels.liveBadge : STRINGS.labels.pollingBadge;
   }
   if (dot) {
     const connected = _consecutiveFails < 3;
     dot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
-    dot.title = connected ? STRINGS.serverConnected : 'Server unreachable';
+    dot.title = connected ? STRINGS.success.serverConnected : STRINGS.labels.serverUnreachableShort;
   }
   if (refresh && _lastRefreshTime) {
     const ago = Math.round((Date.now() - _lastRefreshTime.getTime()) / 1000);
-    refresh.textContent = ago < 5 ? STRINGS.justNow : ago + STRINGS.agoSuffix;
+    refresh.textContent = ago < 5 ? STRINGS.labels.justNow : ago + STRINGS.labels.agoSuffix;
   }
   if (banner) {
     const wasVisible = banner.classList.contains('visible');
     banner.classList.toggle('visible', _consecutiveFails >= 3);
     /* Announce connection status changes to screen readers (SP-R2-005-005) */
-    if (!wasVisible && _consecutiveFails >= 3) announceError('Server unreachable — retrying automatically');
-    else if (wasVisible && _consecutiveFails < 3) announceStatus(STRINGS.serverRestored);
+    if (!wasVisible && _consecutiveFails >= 3) announceError(STRINGS.errors.serverUnreachable);
+    else if (wasVisible && _consecutiveFails < 3) announceStatus(STRINGS.success.serverRestored);
   }
 }
 
@@ -1599,7 +1854,7 @@ function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;
 function renderSidebar() {
   const el = document.getElementById('sidebar');
   if (!questionnaires.length) {
-    el.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-muted)">' + STRINGS.noQuestionnaires + '</div>';
+    el.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-muted)">' + STRINGS.questionnaires.noQuestionnaires + '</div>';
     return;
   }
   const phases = {};
@@ -1629,40 +1884,40 @@ function renderStats() {
       const donePhases = p.phases.filter(ph => ph.status === 'done').length;
       const totalPhases = p.phases.length;
       document.getElementById('hStats').innerHTML =
-        `<span>Phase: <span class="stat-val">${esc(p.session.current_phase || '—')}</span></span>
-         <span>Agent: <span class="stat-val">${esc(p.session.current_agent || '—')}</span></span>
-         <span>Progress: <span class="stat-val">${donePhases}/${totalPhases} phases</span></span>`;
-      document.getElementById('hSub').textContent = `Session: ${p.session.session_id || '—'} · ${p.session.cycle_type || '—'}`;
+        `<span>${STRINGS.commands.statPhase} <span class="stat-val">${esc(p.session.current_phase || '—')}</span></span>
+         <span>${STRINGS.commands.statAgent} <span class="stat-val">${esc(p.session.current_agent || '—')}</span></span>
+         <span>${STRINGS.commands.statProgress} <span class="stat-val">${STRINGS.commands.pipeProgressText(donePhases, totalPhases, Math.round(donePhases / totalPhases * 100))}</span></span>`;
+      document.getElementById('hSub').textContent = STRINGS.commands.sessionInfoSub(p.session.session_id || '—', p.session.cycle_type || '—');
     } else if (p && p.command && p.command.status === 'PENDING') {
-      document.getElementById('hStats').innerHTML = `<span><span aria-hidden="true">&#9203;</span> Command queued: <span class="stat-val">${esc(p.command.command || '—')}</span></span><span style="color:var(--warning)">Waiting for Copilot Chat</span>`;
-      document.getElementById('hSub').textContent = 'Paste the copied command in Copilot Chat to start the Orchestrator';
+      document.getElementById('hStats').innerHTML = `<span><span aria-hidden="true">&#9203;</span> ${STRINGS.commands.commandQueuedLabel}<span class="stat-val">${esc(p.command.command || '—')}</span></span><span style="color:var(--warning)">${STRINGS.commands.waitingForChat}</span>`;
+      document.getElementById('hSub').textContent = STRINGS.commands.pasteToStart;
     } else {
-      document.getElementById('hStats').innerHTML = '<span>' + STRINGS.noActiveSession + '</span>';
-      document.getElementById('hSub').textContent = 'Command Center — Launch a command to begin';
+      document.getElementById('hStats').innerHTML = '<span>' + STRINGS.commands.noActiveSession + '</span>';
+      document.getElementById('hSub').textContent = STRINGS.commands.launchToBegin;
     }
     return;
   }
   if (activeTab === 'decisions') {
     const blocking = decisions.open.filter(d => d.priority === 'HIGH').length;
     document.getElementById('hStats').innerHTML =
-      `<span>Open: <span class="stat-val" style="color:var(--warning)">${decisions.open.length}</span></span>
-       <span>Decided: <span class="stat-val" style="color:var(--success)">${decisions.decided.length}</span></span>
-       <span>Deferred: <span class="stat-val">${decisions.deferred.length}</span></span>
-       ${blocking ? `<span style="color:var(--danger)"><span aria-hidden="true">&#9888;</span> Blocking: <span class="stat-val">${blocking}</span></span>` : ''}`;
+      `<span>${STRINGS.decisions.statOpen} <span class="stat-val" style="color:var(--warning)">${decisions.open.length}</span></span>
+       <span>${STRINGS.decisions.statDecided} <span class="stat-val" style="color:var(--success)">${decisions.decided.length}</span></span>
+       <span>${STRINGS.decisions.statDeferred} <span class="stat-val">${decisions.deferred.length}</span></span>
+       ${blocking ? `<span style="color:var(--danger)"><span aria-hidden="true">&#9888;</span> ${STRINGS.decisions.statBlocking} <span class="stat-val">${blocking}</span></span>` : ''}`;
     document.getElementById('hSub').textContent =
-      `${decisions.open.length + decisions.decided.length + decisions.deferred.length} decision(s)`;
+      STRINGS.decisions.decisionCountSub(decisions.open.length + decisions.decided.length + decisions.deferred.length);
     return;
   }
   const total = questionnaires.reduce((s, q) => s + q.questions.length, 0);
   const ans   = questionnaires.reduce((s, q) => s + q.questions.filter(x => x.status === 'ANSWERED').length, 0);
   const pct   = total ? Math.round(ans / total * 100) : 0;
   document.getElementById('hStats').innerHTML =
-    `<span>Total: <span class="stat-val">${total}</span></span>
-     <span>Answered: <span class="stat-val" style="color:var(--success)">${ans}</span></span>
-     <span>Open: <span class="stat-val" style="color:var(--warning)">${total - ans}</span></span>
-     <span>Coverage: <span class="stat-val">${pct}%</span></span>`;
+    `<span>${STRINGS.questionnaires.statTotal} <span class="stat-val">${total}</span></span>
+     <span>${STRINGS.questionnaires.statAnswered} <span class="stat-val" style="color:var(--success)">${ans}</span></span>
+     <span>${STRINGS.questionnaires.statOpen} <span class="stat-val" style="color:var(--warning)">${total - ans}</span></span>
+     <span>${STRINGS.questionnaires.statCoverage} <span class="stat-val">${pct}%</span></span>`;
   document.getElementById('hSub').textContent =
-    questionnaires.length ? `${questionnaires.length} questionnaire(s) across ${new Set(questionnaires.map(q => q.phase)).size} phase(s)` : 'No questionnaires generated yet';
+    questionnaires.length ? STRINGS.questionnaires.questionnaireSummary(questionnaires.length, new Set(questionnaires.map(q => q.phase)).size) : STRINGS.questionnaires.noQuestionnairesGenerated;
 }
 
 /* ── Select questionnaire ────────────────────────────── */
@@ -1683,7 +1938,7 @@ function renderQ(q) {
 
   let h = `<nav class="breadcrumb" aria-label="Breadcrumb">
     <ol>
-      <li><a href="#" data-bc="list">Questionnaires</a></li>
+      <li><a href="#" data-bc="list">${STRINGS.questionnaires.breadcrumb}</a></li>
       <li class="bc-mid"><a href="#" data-bc="phase" data-phase="${escAttr(q.phase)}">${esc(q.phase || 'Unknown')}</a></li>
       <li><span aria-current="page">${esc(q.agent)}</span></li>
     </ol>
@@ -1692,14 +1947,14 @@ function renderQ(q) {
   h += `<div class="main-header">
     <div><h2 class="main-title">${esc(q.agent)}</h2>
     <div class="main-meta">${esc(q.phase)} &middot; ${esc(q.version)} &middot; Generated: ${esc(q.generated)}</div></div>
-    <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> Save All Changes</button>
+    <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> ${STRINGS.questionnaires.saveAllChanges}</button>
   </div>`;
 
   /* Progress bar + Jump button (SP-R2-004-004) */
   h += `<div class="q-progress-bar">
     <div class="q-progress-track"><div class="q-progress-fill" style="width:${pct}%" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div></div>
-    <span class="q-progress-text">${answered}/${total} answered (${pct}%)</span>
-    ${firstUnanswered ? `<button class="q-jump-btn" data-jump="${firstUnanswered.id}">Jump to next unanswered</button>` : ''}
+    <span class="q-progress-text">${answered}/${total} ${STRINGS.questionnaires.answered} (${pct}%)</span>
+    ${firstUnanswered ? `<button class="q-jump-btn" data-jump="${firstUnanswered.id}">${STRINGS.questionnaires.jumpToUnanswered}</button>` : ''}
   </div>`;
 
   /* Pagination setup (DD-013) */
@@ -1738,24 +1993,24 @@ function renderQ(q) {
       </div>
       <div class="card-q" id="cq-${x.id}">${esc(x.question)}</div>
       <dl class="card-meta">
-        ${x.whyNeeded ? `<dt>Why needed</dt><dd>${esc(x.whyNeeded)}</dd>` : ''}
-        ${x.expectedFormat ? `<dt>Format</dt><dd>${esc(x.expectedFormat)}</dd>` : ''}
-        ${x.example ? `<dt>Example</dt><dd>${esc(x.example)}</dd>` : ''}
+        ${x.whyNeeded ? `<dt>${STRINGS.questionnaires.whyNeeded}</dt><dd>${esc(x.whyNeeded)}</dd>` : ''}
+        ${x.expectedFormat ? `<dt>${STRINGS.questionnaires.format}</dt><dd>${esc(x.expectedFormat)}</dd>` : ''}
+        ${x.example ? `<dt>${STRINGS.questionnaires.example}</dt><dd>${esc(x.example)}</dd>` : ''}
       </dl>
       <div class="card-ans">
-        <label for="a-${x.id}">Your Answer</label>
+        <label for="a-${x.id}">${STRINGS.questionnaires.yourAnswer}</label>
         <textarea id="a-${x.id}" data-file="${escAttr(q.file)}" data-qid="${x.id}">${esc(av)}</textarea>
       </div>
       <div class="card-foot">
         <div class="status-group">
-          <label>Status</label>
+          <label>${STRINGS.questionnaires.statusLabel}</label>
           <select data-file="${escAttr(q.file)}" data-qid="${x.id}" data-role="status">
-            <option value="OPEN"${sv === 'OPEN' ? ' selected' : ''}>OPEN</option>
-            <option value="ANSWERED"${sv === 'ANSWERED' ? ' selected' : ''}>ANSWERED</option>
-            <option value="DEFERRED"${sv === 'DEFERRED' ? ' selected' : ''}>DEFERRED</option>
+            <option value="OPEN"${sv === 'OPEN' ? ' selected' : ''}>${STRINGS.questionnaires.statusOpen}</option>
+            <option value="ANSWERED"${sv === 'ANSWERED' ? ' selected' : ''}>${STRINGS.questionnaires.statusAnswered}</option>
+            <option value="DEFERRED"${sv === 'DEFERRED' ? ' selected' : ''}>${STRINGS.questionnaires.statusDeferred}</option>
           </select>
         </div>
-        <button class="btn btn-sm" data-save="${x.id}" data-file="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> Save</button>
+        <button class="btn btn-sm" data-save="${x.id}" data-file="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> ${STRINGS.questionnaires.saveBtn}</button>
       </div>
     </div>`;
   }
@@ -1764,7 +2019,7 @@ function renderQ(q) {
   /* Pagination controls (DD-013) */
   if (totalPages > 1) {
     h += `<nav class="q-pagination" aria-label="Questionnaire pagination">`;
-    h += `<button data-pg="prev"${curPage <= 1 ? ' disabled' : ''} aria-label="Previous page">&lsaquo; Prev</button>`;
+    h += `<button data-pg="prev"${curPage <= 1 ? ' disabled' : ''} aria-label="Previous page">&lsaquo; ${STRINGS.questionnaires.prevBtn}</button>`;
     for (let p = 1; p <= totalPages; p++) {
       if (totalPages > 7 && p > 2 && p < totalPages - 1 && Math.abs(p - curPage) > 1) {
         if (p === 3 || p === totalPages - 2) h += `<span class="pg-info">&hellip;</span>`;
@@ -1772,8 +2027,8 @@ function renderQ(q) {
       }
       h += `<button data-pg="${p}" class="${p === curPage ? 'pg-active' : ''}" aria-label="Page ${p}"${p === curPage ? ' aria-current="page"' : ''}>${p}</button>`;
     }
-    h += `<button data-pg="next"${curPage >= totalPages ? ' disabled' : ''} aria-label="Next page">Next &rsaquo;</button>`;
-    h += `<span class="pg-info">Page ${curPage} of ${totalPages} (${total} questions)</span>`;
+    h += `<button data-pg="next"${curPage >= totalPages ? ' disabled' : ''} aria-label="Next page">${STRINGS.questionnaires.nextPageBtn} &rsaquo;</button>`;
+    h += `<span class="pg-info">${STRINGS.questionnaires.pageInfo(curPage, totalPages, total)}</span>`;
     h += `</nav>`;
   }
 
@@ -1840,7 +2095,7 @@ function renderQ(q) {
         ann.setAttribute('role', 'status');
         ann.setAttribute('aria-live', 'polite');
         ann.className = 'sr-only';
-        ann.textContent = 'Showing page ' + newPage + ' of ' + totalPages;
+        ann.textContent = STRINGS.questionnaires.showingPage(newPage, totalPages);
         main.prepend(ann);
         setTimeout(() => ann.remove(), 2000);
       }
@@ -1853,11 +2108,10 @@ function renderEmpty() {
   document.getElementById('main').innerHTML = `
     <div class="empty">
       <div class="empty-icon" aria-hidden="true">&#128221;</div>
-      <div class="empty-title">No questionnaires yet</div>
+      <div class="empty-title">${STRINGS.questionnaires.noQuestionnairesYet}</div>
       <div class="empty-desc">
-        Questionnaires are generated during the analysis phases (Phase 1&ndash;4) when agents
-        encounter items they need your input on.<br><br>
-        Run <code>CREATE [project]</code> or <code>AUDIT [project]</code> in the Copilot chat to start.
+        ${STRINGS.questionnaires.noQuestionnairesDesc}<br><br>
+        ${STRINGS.questionnaires.noQuestionnairesAction}
       </div>
     </div>`;
 }
@@ -1865,14 +2119,14 @@ function renderEmpty() {
 /* ── Tab switching ───────────────────────────────────── */
 async function switchTab(tab) {
   if (activeTab === 'questionnaires' && dirty.size > 0 && tab !== 'questionnaires') {
-    const r = await confirmAction('Unsaved Changes', 'You have unsaved questionnaire changes. Switch tab anyway?', false, 'Switch tab');
+    const r = await confirmAction(STRINGS.questionnaires.confirmUnsavedTitle, STRINGS.questionnaires.confirmUnsavedText, false, STRINGS.questionnaires.confirmSwitchTab);
     if (!r.confirmed) return;
   }
   activeTab = tab;
   try { sessionStorage.setItem('activeTab', tab); } catch {}
   const hash = TAB_HASH_MAP[tab];
   if (hash && location.hash !== hash) history.pushState(null, '', hash);
-  document.title = STRINGS.pageTitle(TAB_TITLES[tab]);
+  document.title = STRINGS.labels.pageTitle(TAB_TITLES[tab]);
   document.querySelectorAll('.tab').forEach(t => {
     const sel = t.dataset.tab === tab;
     t.classList.toggle('active', sel);
@@ -1883,7 +2137,7 @@ async function switchTab(tab) {
   document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
   document.getElementById('panelCommandCenter').classList.toggle('hidden', tab !== 'commandcenter');
   /* Announce active tab to screen readers (SP-R2-005-005) */
-  announceStatus(STRINGS.switchedTab(tab));
+  announceStatus(STRINGS.labels.switchedTab(tab));
   document.getElementById('btnSaveAll').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('btnNewDecision').classList.toggle('hidden', tab !== 'decisions' && tab !== 'questionnaires');
   document.getElementById('btnReeval').classList.toggle('hidden', tab === 'commandcenter');
@@ -1970,8 +2224,8 @@ function renderDecisions() {
     const total = decisions.open.length + decisions.decided.length + decisions.deferred.length;
     el.innerHTML = `<div class="dec-empty">
       <div class="empty-icon" style="font-size:48px;opacity:.4;" aria-hidden="true">&#9878;</div>
-      <div class="empty-title" style="margin:12px 0 6px;font-size:16px;font-weight:600;color:var(--text);">${total ? STRINGS.noMatchFilters : STRINGS.noDecisionsYet}</div>
-      <div style="color:var(--text-sec);font-size:14px;">${total ? 'Try adjusting the search or filter criteria.' : 'Click <strong>+ New Decision</strong> to create one, or agents will add open questions during analysis.'}</div>
+      <div class="empty-title" style="margin:12px 0 6px;font-size:16px;font-weight:600;color:var(--text);">${total ? STRINGS.decisions.noMatchFilters : STRINGS.decisions.noDecisionsYet}</div>
+      <div style="color:var(--text-sec);font-size:14px;">${total ? STRINGS.decisions.tryAdjustFilters : STRINGS.decisions.noDecisionsDesc}</div>
     </div>`;
     return;
   }
@@ -1980,7 +2234,7 @@ function renderDecisions() {
 
   // Open Questions
   if (openF.length > 0) {
-    h += `<div class="dec-group-title"><span aria-hidden="true">&#9888;</span> Open Questions (${openF.length})</div>`;
+    h += `<div class="dec-group-title"><span aria-hidden="true">&#9888;</span> ${STRINGS.decisions.groupOpenQuestions} (${openF.length})</div>`;
     for (const d of openF) {
       const isBlocking = d.priority === 'HIGH';
       const xref = findCrossRefs(d);
@@ -1988,7 +2242,7 @@ function renderDecisions() {
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
           <div class="badges">
-            ${isBlocking ? '<span class="badge badge-blocking"><span aria-hidden="true">&#9888;</span> BLOCKS SPRINT GATE</span>' : ''}
+            ${isBlocking ? `<span class="badge badge-blocking"><span aria-hidden="true">&#9888;</span> ${STRINGS.decisions.blocksSprint}</span>` : ''}
             ${prioBadge(d.priority)} <span class="badge b-open">\u25CB OPEN</span>${xref}
           </div>
         </div>
@@ -1999,11 +2253,11 @@ function renderDecisions() {
         </div>
         ${d.answer ? `<div class="dec-card-notes">${esc(d.answer)}</div>` : ''}
         <div class="dec-answer-form">
-          <textarea id="decAns-${escAttr(d.id)}" placeholder="Type your answer here...">${esc(d.answer)}</textarea>
+          <textarea id="decAns-${escAttr(d.id)}" placeholder="${STRINGS.decisions.placeholderAnswer}">${esc(d.answer)}</textarea>
           <div class="dec-answer-actions">
-            <button class="btn btn-sm btn-primary" data-dec-answer="${escAttr(d.id)}"><span aria-hidden="true">&#128190;</span> Save Answer</button>
-            <button class="btn btn-sm btn-success" data-dec-decide="${escAttr(d.id)}" data-priority="${escAttr(d.priority)}"><span aria-hidden="true">&#10004;</span> Decide &amp; Close</button>
-            <button class="btn btn-sm" data-dec-defer="${escAttr(d.id)}"><span aria-hidden="true">&#9208;</span> Defer</button>
+            <button class="btn btn-sm btn-primary" data-dec-answer="${escAttr(d.id)}"><span aria-hidden="true">&#128190;</span> ${STRINGS.decisions.saveAnswerBtn}</button>
+            <button class="btn btn-sm btn-success" data-dec-decide="${escAttr(d.id)}" data-priority="${escAttr(d.priority)}"><span aria-hidden="true">&#10004;</span> ${STRINGS.decisions.decideCloseBtn}</button>
+            <button class="btn btn-sm" data-dec-defer="${escAttr(d.id)}"><span aria-hidden="true">&#9208;</span> ${STRINGS.decisions.deferBtn}</button>
           </div>
         </div>
       </div>`;
@@ -2012,7 +2266,7 @@ function renderDecisions() {
 
   // Decided Items
   if (decidedF.length > 0) {
-    h += `<div class="dec-group-title"><span aria-hidden="true">&#10004;</span> Decided Items (${decidedF.length})</div>`;
+    h += `<div class="dec-group-title"><span aria-hidden="true">&#10004;</span> ${STRINGS.decisions.groupDecidedItems} (${decidedF.length})</div>`;
     for (const d of decidedF) {
       const xref = findCrossRefs(d);
       const catBadge = d.category ? ` <span class="badge b-cat" title="Category: ${escAttr(d.category)}">${esc(d.category)}</span>` : '';
@@ -2028,9 +2282,9 @@ function renderDecisions() {
         </div>
         ${d.notes ? `<div class="dec-card-notes">${esc(d.notes)}</div>` : ''}
         <div class="dec-card-actions">
-          <button class="btn btn-sm" data-dec-edit="${escAttr(d.id)}"><span aria-hidden="true">&#9998;</span> Edit</button>
-          <button class="btn btn-sm" data-dec-expire="${escAttr(d.id)}">Expire</button>
-          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}"><span aria-hidden="true">&#8617;</span> Reopen</button>
+          <button class="btn btn-sm" data-dec-edit="${escAttr(d.id)}"><span aria-hidden="true">&#9998;</span> ${STRINGS.decisions.editBtn}</button>
+          <button class="btn btn-sm" data-dec-expire="${escAttr(d.id)}">${STRINGS.decisions.expireBtn}</button>
+          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}"><span aria-hidden="true">&#8617;</span> ${STRINGS.decisions.reopenBtn}</button>
         </div>
       </div>`;
     }
@@ -2038,7 +2292,7 @@ function renderDecisions() {
 
   // Deferred & Expired
   if (deferrF.length > 0) {
-    h += `<div class="dec-group-title"><span aria-hidden="true">&#128336;</span> Deferred &amp; Expired (${deferrF.length})</div>`;
+    h += `<div class="dec-group-title"><span aria-hidden="true">&#128336;</span> ${STRINGS.decisions.groupDeferredExpired} (${deferrF.length})</div>`;
     for (const d of deferrF) {
       const cls = d.status === 'EXPIRED' ? 'b-expired' : 'b-deferred';
       const statusIcon = d.status === 'EXPIRED' ? '\u2716 ' : '\u23F8 ';
@@ -2055,7 +2309,7 @@ function renderDecisions() {
         </div>
         ${d.reason ? `<div class="dec-card-notes">${esc(d.reason)}</div>` : ''}
         <div class="dec-card-actions">
-          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}"><span aria-hidden="true">&#8617;</span> Reopen as Open Question</button>
+          <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}"><span aria-hidden="true">&#8617;</span> ${STRINGS.decisions.reopenAsOpenBtn}</button>
         </div>
       </div>`;
     }
@@ -2064,8 +2318,8 @@ function renderDecisions() {
   // Deferred Categories — show only when no category filter is active or 'all' is selected
   const deferredCats = (decisions.categories || []).filter(c => c.status === 'DEFERRED');
   if (deferredCats.length > 0 && !fc) {
-    h += `<div class="dec-group-title"><span aria-hidden="true">&#128683;</span> Deferred Technology Stacks (${deferredCats.length})</div>`;
-    h += `<div style="color:var(--text-sec);font-size:13px;margin:-8px 0 12px;">These categories are deferred because the technology is not currently used. Activate when the technology is added to the project.</div>`;
+    h += `<div class="dec-group-title"><span aria-hidden="true">&#128683;</span> ${STRINGS.decisions.groupDeferredTechStacks} (${deferredCats.length})</div>`;
+    h += `<div style="color:var(--text-sec);font-size:13px;margin:-8px 0 12px;">${STRINGS.decisions.deferredCatsDesc}</div>`;
     for (const c of deferredCats) {
       h += `<div class="dec-card" role="article" aria-labelledby="dct-cat-${escAttr(c.file)}" style="border-left:3px solid var(--border);">
         <div class="dec-card-top">
@@ -2075,7 +2329,7 @@ function renderDecisions() {
         <div class="dec-card-text" id="dct-cat-${escAttr(c.file)}">${esc(c.name)}</div>
         ${c.reason ? `<div class="dec-card-notes">${esc(c.reason)}</div>` : ''}
         <div class="dec-card-actions">
-          <button class="btn btn-sm btn-success" data-activate-cat="${escAttr(c.file)}"><span aria-hidden="true">&#9889;</span> Activate Category</button>
+          <button class="btn btn-sm btn-success" data-activate-cat="${escAttr(c.file)}"><span aria-hidden="true">&#9889;</span> ${STRINGS.decisions.activateCategoryBtn}</button>
         </div>
       </div>`;
     }
@@ -2109,61 +2363,61 @@ async function confirmAndExecute(id, action, title, text, successMsg, showReason
     await apiWithRetry('POST', '/api/decisions', payload);
     toast(successMsg, 't-ok');
     await load();
-  } catch (e) { showError(e, 'Decision action failed'); }
+  } catch (e) { showError(e, STRINGS.errors.decisionActionFailed); }
 }
 
 async function answerDecision(id) {
   const ta = document.getElementById('decAns-' + id);
-  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.answerFieldReq); toast(STRINGS.answerRequired, 't-info'); return; }
+  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.errors.answerFieldReq); toast(STRINGS.errors.answerRequired, 't-info'); return; }
   setFieldError(ta, '');
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'answer', id, answer: ta.value.trim() });
-    toast(STRINGS.answerSaved(id), 't-ok');
+    toast(STRINGS.success.answerSaved(id), 't-ok');
     await load();
-  } catch (e) { showError(e, 'Could not save answer'); }
+  } catch (e) { showError(e, STRINGS.errors.couldNotSaveAnswer); }
 }
 
 async function decideDecision(id) {
   const ta = document.getElementById('decAns-' + id);
-  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.answerEmptyDecide); toast(STRINGS.answerRequiredDecide, 't-info'); return; }
+  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.errors.answerEmptyDecide); toast(STRINGS.errors.answerRequiredDecide, 't-info'); return; }
   setFieldError(ta, '');
   const decision = decisions.open.find(d => d.id === id);
-  const r = await confirmAction('Decide & Close', `Move ${id} to Decided Items? This action is visible to all agents.`, false, 'Decide & close');
+  const r = await confirmAction(STRINGS.decisions.confirmDecideTitle, STRINGS.decisions.confirmDecideText(id), false, STRINGS.decisions.decideCloseBtn);
   if (!r.confirmed) return;
   const priority = decision?.priority;
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'decide', id, answer: ta.value.trim() });
-    toast(STRINGS.decisionClosed(id), 't-ok');
+    toast(STRINGS.success.decisionClosed(id), 't-ok');
     await load();
     if (priority === 'HIGH') {
-      const re = await confirmAction('Trigger Reevaluation?', `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`, false, 'Trigger reevaluation');
+      const re = await confirmAction(STRINGS.decisions.triggerReevalTitle, STRINGS.decisions.triggerReevalText(id), false, STRINGS.decisions.triggerReevalBtn);
       if (re.confirmed) openModal('reevalOverlay');
     }
-  } catch (e) { showError(e, 'Could not decide'); }
+  } catch (e) { showError(e, STRINGS.errors.couldNotDecide); }
 }
 
 async function deferDecision(id) {
-  return confirmAndExecute(id, 'defer', 'Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, STRINGS.decisionDeferred(id), true, 'Defer decision');
+  return confirmAndExecute(id, 'defer', STRINGS.decisions.confirmDeferTitle, STRINGS.decisions.confirmDeferText(id), STRINGS.success.decisionDeferred(id), true, STRINGS.decisions.deferBtn);
 }
 
 async function expireDecision(id) {
-  return confirmAndExecute(id, 'expire', 'Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, STRINGS.decisionExpired(id), true, 'Expire decision');
+  return confirmAndExecute(id, 'expire', STRINGS.decisions.confirmExpireTitle, STRINGS.decisions.confirmExpireText(id), STRINGS.success.decisionExpired(id), true, STRINGS.decisions.expireBtn);
 }
 
 async function reopenDecision(id) {
-  return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, STRINGS.decisionReopened(id), false, 'Reopen decision');
+  return confirmAndExecute(id, 'reopen', STRINGS.decisions.confirmReopenTitle, STRINGS.decisions.confirmReopenText(id), STRINGS.success.decisionReopened(id), false, STRINGS.decisions.reopenBtn);
 }
 
 async function activateDeferredCategory(file) {
   const cat = (decisions.categories || []).find(c => c.file === file);
   const name = cat ? cat.name : file;
-  const r = await confirmAction('Activate Category', `Activate "${name}"? Its ${cat ? cat.count : ''} decisions will become active hard constraints for the agentic team.`, false, 'Activate');
+  const r = await confirmAction(STRINGS.decisions.confirmActivateTitle, STRINGS.decisions.confirmActivateText(name, cat ? cat.count : ''), false, STRINGS.decisions.confirmActivateBtn);
   if (!r.confirmed) return;
   try {
     await apiWithRetry('POST', '/api/decisions/activate-category', { file });
-    toast(`Category "${name}" activated — decisions are now enforced`, 't-ok');
+    toast(STRINGS.success.categoryActivated(name), 't-ok');
     await load();
-  } catch (e) { showError(e, 'Category activation failed'); }
+  } catch (e) { showError(e, STRINGS.errors.categoryActivationFailed); }
 }
 
 function openEditDecision(id) {
@@ -2183,13 +2437,13 @@ async function saveEditDecision() {
   const scope    = document.getElementById('edScope').value.trim();
   const text     = document.getElementById('edText').value.trim();
   const notes    = document.getElementById('edNotes').value.trim();
-  if (!scope || !text) { toast(STRINGS.scopeTextRequired, 't-info'); return; }
+  if (!scope || !text) { toast(STRINGS.errors.scopeTextRequired, 't-info'); return; }
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'edit', id, priority, scope, text, notes });
     closeModal('editDecOverlay');
-    toast(STRINGS.decisionUpdated(id), 't-ok');
+    toast(STRINGS.success.decisionUpdated(id), 't-ok');
     await load();
-  } catch (e) { showError(e, 'Could not update decision'); }
+  } catch (e) { showError(e, STRINGS.errors.couldNotUpdateDecision); }
 }
 
 async function createDecision() {
@@ -2198,17 +2452,17 @@ async function createDecision() {
   const scope    = document.getElementById('ndScope').value.trim();
   const text     = document.getElementById('ndText').value.trim();
   const notes    = document.getElementById('ndNotes').value.trim();
-  if (!scope || !text) { toast(STRINGS.scopeTextRequired, 't-info'); return; }
+  if (!scope || !text) { toast(STRINGS.errors.scopeTextRequired, 't-info'); return; }
   try {
     const r = await apiWithRetry('POST', '/api/decisions', { action: 'create', type, priority, scope, text, notes });
     closeModal('newDecOverlay');
     document.getElementById('ndScope').value = '';
     document.getElementById('ndText').value = '';
     document.getElementById('ndNotes').value = '';
-    toast(STRINGS.decisionCreated(r.id), 't-ok');
+    toast(STRINGS.success.decisionCreated(r.id), 't-ok');
     switchTab('decisions');
     await load();
-  } catch (e) { showError(e, 'Could not create decision'); }
+  } catch (e) { showError(e, STRINGS.errors.couldNotCreateDecision); }
 }
 
 /* ── Dirty tracking ──────────────────────────────────── */
@@ -2229,14 +2483,14 @@ async function saveOne(file, qId) {
   const status = sel ? sel.value : 'OPEN';
 
   if (status === 'ANSWERED' && !answer.trim()) {
-    toast('Answer is empty — consider filling it in before marking ANSWERED', 't-info');
+    toast(STRINGS.questionnaires.answerEmpty, 't-info');
   }
   try {
     await apiWithRetry('POST', '/api/save', { file, updates: [{ questionId: qId, answer, status }] });
     dirty.delete(file + '::' + qId);
-    toast(STRINGS.answerSaved(qId), 't-ok');
+    toast(STRINGS.success.answerSaved(qId), 't-ok');
     await load();
-  } catch (e) { showError(e, 'Save failed'); }
+  } catch (e) { showError(e, STRINGS.errors.saveFailed); }
 }
 
 /* ── Save all for file ───────────────────────────────── */
@@ -2251,13 +2505,13 @@ async function saveFileAll(file) {
       updates.push({ questionId: x.id, answer: d.answer, status: d.status });
     }
   }
-  if (!updates.length) { toast(STRINGS.noChanges, 't-info'); return; }
+  if (!updates.length) { toast(STRINGS.questionnaires.noChanges, 't-info'); return; }
   try {
     await apiWithRetry('POST', '/api/save', { file, updates });
     updates.forEach(u => dirty.delete(file + '::' + u.questionId));
-    toast(STRINGS.savedCount(updates.length), 't-ok');
+    toast(STRINGS.success.savedCount(updates.length), 't-ok');
     await load();
-  } catch (e) { showError(e, 'Save failed'); }
+  } catch (e) { showError(e, STRINGS.errors.saveFailed); }
 }
 
 /* ── Global Save All ─────────────────────────────────── */
@@ -2274,9 +2528,9 @@ async function saveAll() {
       await apiWithRetry('POST', '/api/save', { file, updates });
       updates.forEach(u => dirty.delete(file + '::' + u.questionId));
       n += updates.length;
-    } catch (e) { showError(e, 'Save failed for ' + file); return; }
+    } catch (e) { showError(e, STRINGS.errors.saveFailedFor(file)); return; }
   }
-  if (n) toast(STRINGS.savedCount(n), 't-ok');
+  if (n) toast(STRINGS.success.savedCount(n), 't-ok');
   await load();
 }
 
@@ -2287,8 +2541,8 @@ async function doReeval() {
   const scope = document.getElementById('reevalScope').value;
   try {
     await apiWithRetry('POST', '/api/reevaluate', { scope });
-    toast(STRINGS.reevalCreated(scope), 't-ok');
-  } catch (e) { showError(e, 'Reevaluation failed'); }
+    toast(STRINGS.success.reevalCreated(scope), 't-ok');
+  } catch (e) { showError(e, STRINGS.errors.reevalFailed); }
 }
 
 /* ── Toast ───────────────────────────────────────────── */
@@ -2337,24 +2591,22 @@ function renderPipeline() {
         <div class="pipe-waiting-banner">
           <div class="pipe-waiting-pulse"></div>
           <div>
-            <div class="pipe-waiting-title">Waiting for Copilot Chat to start processing</div>
+            <div class="pipe-waiting-title">${STRINGS.commands.pipeWaitingTitle}</div>
             <div class="pipe-waiting-text">
               Command <strong>${cmd}</strong>${proj ? ' for <strong>' + proj + '</strong>' : ''} is queued${queuedAt ? ' (since ' + queuedAt + ')' : ''}.
-              The pipeline will appear automatically once the Orchestrator begins.
+              ${STRINGS.commands.pipeWaitingText}
             </div>
           </div>
         </div>
         <ol class="pipe-waiting-steps">
-          <li class="step-done">Command queued via Command Center</li>
-          ${briefSaved ? '<li class="step-done">Project brief saved to <code>BusinessDocs/project-brief.md</code></li>' : ''}
-          <li class="step-active">Copy the command and paste it in <strong>Copilot Chat</strong></li>
-          <li>Orchestrator reads the command and activates the Onboarding Agent</li>
-          <li>Pipeline progress appears here as agents complete their work</li>
+          <li class="step-done">${STRINGS.commands.pipeStepQueued}</li>
+          ${briefSaved ? '<li class="step-done">' + STRINGS.commands.pipeStepBriefSaved + '</li>' : ''}
+          <li class="step-active">${STRINGS.commands.pipeStepPaste}</li>
+          <li>${STRINGS.commands.pipeStepOrchestrator}</li>
+          <li>${STRINGS.commands.pipeStepProgress}</li>
         </ol>
         <div class="pipe-waiting-note">
-          <strong><span aria-hidden="true">&#128161;</span> Tip:</strong> This page polls for updates every few seconds while a command is pending.
-          Once you paste the command in Copilot Chat, the Orchestrator will create a session and the full agent pipeline will appear here automatically.
-          You don't need to refresh — just be patient, the first agent may take a minute to start.
+          <strong><span aria-hidden="true">&#128161;</span> Tip:</strong> ${STRINGS.commands.pipeWaitingTip}
         </div>
       </div>`;
     } else {
@@ -2377,26 +2629,26 @@ function renderPipeline() {
   if (p.command && p.command.status === 'PENDING') {
     h += `<div class="cmd-pending">
       <span class="cmd-pending-icon" aria-hidden="true">&#9888;</span>
-      <div class="cmd-pending-text">Command queued: <span class="cmd-pending-cmd">${esc(p.command.command)}</span><br>
-        <span style="font-size:12px;color:var(--text-sec)">Paste the command in Copilot Chat to start processing.</span></div>
+      <div class="cmd-pending-text">${STRINGS.commands.pipePendingBanner}<span class="cmd-pending-cmd">${esc(p.command.command)}</span><br>
+        <span style="font-size:12px;color:var(--text-sec)">${STRINGS.commands.pipePendingHint}</span></div>
     </div>`;
   }
 
   // Header
   h += `<div class="pipe-header">
-    <h2><span aria-hidden="true">&#128640;</span> ${esc(session.cycle_type || 'Session')} Pipeline</h2>
+    <h2><span aria-hidden="true">&#128640;</span> ${STRINGS.commands.pipelineHeading(esc(session.cycle_type || 'Session'))}</h2>
     <div class="pipe-status">
-      Session: <strong>${esc(session.session_id || '—')}</strong> &middot;
-      Status: <strong>${esc(session.status || '—')}</strong>
-      ${session.current_agent ? ' &middot; Active agent: <strong>' + esc(session.current_agent) + '</strong>' : ''}
+      ${STRINGS.commands.pipeSessionLabel} <strong>${esc(session.session_id || '—')}</strong> &middot;
+      ${STRINGS.commands.pipeStatusLabel} <strong>${esc(session.status || '—')}</strong>
+      ${session.current_agent ? ' &middot; ' + STRINGS.commands.pipeActiveAgentLabel + ' <strong>' + esc(session.current_agent) + '</strong>' : ''}
     </div>
-    <button class="btn btn-sm btn-primary" id="btnContinue" title="Copy CONTINUE to clipboard for pasting into a new Copilot Chat"><span aria-hidden="true">&#9654;</span> Continue</button>
+    <button class="btn btn-sm btn-primary" id="btnContinue" title="${STRINGS.commands.continueBtnTitle}"><span aria-hidden="true">&#9654;</span> ${STRINGS.commands.continueBtn}</button>
   </div>`;
 
   // Overall progress bar
   h += `<div class="pipe-progress">
-    <div class="pipe-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Overall pipeline progress"><div class="pipe-progress-fill" style="width:${pct}%"></div></div>
-    <div class="pipe-progress-label">${doneAgents}/${totalAgents} agents (${pct}%)</div>
+    <div class="pipe-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${STRINGS.commands.pipeProgressLabel}"><div class="pipe-progress-fill" style="width:${pct}%"></div></div>
+    <div class="pipe-progress-label">${STRINGS.commands.pipeProgressText(doneAgents, totalAgents, pct)}</div>
   </div>`;
 
   // Phase cards
@@ -2426,7 +2678,7 @@ function renderPipeline() {
 
   // Sprint info
   if (p.sprints && p.sprints.length) {
-    h += `<div class="pipe-sprints"><h3 class="cmd-section-title" style="margin:20px 0 10px;">Sprints</h3>`;
+    h += `<div class="pipe-sprints"><h3 class="cmd-section-title" style="margin:20px 0 10px;">${STRINGS.commands.sprintsHeading}</h3>`;
     for (const sp of p.sprints) {
       const spBadge = sp.status === 'DONE' ? 'b-decided' : sp.status === 'IN_PROGRESS' ? 'b-open' : 'b-def';
       h += `<div class="pipe-sprint-card">
@@ -2445,8 +2697,8 @@ function renderPipeline() {
   if (contBtn) {
     contBtn.addEventListener('click', () => {
       navigator.clipboard.writeText('CONTINUE').then(() => {
-        toast(STRINGS.copiedClipboard, 't-ok');
-      }).catch(() => toast(STRINGS.cmdPaste, 't-info'));
+        toast(STRINGS.success.copiedClipboard, 't-ok');
+      }).catch(() => toast(STRINGS.commands.cmdPaste, 't-info'));
     });
   }
 }
@@ -2476,18 +2728,18 @@ function selectCommand(cmd) {
 
   if (needsProject) {
     formHTML += `<div class="form-group">
-      <label for="cmdProject">Project Name <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-project">?</button><span class="tooltip-text" role="tooltip" id="tip-project">A short identifier for your project (e.g. MyApp). Used to name the session and output folder.</span></span></label>
-      <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker" maxlength="200">
+      <label for="cmdProject">${STRINGS.commands.labelProjectName} <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-project">?</button><span class="tooltip-text" role="tooltip" id="tip-project">${STRINGS.commands.tipProjectName}</span></span></label>
+      <input type="text" id="cmdProject" placeholder="${STRINGS.commands.placeholderProject}" maxlength="200">
     </div>
     <div class="form-group">
-      <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span> <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-brief">?</button><span class="tooltip-text" role="tooltip" id="tip-brief">Paste your full requirements here. Saved to BusinessDocs/project-brief.md so agents can read it without overloading the chat context.</span></span></label>
-      <textarea id="cmdBrief" class="brief-area" placeholder="Paste your full project requirements here.&#10;This will be saved to BusinessDocs/project-brief.md so the Onboarding Agent can read it — it will NOT be included in the Copilot Chat command, preventing context overload and network timeouts."></textarea>
-      <div id="briefSizeWarn" class="hidden" style="font-size:12px;color:var(--warning);margin-top:4px;"><span aria-hidden="true">&#9888;</span> Brief is large (&gt;50 KB). It will still be saved, but consider trimming to essential requirements.</div>
+      <label for="cmdBrief">${STRINGS.commands.labelProjectBrief} <span style="font-weight:400;color:var(--text-sec)">${STRINGS.commands.labelBriefOptional}</span> <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-brief">?</button><span class="tooltip-text" role="tooltip" id="tip-brief">${STRINGS.commands.tipProjectBrief}</span></span></label>
+      <textarea id="cmdBrief" class="brief-area" placeholder="${STRINGS.commands.placeholderBrief}"></textarea>
+      <div id="briefSizeWarn" class="hidden" style="font-size:12px;color:var(--warning);margin-top:4px;"><span aria-hidden="true">&#9888;</span> ${STRINGS.errors.briefSizeWarning}</div>
     </div>`;
   }
   if (needsScope) {
     formHTML += `<div class="form-group">
-      <label for="cmdScope">Scope / Dimension <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-scope">?</button><span class="tooltip-text" role="tooltip" id="tip-scope">Select which discipline to target: BUSINESS, TECH, UX, MARKETING, or ALL for a full re-evaluation.</span></span></label>
+      <label for="cmdScope">${STRINGS.commands.labelScope} <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-scope">?</button><span class="tooltip-text" role="tooltip" id="tip-scope">${STRINGS.commands.tipScope}</span></span></label>
       <select id="cmdScope">
         ${cmd === 'REEVALUATE' ? '<option value="ALL">ALL</option>' : ''}
         <option value="BUSINESS">BUSINESS</option>
@@ -2500,17 +2752,17 @@ function selectCommand(cmd) {
   }
   if (needsDesc) {
     formHTML += `<div class="form-group">
-      <label for="cmdDesc">${cmd === 'FEATURE' ? 'Feature Name & Description' : 'Description'} <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-desc">?</button><span class="tooltip-text" role="tooltip" id="tip-desc">${cmd === 'FEATURE' ? 'Provide a short name followed by a description, e.g. "Dark Mode: Add system-wide dark theme toggle".' : 'Describe the change, issue, or scope adjustment in detail.'}</span></span></label>
-      <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? 'e.g. Dark Mode: Add system-wide dark theme toggle' : 'Describe the change or issue...'}" maxlength="2000"></textarea>
+      <label for="cmdDesc">${cmd === 'FEATURE' ? STRINGS.commands.labelFeatureDesc : STRINGS.commands.labelDescription} <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-desc">?</button><span class="tooltip-text" role="tooltip" id="tip-desc">${cmd === 'FEATURE' ? STRINGS.commands.tipFeatureDesc : STRINGS.commands.tipDescription}</span></span></label>
+      <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? STRINGS.commands.placeholderFeatureDesc : STRINGS.commands.placeholderChangeDesc}" maxlength="2000"></textarea>
     </div>`;
   }
   if (isSimple) {
-    formHTML += `<p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">This command has no additional parameters. Click Launch to proceed.</p>`;
+    formHTML += `<p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">${STRINGS.commands.cmdNoParams}</p>`;
   }
 
   formHTML += `<div class="cmd-submit-row">
-    <button class="btn btn-primary" id="btnLaunchCmd"><span aria-hidden="true">&#128640;</span> Launch Command</button>
-    <button class="btn" id="btnCancelCmd">Cancel</button>
+    <button class="btn btn-primary" id="btnLaunchCmd"><span aria-hidden="true">&#128640;</span> ${STRINGS.commands.launchCommandBtn}</button>
+    <button class="btn" id="btnCancelCmd">${STRINGS.commands.cancelBtn}</button>
   </div>
   <div id="cmdClipboardBox" class="hidden"></div>
   </div>`;
@@ -2547,7 +2799,7 @@ async function launchCommand() {
 
   const projEl = document.getElementById('cmdProject');
   if (projEl) {
-    if (!projEl.value.trim()) { setFieldError(projEl, 'Project name is required'); projEl.focus(); return; }
+    if (!projEl.value.trim()) { setFieldError(projEl, STRINGS.errors.projectNameRequired); projEl.focus(); return; }
     setFieldError(projEl, '');
     body.project = projEl.value.trim();
   }
@@ -2557,7 +2809,7 @@ async function launchCommand() {
 
   const descEl = document.getElementById('cmdDesc');
   if (descEl) {
-    if (!descEl.value.trim()) { setFieldError(descEl, 'Description is required'); descEl.focus(); return; }
+    if (!descEl.value.trim()) { setFieldError(descEl, STRINGS.errors.descriptionRequired); descEl.focus(); return; }
     setFieldError(descEl, '');
     body.description = descEl.value.trim();
   }
@@ -2577,19 +2829,19 @@ async function launchCommand() {
     box.classList.remove('hidden');
     box.innerHTML = `
       <div style="margin-top:12px;padding:12px;background:var(--success-light);border:1px solid var(--success);border-radius:var(--radius-sm);font-size:13px;color:var(--success);margin-bottom:8px;">
-        <span aria-hidden="true">&#10004;</span> Command queued successfully!
+        <span aria-hidden="true">&#10004;</span> ${STRINGS.commands.cmdQueuedSuccess}
       </div>
-      ${r.brief_saved ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px;"><span aria-hidden="true">&#128196;</span> Project brief saved to <code>BusinessDocs/project-brief.md</code> &mdash; the Onboarding Agent will read it from there.</div>` : ''}
+      ${r.brief_saved ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px;"><span aria-hidden="true">&#128196;</span> ${STRINGS.commands.briefSavedNote}</div>` : ''}
       <div style="font-size:13px;color:var(--text-sec);margin-bottom:8px;">
-        Copy the <strong>short</strong> command below and paste it in Copilot Chat to start:
+        ${STRINGS.commands.copyAndPasteInstr}
       </div>
       <div class="cmd-clipboard">
         <code id="clipText">${esc(r.clipboard_text)}</code>
-        <button id="btnCopyClip" title="Copy to clipboard"><span aria-hidden="true">&#128203;</span> Copy</button>
+        <button id="btnCopyClip" title="Copy to clipboard"><span aria-hidden="true">&#128203;</span> ${STRINGS.commands.copyBtn}</button>
       </div>`;
     document.getElementById('btnCopyClip').addEventListener('click', copyClipboard);
 
-    toast(STRINGS.cmdQueued, 't-ok');
+    toast(STRINGS.success.cmdQueued, 't-ok');
 
     // Collapse the form into an expandable details element
     const form = document.getElementById('cmdForm');
@@ -2597,7 +2849,7 @@ async function launchCommand() {
       const details = document.createElement('details');
       details.className = 'cmd-form-collapsed';
       const summary = document.createElement('summary');
-      summary.textContent = 'Show command details';
+      summary.textContent = STRINGS.commands.showDetails;
       details.appendChild(summary);
       form.parentNode.insertBefore(details, form);
       details.appendChild(form);
@@ -2606,7 +2858,7 @@ async function launchCommand() {
     // Refresh progress
     await load(true);
   } catch (e) {
-    showError(e, 'Command failed');
+    showError(e, STRINGS.errors.commandFailed);
   }
 }
 
@@ -2615,9 +2867,9 @@ function copyClipboard() {
   const text = lastClipboard || document.getElementById('clipText')?.textContent || '';
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
-    toast(STRINGS.copiedClipboard, 't-ok');
+    toast(STRINGS.success.copiedClipboard, 't-ok');
     const btn = document.getElementById('btnCopyClip');
-    if (btn) { btn.textContent = '\u2705 Copied!'; setTimeout(() => { btn.textContent = '\uD83D\uDCCB Copy'; }, 2000); }
+    if (btn) { btn.textContent = STRINGS.commands.copiedBtn; setTimeout(() => { btn.textContent = STRINGS.commands.copyBtn; }, 2000); }
   }).catch(() => {
     // Fallback for non-HTTPS (document.execCommand is deprecated but still needed for HTTP contexts)
     const ta = document.createElement('textarea');
@@ -2627,7 +2879,7 @@ function copyClipboard() {
     try {
       ta.select();
       document.execCommand('copy');
-      toast(STRINGS.copiedClipboard, 't-ok');
+      toast(STRINGS.success.copiedClipboard, 't-ok');
     } finally {
       document.body.removeChild(ta);
     }
@@ -2666,6 +2918,36 @@ document.getElementById('btnHamburger').addEventListener('click', () => {
 document.getElementById('cmdSidebar').addEventListener('click', e => {
   const btn = e.target.closest('.cmd-btn');
   if (btn) selectCommand(btn.dataset.cmd);
+  const title = e.target.closest('.cmd-section-title');
+  if (title) toggleCmdGroup(title);
+});
+document.getElementById('cmdSidebar').addEventListener('keydown', e => {
+  const title = e.target.closest('.cmd-section-title');
+  if (title && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleCmdGroup(title); }
+});
+
+function toggleCmdGroup(title) {
+  const group = title.dataset.group;
+  const el = document.getElementById('group-' + group);
+  if (!el) return;
+  const isExpanded = title.getAttribute('aria-expanded') === 'true';
+  title.setAttribute('aria-expanded', String(!isExpanded));
+  el.classList.toggle('collapsed', isExpanded);
+  if (!isExpanded) el.style.maxHeight = el.scrollHeight + 'px';
+  try { sessionStorage.setItem('cmdGroup_' + group, isExpanded ? '0' : '1'); } catch {}
+}
+
+/* Restore sidebar group collapse state from session */
+document.querySelectorAll('.cmd-section-title[data-group]').forEach(title => {
+  const group = title.dataset.group;
+  try {
+    const stored = sessionStorage.getItem('cmdGroup_' + group);
+    if (stored === '0') {
+      title.setAttribute('aria-expanded', 'false');
+      const el = document.getElementById('group-' + group);
+      if (el) el.classList.add('collapsed');
+    }
+  } catch {}
 });
 
 /* ── Debounce helper ────────────────────────────────────────── */
@@ -2855,9 +3137,9 @@ function closeHelp() {
 
 function renderHelpNav() {
   const nav = document.getElementById('helpNav');
-  let h = '<div class="help-nav-title">Help Topics</div>';
+  let h = `<div class="help-nav-title">${STRINGS.labels.helpTopicsTitle}</div>`;
   /* Built-in Keyboard Shortcuts entry (SP-R2-005-003) */
-  h += `<div class="help-nav-item${helpActiveTopic === '_shortcuts' ? ' active' : ''}" data-slug="_shortcuts" tabindex="0"><span aria-hidden="true">&#9000;</span> Keyboard Shortcuts</div>`;
+  h += `<div class="help-nav-item${helpActiveTopic === '_shortcuts' ? ' active' : ''}" data-slug="_shortcuts" tabindex="0"><span aria-hidden="true">&#9000;</span> ${STRINGS.labels.keyboardShortcuts}</div>`;
   for (const t of helpTOC) {
     h += `<div class="help-nav-item${t.slug === helpActiveTopic ? ' active' : ''}" data-slug="${t.slug}" tabindex="0"><span aria-hidden="true">${t.icon}</span> ${esc(t.title)}</div>`;
   }
@@ -2874,37 +3156,37 @@ async function loadHelpTopic(slug) {
   const el = document.getElementById('helpContent');
   /* Built-in keyboard shortcuts panel (SP-R2-005-003) */
   if (slug === '_shortcuts') {
-    el.innerHTML = `<h1>Keyboard Shortcuts</h1>
+    el.innerHTML = `<h1>${STRINGS.labels.keyboardShortcuts}</h1>
       <table>
-        <thead><tr><th>Shortcut</th><th>Action</th><th>Context</th></tr></thead>
+        <thead><tr><th>${STRINGS.help.shortcutHeader}</th><th>${STRINGS.help.actionHeader}</th><th>${STRINGS.help.contextHeader}</th></tr></thead>
         <tbody>
-          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save all unsaved changes</td><td>Global</td></tr>
-          <tr><td><kbd>Escape</kbd></td><td>Close active modal or help panel</td><td>Modal / Help open</td></tr>
-          <tr><td><kbd>F1</kbd></td><td>Toggle help panel</td><td>Global</td></tr>
-          <tr><td><kbd>?</kbd></td><td>Toggle help panel</td><td>When not in a text field</td></tr>
-          <tr><td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td><td>Navigate between tabs</td><td>Tab bar focused</td></tr>
-          <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd></td><td>Activate focused tab or sidebar item</td><td>Tab bar / Sidebar</td></tr>
-          <tr><td><kbd>Tab</kbd></td><td>Move focus to next interactive element</td><td>Global</td></tr>
-          <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Move focus to previous interactive element</td><td>Global</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>${STRINGS.help.saveAllAction}</td><td>${STRINGS.help.contextGlobal}</td></tr>
+          <tr><td><kbd>Escape</kbd></td><td>${STRINGS.help.closeModalAction}</td><td>${STRINGS.help.contextModalOpen}</td></tr>
+          <tr><td><kbd>F1</kbd></td><td>${STRINGS.help.toggleHelpAction}</td><td>${STRINGS.help.contextGlobal}</td></tr>
+          <tr><td><kbd>?</kbd></td><td>${STRINGS.help.toggleHelpAction}</td><td>${STRINGS.help.contextNotTextField}</td></tr>
+          <tr><td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td><td>${STRINGS.help.navigateTabsAction}</td><td>${STRINGS.help.contextTabBarFocused}</td></tr>
+          <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd></td><td>${STRINGS.help.activateFocusedAction}</td><td>${STRINGS.help.contextTabBarSidebar}</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>${STRINGS.help.moveFocusNextAction}</td><td>${STRINGS.help.contextGlobal}</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>${STRINGS.help.moveFocusPrevAction}</td><td>${STRINGS.help.contextGlobal}</td></tr>
         </tbody>
       </table>
-      <h2>Tips</h2>
+      <h2>${STRINGS.help.tipsHeading}</h2>
       <ul>
-        <li>Focus is trapped inside modals and the help panel — press <kbd>Escape</kbd> to close.</li>
-        <li>The skip-nav link at the top of the page jumps to the main content area.</li>
-        <li>All status changes and errors are announced to screen readers automatically.</li>
+        <li>${STRINGS.help.tipFocusTrapped}</li>
+        <li>${STRINGS.help.tipSkipNav}</li>
+        <li>${STRINGS.help.tipScreenReader}</li>
       </ul>`;
-    announceStatus('Keyboard shortcuts panel opened');
+    announceStatus(STRINGS.labels.shortcutsOpened);
     return;
   }
-  el.innerHTML = '<p style="color:var(--text-muted)">Loading&hellip;</p>';
+  el.innerHTML = `<p style="color:var(--text-muted)">${STRINGS.labels.loading}</p>`;
   try {
     const r = await fetch('/api/help?topic=' + encodeURIComponent(slug));
-    if (!r.ok) throw new Error('Not found');
+    if (!r.ok) throw new Error(STRINGS.help.notFound);
     const d = await r.json();
     el.innerHTML = renderMarkdown(d.content || '');
   } catch {
-    el.innerHTML = '<p style="color:var(--text-muted)">Could not load help topic.</p>';
+    el.innerHTML = `<p style="color:var(--text-muted)">${STRINGS.help.couldNotLoad}</p>`;
   }
 }
 
@@ -2919,8 +3201,8 @@ document.getElementById('btnExport').addEventListener('click', async () => {
     a.download = 'session-export-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast(STRINGS.exportSuccess, 't-ok');
-  } catch (e) { toast(STRINGS.exportFailed(e.message), 't-err'); }
+    toast(STRINGS.success.exportSuccess, 't-ok');
+  } catch (e) { toast(STRINGS.errors.exportFailed(e.message), 't-err'); }
 });
 document.getElementById('helpClose').addEventListener('click', closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', e => {
@@ -3013,7 +3295,7 @@ function setFieldError(field, msg) {
 /** Validate a required text field on blur. Returns true if valid. */
 function validateRequired(field, label) {
   if (!field.value.trim()) {
-    setFieldError(field, `${label} is required`);
+    setFieldError(field, STRINGS.errors.fieldRequired(label));
     return false;
   }
   setFieldError(field, '');
@@ -3023,7 +3305,7 @@ function validateRequired(field, label) {
 /** Validate the ANSWERED-but-empty pattern for questionnaires. */
 function validateAnswerStatus(answerEl, statusEl) {
   if (statusEl && statusEl.value === 'ANSWERED' && !answerEl.value.trim()) {
-    setFieldError(answerEl, 'Answer cannot be empty when status is ANSWERED');
+    setFieldError(answerEl, STRINGS.errors.answerEmptyAnswered);
     return false;
   }
   setFieldError(answerEl, '');
@@ -3035,14 +3317,14 @@ function attachModalValidation() {
   // New Decision modal
   const ndScope = document.getElementById('ndScope');
   const ndText  = document.getElementById('ndText');
-  if (ndScope) ndScope.addEventListener('blur', () => validateRequired(ndScope, 'Scope'));
-  if (ndText)  ndText.addEventListener('blur', () => validateRequired(ndText, 'Decision / Question'));
+  if (ndScope) ndScope.addEventListener('blur', () => validateRequired(ndScope, STRINGS.errors.scopeLabel));
+  if (ndText)  ndText.addEventListener('blur', () => validateRequired(ndText, STRINGS.errors.decisionQuestionLabel));
 
   // Edit Decision modal
   const edScope = document.getElementById('edScope');
   const edText  = document.getElementById('edText');
-  if (edScope) edScope.addEventListener('blur', () => validateRequired(edScope, 'Scope'));
-  if (edText)  edText.addEventListener('blur', () => validateRequired(edText, 'Decision'));
+  if (edScope) edScope.addEventListener('blur', () => validateRequired(edScope, STRINGS.errors.scopeLabel));
+  if (edText)  edText.addEventListener('blur', () => validateRequired(edText, STRINGS.errors.decisionLabel));
 }
 attachModalValidation();
 
@@ -3065,7 +3347,7 @@ document.getElementById('main').addEventListener('change', e => {
 document.getElementById('decMain').addEventListener('focusout', e => {
   const ta = e.target.closest('textarea[id^="decAns-"]');
   if (ta && !ta.value.trim()) {
-    setFieldError(ta, STRINGS.answerFieldReqDecide);
+    setFieldError(ta, STRINGS.errors.answerFieldReqDecide);
   } else if (ta) {
     setFieldError(ta, '');
   }
@@ -3191,28 +3473,28 @@ switchTab = async function(tab) {
 /* ── Onboarding Wizard (SP-R2-004-001) ───────────────── */
 const ONBOARDING_STEPS = [
   {
-    title: 'Welcome to the Manager',
-    text: 'This is your central hub for project questionnaires, decisions, and the agent pipeline. Everything you need lives in three tabs — let\u2019s walk through them.',
+    title: STRINGS.onboarding.stepWelcomeTitle,
+    text: STRINGS.onboarding.stepWelcomeText,
     icon: '<span aria-hidden="true">&#128075;</span>'
   },
   {
-    title: 'Command Center',
-    text: 'Launch commands like CREATE or AUDIT and track agent pipeline progress in real time. Each phase shows its current status so you always know where things stand.',
+    title: STRINGS.onboarding.stepCommandCenterTitle,
+    text: STRINGS.onboarding.stepCommandCenterText,
     icon: '<span aria-hidden="true">&#128640;</span>'
   },
   {
-    title: 'Questionnaires',
-    text: 'Agents create questions when they need your input. Browse by phase, answer what you can, and save. Your answers feed directly into the analysis \u2014 no extra steps.',
+    title: STRINGS.onboarding.stepQuestionnairesTitle,
+    text: STRINGS.onboarding.stepQuestionnairesText,
     icon: '<span aria-hidden="true">&#128221;</span>'
   },
   {
-    title: 'Decisions',
-    text: 'Open decisions block the Sprint Gate until resolved. Filter by priority to tackle the most urgent items first. You can decide, defer, or mark them expired.',
+    title: STRINGS.onboarding.stepDecisionsTitle,
+    text: STRINGS.onboarding.stepDecisionsText,
     icon: '<span aria-hidden="true">&#9878;</span>'
   },
   {
-    title: 'You\u2019re ready!',
-    text: 'Start by opening the Command Center tab and launching your first command. Press Ctrl+S to save changes and ? to open the help panel at any time.',
+    title: STRINGS.onboarding.stepReadyTitle,
+    text: STRINGS.onboarding.stepReadyText,
     icon: '<span aria-hidden="true">&#127881;</span>'
   }
 ];
@@ -3239,7 +3521,7 @@ function renderOnboardingStep() {
   /* Buttons */
   document.getElementById('onboardingPrev').style.display = _onboardingStep > 0 ? '' : 'none';
   const nextBtn = document.getElementById('onboardingNext');
-  nextBtn.textContent = _onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Get Started' : 'Next';
+  nextBtn.textContent = _onboardingStep === ONBOARDING_STEPS.length - 1 ? STRINGS.labels.getStarted : STRINGS.labels.nextBtn;
 }
 
 function finishOnboarding() {
@@ -3286,6 +3568,139 @@ function svgIcon(name) {
   return SVG_ICONS[name] || '';
 }
 
+/* ── Global Search (DD-006) ──────────────────────────── */
+{
+  const searchInput = document.getElementById('searchInput');
+  const searchResults = document.getElementById('searchResults');
+  const searchAnnounce = document.getElementById('searchAnnounce');
+  let searchActiveIdx = -1;
+
+  function highlightMatch(text, query) {
+    if (!query) return esc(text);
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(${escaped})`, 'gi');
+    return esc(text).replace(re, '<mark>$1</mark>');
+  }
+
+  function performSearch(query) {
+    const q = query.trim().toLowerCase();
+    if (!q || q.length < 2) { searchResults.classList.add('hidden'); searchAnnounce.textContent = ''; return; }
+    const results = [];
+
+    /* Search questionnaires */
+    for (const qFile of questionnaires) {
+      for (const x of qFile.questions) {
+        if (x.id.toLowerCase().includes(q) || x.question.toLowerCase().includes(q)) {
+          results.push({ type: 'questionnaire', id: x.id, text: x.question, file: qFile.file, phase: qFile.phase, agent: qFile.agent, status: x.status });
+        }
+      }
+    }
+
+    /* Search decisions */
+    const allDecs = [...(decisions.open || []), ...(decisions.decided || []), ...(decisions.deferred || [])];
+    for (const d of allDecs) {
+      const matchTitle = (d.title || '').toLowerCase().includes(q);
+      const matchRationale = (d.rationale || '').toLowerCase().includes(q);
+      const matchId = (d.id || '').toLowerCase().includes(q);
+      if (matchTitle || matchRationale || matchId) {
+        results.push({ type: 'decision', id: d.id, text: d.title || d.id, rationale: d.rationale || '', status: d.status, priority: d.priority });
+      }
+    }
+
+    searchActiveIdx = -1;
+    if (results.length === 0) {
+      searchResults.innerHTML = `<div class="search-empty">${STRINGS.search.noResults(esc(query.trim()))}</div>`;
+      searchResults.classList.remove('hidden');
+      searchAnnounce.textContent = STRINGS.search.noResults(query.trim());
+      return;
+    }
+
+    const qResults = results.filter(r => r.type === 'questionnaire');
+    const dResults = results.filter(r => r.type === 'decision');
+    let html = '';
+    if (qResults.length) {
+      html += `<div class="search-group-title">${STRINGS.search.groupQuestionnaires}</div>`;
+      for (const r of qResults) {
+        html += `<div class="search-result-item" role="option" data-type="questionnaire" data-file="${escAttr(r.file)}" data-id="${escAttr(r.id)}">
+          <span class="sr-id">${esc(r.id)}</span>
+          <div class="sr-text">${highlightMatch(r.text, query.trim())}<div class="sr-meta">${esc(r.phase)} &middot; ${esc(r.agent)} &middot; <span class="badge ${r.status === 'ANSWERED' ? 'b-ans' : r.status === 'DEFERRED' ? 'b-def' : 'b-open'}">${esc(r.status)}</span></div></div>
+        </div>`;
+      }
+    }
+    if (dResults.length) {
+      html += `<div class="search-group-title">${STRINGS.search.groupDecisions}</div>`;
+      for (const r of dResults) {
+        const displayText = r.rationale && r.rationale.toLowerCase().includes(q) && !r.text.toLowerCase().includes(q)
+          ? r.rationale : r.text;
+        html += `<div class="search-result-item" role="option" data-type="decision" data-id="${escAttr(r.id)}">
+          <span class="sr-id">${esc(r.id)}</span>
+          <div class="sr-text">${highlightMatch(displayText, query.trim())}<div class="sr-meta">${esc(r.status)}${r.priority ? ' &middot; ' + esc(r.priority) : ''}</div></div>
+        </div>`;
+      }
+    }
+    searchResults.innerHTML = html;
+    searchResults.classList.remove('hidden');
+    searchAnnounce.textContent = STRINGS.search.resultCount(results.length);
+  }
+
+  const debouncedSearch = debounce(performSearch, 250);
+  searchInput.addEventListener('input', () => debouncedSearch(searchInput.value));
+
+  searchInput.addEventListener('keydown', e => {
+    const items = searchResults.querySelectorAll('.search-result-item');
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      searchResults.classList.add('hidden');
+      searchAnnounce.textContent = '';
+      searchActiveIdx = -1;
+      return;
+    }
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      searchActiveIdx = Math.min(searchActiveIdx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      searchActiveIdx = Math.max(searchActiveIdx - 1, 0);
+    } else if (e.key === 'Enter' && searchActiveIdx >= 0) {
+      e.preventDefault();
+      items[searchActiveIdx].click();
+      return;
+    } else { return; }
+    items.forEach((el, i) => el.classList.toggle('sr-active', i === searchActiveIdx));
+    items[searchActiveIdx]?.scrollIntoView({ block: 'nearest' });
+  });
+
+  searchResults.addEventListener('click', e => {
+    const item = e.target.closest('.search-result-item');
+    if (!item) return;
+    searchInput.value = '';
+    searchResults.classList.add('hidden');
+    searchAnnounce.textContent = '';
+    if (item.dataset.type === 'questionnaire') {
+      switchTab('questionnaires');
+      setTimeout(() => {
+        selectQ(item.dataset.file);
+        setTimeout(() => {
+          const card = document.getElementById('c-' + item.dataset.id);
+          if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('dirty'); setTimeout(() => card.classList.remove('dirty'), 2000); }
+        }, 100);
+      }, 50);
+    } else if (item.dataset.type === 'decision') {
+      switchTab('decisions');
+      setTimeout(() => {
+        const card = document.getElementById('d-' + item.dataset.id);
+        if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('dirty'); setTimeout(() => card.classList.remove('dirty'), 2000); }
+      }, 100);
+    }
+  });
+
+  /* Close search when clicking outside */
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.global-search')) { searchResults.classList.add('hidden'); }
+  });
+}
+
 /* ── "Take the tour" link in Help ────────────────────── */
 const _origOpenHelp = openHelp;
 openHelp = async function() {
@@ -3316,7 +3731,7 @@ initFontSize();
 const hashTab = HASH_TAB_MAP[location.hash];
 if (hashTab) activeTab = hashTab;
 if (activeTab !== 'commandcenter') switchTab(activeTab);
-else { const h = TAB_HASH_MAP[activeTab]; if (h && location.hash !== h) history.replaceState(null, '', h); document.title = STRINGS.pageTitle(TAB_TITLES[activeTab]); }
+else { const h = TAB_HASH_MAP[activeTab]; if (h && location.hash !== h) history.replaceState(null, '', h); document.title = STRINGS.labels.pageTitle(TAB_TITLES[activeTab]); }
 load();
 startPolling();
 connectSSE();

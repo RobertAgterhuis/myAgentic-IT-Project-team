@@ -352,6 +352,7 @@
     .b-decided { background: var(--success-light); color: var(--success); }
     .b-expired { background: var(--bg-subtle); color: var(--text-muted); }
     .b-deferred { background: var(--warning-light); color: #b45309; }
+    .b-cat { background: #e0e7ff; color: #3730a3; font-size: 11px; }
     .dec-card-text { font-size: var(--text-md); line-height: 1.6; margin-bottom: 8px; }
     .dec-card-meta { font-size: var(--text-sm); color: var(--text-sec); display: flex; gap: 16px; flex-wrap: wrap; }
     .dec-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
@@ -929,6 +930,8 @@
         <select id="decFilterPriority"><option value="">All priorities</option><option value="HIGH">HIGH</option><option value="MEDIUM">MEDIUM</option><option value="LOW">LOW</option></select>
         <label for="decFilterStatus" class="sr-only">Filter by status</label>
         <select id="decFilterStatus"><option value="">All statuses</option><option value="OPEN">OPEN</option><option value="DECIDED">DECIDED</option><option value="DEFERRED">DEFERRED</option><option value="EXPIRED">EXPIRED</option></select>
+        <label for="decFilterCategory" class="sr-only">Filter by category</label>
+        <select id="decFilterCategory"><option value="">All categories</option></select>
       </div>
       <div class="dec-cards" id="decMain">
         <div class="loading" id="decLoader">Loading decisions&hellip;</div>
@@ -1217,14 +1220,14 @@ const STRINGS = {
 
 /* ── State ───────────────────────────────────────────── */
 let questionnaires = [];
-let decisions      = { open: [], decided: [], deferred: [] };
+let decisions      = { open: [], decided: [], deferred: [], categories: [] };
 let activeFile     = null;
 let activeTab      = sessionStorage.getItem('activeTab') || 'commandcenter';
 const TAB_HASH_MAP = { commandcenter: '#pipeline', questionnaires: '#questionnaires', decisions: '#decisions' };
 const HASH_TAB_MAP = { '#pipeline': 'commandcenter', '#questionnaires': 'questionnaires', '#decisions': 'decisions' };
 const TAB_TITLES   = { commandcenter: 'Command Center', questionnaires: 'Questionnaires', decisions: 'Decisions' };
 const dirty        = new Map();   // "file::Q-ID" → { answer, status }
-let decFilter      = { text: '', priority: '', status: '' };
+let decFilter      = { text: '', priority: '', status: '', category: '' };
 let pollTimer      = null;
 let lastDecHash    = '';
 let lastProgHash   = '';          // track progress changes separately
@@ -1756,10 +1759,21 @@ function renderDecisions() {
   renderDecisionStats();
   const el = document.getElementById('decMain');
 
+  // Populate category filter dropdown from live data
+  const catSelect = document.getElementById('decFilterCategory');
+  if (catSelect && decisions.categories && decisions.categories.length > 0) {
+    const cur = catSelect.value;
+    const opts = '<option value="">All categories</option>' +
+      decisions.categories.map(c => `<option value="${esc(c.stack)}"${c.status === 'DEFERRED' ? ' style="color:var(--text-sec)"' : ''}>${esc(c.name)} (${c.count})${c.status === 'DEFERRED' ? ' [DEFERRED]' : ''}</option>`).join('');
+    catSelect.innerHTML = opts;
+    catSelect.value = cur;
+  }
+
   // Apply filters
   const ft = decFilter.text.toLowerCase();
   const fp = decFilter.priority;
   const fs = decFilter.status;
+  const fc = decFilter.category;
   function matches(d) {
     if (ft) {
       const hay = ((d.question || '') + (d.decision || '') + (d.notes || '') + (d.scope || '') + (d.subject || '') + (d.reason || '') + d.id).toLowerCase();
@@ -1767,6 +1781,7 @@ function renderDecisions() {
     }
     if (fp && (d.priority || '') !== fp) return false;
     if (fs && (d.status || '') !== fs) return false;
+    if (fc && (d.category || '') !== fc) return false;
     return true;
   }
 
@@ -1824,10 +1839,11 @@ function renderDecisions() {
     h += `<div class="dec-group-title"><span aria-hidden="true">&#10004;</span> Decided Items (${decidedF.length})</div>`;
     for (const d of decidedF) {
       const xref = findCrossRefs(d);
+      const catBadge = d.category ? ` <span class="badge b-cat" title="Category: ${escAttr(d.category)}">${esc(d.category)}</span>` : '';
       h += `<div class="dec-card">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
-          <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">\u2714 DECIDED</span>${xref}</div>
+          <div class="badges">${prioBadge(d.priority)} <span class="badge b-decided">\u2714 DECIDED</span>${catBadge}${xref}</div>
         </div>
         <div class="dec-card-text">${esc(d.decision)}</div>
         <div class="dec-card-meta">
@@ -1850,10 +1866,11 @@ function renderDecisions() {
     for (const d of deferrF) {
       const cls = d.status === 'EXPIRED' ? 'b-expired' : 'b-deferred';
       const statusIcon = d.status === 'EXPIRED' ? '\u2716 ' : '\u23F8 ';
+      const catBadge = d.category ? ` <span class="badge b-cat" title="Category: ${escAttr(d.category)}">${esc(d.category)}</span>` : '';
       h += `<div class="dec-card">
         <div class="dec-card-top">
           <span class="dec-card-id">${esc(d.id)}</span>
-          <div class="badges"><span class="badge ${cls}">${statusIcon}${esc(d.status)}</span></div>
+          <div class="badges"><span class="badge ${cls}">${statusIcon}${esc(d.status)}</span>${catBadge}</div>
         </div>
         <div class="dec-card-text">${esc(d.subject)}</div>
         <div class="dec-card-meta">
@@ -1863,6 +1880,26 @@ function renderDecisions() {
         ${d.reason ? `<div class="dec-card-notes">${esc(d.reason)}</div>` : ''}
         <div class="dec-card-actions">
           <button class="btn btn-sm" data-dec-reopen="${escAttr(d.id)}"><span aria-hidden="true">&#8617;</span> Reopen as Open Question</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  // Deferred Categories — show only when no category filter is active or 'all' is selected
+  const deferredCats = (decisions.categories || []).filter(c => c.status === 'DEFERRED');
+  if (deferredCats.length > 0 && !fc) {
+    h += `<div class="dec-group-title"><span aria-hidden="true">&#128683;</span> Deferred Technology Stacks (${deferredCats.length})</div>`;
+    h += `<div style="color:var(--text-sec);font-size:13px;margin:-8px 0 12px;">These categories are deferred because the technology is not currently used. Activate when the technology is added to the project.</div>`;
+    for (const c of deferredCats) {
+      h += `<div class="dec-card" style="border-left:3px solid var(--border);">
+        <div class="dec-card-top">
+          <span class="dec-card-id">${esc(c.stack)}</span>
+          <div class="badges"><span class="badge b-deferred"><span aria-hidden="true">&#9208;</span> DEFERRED</span> <span class="badge" style="background:#f3f4f6;color:#6b7280;">${c.count} decisions</span></div>
+        </div>
+        <div class="dec-card-text">${esc(c.name)}</div>
+        ${c.reason ? `<div class="dec-card-notes">${esc(c.reason)}</div>` : ''}
+        <div class="dec-card-actions">
+          <button class="btn btn-sm btn-success" data-activate-cat="${escAttr(c.file)}"><span aria-hidden="true">&#9889;</span> Activate Category</button>
         </div>
       </div>`;
     }
@@ -1939,6 +1976,18 @@ async function expireDecision(id) {
 
 async function reopenDecision(id) {
   return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, STRINGS.decisionReopened(id), false, 'Reopen decision');
+}
+
+async function activateDeferredCategory(file) {
+  const cat = (decisions.categories || []).find(c => c.file === file);
+  const name = cat ? cat.name : file;
+  const r = await confirmAction('Activate Category', `Activate "${name}"? Its ${cat ? cat.count : ''} decisions will become active hard constraints for the agentic team.`, false, 'Activate');
+  if (!r.confirmed) return;
+  try {
+    await apiWithRetry('POST', '/api/decisions/activate-category', { file });
+    toast(`Category "${name}" activated — decisions are now enforced`, 't-ok');
+    await load();
+  } catch (e) { showError(e, 'Category activation failed'); }
 }
 
 function openEditDecision(id) {
@@ -2475,6 +2524,8 @@ document.getElementById('decMain').addEventListener('click', e => {
   if (reopBtn) reopenDecision(reopBtn.dataset.decReopen);
   const editBtn = e.target.closest('button[data-dec-edit]');
   if (editBtn) openEditDecision(editBtn.dataset.decEdit);
+  const actCatBtn = e.target.closest('button[data-activate-cat]');
+  if (actCatBtn) activateDeferredCategory(actCatBtn.dataset.activateCat);
 });
 
 document.getElementById('btnSaveAll').addEventListener('click', function() {
@@ -2513,6 +2564,7 @@ document.getElementById('editDecOverlay').addEventListener('click', e => { if (e
 document.getElementById('decFilterText').addEventListener('input', debounce(e => { decFilter.text = e.target.value; renderDecisions(); }, 200));
 document.getElementById('decFilterPriority').addEventListener('change', e => { decFilter.priority = e.target.value; renderDecisions(); });
 document.getElementById('decFilterStatus').addEventListener('change', e => { decFilter.status = e.target.value; renderDecisions(); });
+document.getElementById('decFilterCategory').addEventListener('change', e => { decFilter.category = e.target.value; renderDecisions(); });
 
 /* ── Keyboard shortcuts ──────────────────────────────── */
 function isInputFocused() {

@@ -68,5 +68,89 @@
       "tab": "decisions"
     },
     "timestamp": "2026-03-08T07:22:47.337Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "questionnaires"
+    },
+    "timestamp": "2026-03-08T09:30:49.638Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T09:30:49.638Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T09:30:49.638Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T09:30:49.638Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T09:33:03.364Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T09:33:03.364Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T09:33:14.884Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T10:18:43.300Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "commandcenter"
+    },
+    "timestamp": "2026-03-08T10:19:07.623Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T10:45:19.914Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T10:47:29.469Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T10:47:55.631Z"
   }
 ]

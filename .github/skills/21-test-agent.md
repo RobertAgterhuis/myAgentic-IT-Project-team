@@ -91,6 +91,31 @@ Validate the IMPL-OUTPUT-C from the Implementation Agent:
 - On discrepancy: `GUARDRAIL_DISCREPANCY: [guardrail-id, what the impl-agent claims vs what you see]`
 - Return to Implementation Agent on discrepancy
 
+### Step 6b: Decision Compliance Check
+
+Validate that the implementation respects all active `DECIDED` items from the decisions system:
+
+1. **Load decisions:** Read `.github/docs/decisions.md` for uncategorized DECIDED items. Scan `.github/docs/decisions/` — from each ACTIVE or PARTIAL category file (check `> Status:` header line), read all `DECIDED` rows. **Skip DEFERRED category files entirely.**
+2. **Filter:** Keep only decisions whose scope overlaps with the current story's domain (e.g., a TypeScript/ESLint decision applies to `.ts`/`.js` files; a GitHub Actions decision applies to CI workflow files).
+3. **Verify:** For each applicable DECIDED item, check whether the implementation code is consistent with that decision. Examples:
+   - A decision mandating "ESLint flat config" → verify no `.eslintrc` files are introduced
+   - A decision mandating "Vitest for testing" → verify no Jest imports appear
+   - A decision mandating "no Docker" → verify no Dockerfile is created
+4. **Document per decision:**
+   - `DEC-COMPLIANT: [DEC-ID] — [brief reason]` if the code respects the decision
+   - `DEC-VIOLATION: [DEC-ID] — [what the decision says vs what the code does]` if the code contradicts the decision
+5. **On violation:** Return to Implementation Agent with the exact violation and the decision ID. The Implementation Agent must remediate before the Test Agent re-approves.
+6. **Deferred technology detection:** Check whether the implementation introduces files matching a DEFERRED category (e.g., `Dockerfile` → `docker.md`, `*.bicep` → `bicep-iac.md`, `*.cs` → `dotnet.md`). For each match, read `.github/docs/decisions/[category].md` and check the `> Status:` header. If `DEFERRED`: report `DEFERRED_TECH_DETECTED: [category] — implementation introduces [technology] but decisions are deferred.` Escalate to Orchestrator — the Orchestrator will **auto-activate** the category (RULE ORC-45) and return control to the Implementation Agent with the newly active decisions loaded.
+
+Add the result to the Test Report under a new section:
+
+```
+DECISION COMPLIANCE:
+  Applicable decisions checked: [n]
+  Compliant: [n]
+  Violations: [NONE or list of DEC-VIOLATION entries]
+```
+
 ### Step 7: Assemble Test Report
 
 Produce a complete Test Report:
@@ -122,6 +147,11 @@ EDGE CASES:
 GUARDRAIL CONFIRMATION:
   IMPL-OUTPUT-C: CONFIRMED / DISCREPANCY_FOUND
   Discrepancies: [NONE or description]
+
+DECISION COMPLIANCE:
+  Applicable decisions checked: [n]
+  Compliant: [n]
+  Violations: [NONE or list of DEC-VIOLATION entries with DEC-ID]
 
 FINAL VERDICT:
   Status: APPROVED / REJECTED

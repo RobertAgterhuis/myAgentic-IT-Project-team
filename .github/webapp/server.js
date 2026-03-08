@@ -100,6 +100,7 @@ const SESSION_DIR   = path.join(GITHUB_DOCS, 'session');
 const SESSION_FILE  = path.join(SESSION_DIR, 'session-state.json');
 const Q_INDEX_FILE  = path.join(BUSINESS_DOCS, 'questionnaire-index.md');
 const DECISIONS_FILE = path.join(GITHUB_DOCS, 'decisions.md');
+const DECISIONS_DIR  = path.join(GITHUB_DOCS, 'decisions');
 const COMMAND_QUEUE  = path.join(SESSION_DIR, 'command-queue.json');
 const HELP_DIR       = path.join(PROJECT_ROOT, '.github', 'help');
 const ANALYTICS_FILE = path.join(GITHUB_DOCS, 'analytics-events.json');
@@ -506,13 +507,45 @@ async function apiReevaluate(req, res) {
   json(res, 200, { ok: true, scope, message: R.reevaluateTrigger(scope) });
 }
 
-/* ── Decisions parser — reads via store, delegates to models ──── */
+/* ── Decisions parser — reads index + category files ──────────── */
 
 function parseDecisions() {
   const store = getStore();
-  if (!store.exists(DECISIONS_FILE)) return { open: [], decided: [], deferred: [] };
-  const content = _cache.read(DECISIONS_FILE);
-  return models.parseDecisions(content);
+  const result = { open: [], decided: [], deferred: [], categories: [] };
+  if (!store.exists(DECISIONS_FILE)) return result;
+  const indexContent = _cache.read(DECISIONS_FILE);
+  const indexData = models.parseDecisions(indexContent);
+  result.open = indexData.open;
+  result.decided = [...indexData.decided];
+  result.deferred = indexData.deferred;
+
+  // Scan category files
+  if (store.exists(DECISIONS_DIR)) {
+    try {
+      const files = store.readdir(DECISIONS_DIR).filter(f => typeof f === 'string' ? f.endsWith('.md') : (f.name || '').endsWith('.md'));
+      for (const entry of files) {
+        const fname = typeof entry === 'string' ? entry : entry.name;
+        const filePath = path.join(DECISIONS_DIR, fname);
+        const content = _cache.read(filePath);
+        const header = models.parseCategoryHeader(content);
+        const decisions = models.parseCategoryDecisions(content, header.stack);
+        result.categories.push({
+          name: header.name, stack: header.stack, status: header.status,
+          applicable: header.applicable, reason: header.reason,
+          file: fname, count: decisions.length,
+        });
+        for (const d of decisions) {
+          if (header.status === 'DEFERRED' || d.status === 'CAT_DEFERRED') {
+            result.deferred.push({ id: d.id, status: 'DEFERRED', scope: d.scope, subject: d.decision, reason: header.reason || 'Category deferred', date: d.date, category: d.category });
+          } else {
+            result.decided.push(d);
+          }
+        }
+      }
+    } catch { /* directory not readable — ignore */ }
+  }
+
+  return result;
 }
 
 /* ── Decisions API handlers ──────────────────────────────────── */
@@ -589,6 +622,35 @@ function mutateEdit(body, content) {
 const DECISION_HANDLERS = { answer: mutateAnswer, decide: mutateDecide, defer: mutateDefer, expire: mutateExpire, reopen: mutateReopen, edit: mutateEdit };
 const PAST_TENSE = { answer: 'answered', decide: 'decided', defer: 'deferred', expire: 'expired', reopen: 'reopened', edit: 'edited' };
 
+/**
+ * Find which file contains a decision by ID.
+ * Checks the index file first, then category files.
+ * @param {string} id - Decision ID to locate.
+ * @returns {string|null} Absolute file path, or null if not found.
+ */
+function findDecisionFile(id) {
+  const store = getStore();
+  if (store.exists(DECISIONS_FILE)) {
+    const content = store.readFile(DECISIONS_FILE);
+    if (content.includes(id)) return DECISIONS_FILE;
+  }
+  if (store.exists(DECISIONS_DIR)) {
+    try {
+      const files = store.readdir(DECISIONS_DIR).filter(f => typeof f === 'string' ? f.endsWith('.md') : (f.name || '').endsWith('.md'));
+      for (const entry of files) {
+        const fname = typeof entry === 'string' ? entry : entry.name;
+        const filePath = path.join(DECISIONS_DIR, fname);
+        const content = store.readFile(filePath);
+        if (content.includes(id)) return filePath;
+      }
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
+/** Actions that may target category files instead of the index. */
+const MULTI_FILE_ACTIONS = new Set(['edit', 'expire', 'reopen']);
+
 function handleDecisionMutate(body, content) {
   const handler = DECISION_HANDLERS[body.action];
   if (!handler) return { error: R.unknownAction(body.action) };
@@ -608,19 +670,93 @@ async function apiPostDecision(req, res) {
 
   if (!getStore().exists(DECISIONS_FILE)) return json(res, 404, errorResponse('DECISIONS_NOT_FOUND', 'decisions.md not found'));
 
-  return withFileLock(DECISIONS_FILE, () => {
-    const content = getStore().readFile(DECISIONS_FILE);
-    const outcome = body.action === 'create' ? handleDecisionCreate(body, content) : handleDecisionMutate(body, content);
+  // For edit/expire/reopen, the decision may live in a category file
+  const targetFile = (body.id && MULTI_FILE_ACTIONS.has(body.action))
+    ? (findDecisionFile(body.id) || DECISIONS_FILE)
+    : DECISIONS_FILE;
+
+  return withFileLock(targetFile, () => {
+    const content = getStore().readFile(targetFile);
+    let outcome;
+    if (body.action === 'create') {
+      outcome = handleDecisionCreate(body, content);
+    } else {
+      outcome = handleDecisionMutate(body, content);
+    }
     if (outcome.error) return json(res, 400, errorResponse('INVALID_ACTION', outcome.error));
-    safeWriteSync(DECISIONS_FILE, outcome.content, undefined, {
+
+    safeWriteSync(targetFile, outcome.content, undefined, {
       operation: body.action === 'create' ? 'create' : 'update',
       entityType: 'decision',
       entityId: outcome.result.id || body.id,
       user: 'webapp',
       summary: `Decision ${body.action}: ${outcome.result.id || body.id}`,
     });
+
+    // For expire: also add deferred row to index file if the source was a category file
+    if (body.action === 'expire' && targetFile !== DECISIONS_FILE) {
+      withFileLock(DECISIONS_FILE, () => {
+        let indexContent = getStore().readFile(DECISIONS_FILE);
+        const esc = models.escRx(body.id);
+        const rowRe = new RegExp(`\\|\\s*${esc}\\s*\\|`);
+        // Only add to index deferred if not already there
+        if (!rowRe.test(indexContent.split('## Deferred')[1] || '')) {
+          indexContent = models.insertDeferredRow(indexContent, body.id, 'EXPIRED', body.scope || '', body.text || body.id, body.reason || 'Expired via webapp');
+          indexContent = models.appendAuditTrail(indexContent, 'expire', body.id);
+          safeWriteSync(DECISIONS_FILE, indexContent, undefined, {
+            operation: 'update', entityType: 'decision', entityId: body.id,
+            user: 'webapp', summary: `Decision expire cross-file: ${body.id}`,
+          });
+        }
+      });
+    }
+
     sseNotify('decision_update', { action: body.action, id: outcome.result.id || body.id });
     return json(res, 200, attachSecretWarnings(outcome.result, secretWarnings));
+  });
+}
+
+/* ── Activate Category API ────────────────────────────────────── */
+
+async function apiPostActivateCategory(req, res) {
+  const body = await parseBody(req);
+  assertString(body.file, 'file', 100);
+  const fname = path.basename(body.file);
+  if (!fname.endsWith('.md') || fname.includes('..') || fname.includes(path.sep)) {
+    return json(res, 400, errorResponse('INVALID_FILE', 'Invalid category filename'));
+  }
+  const st = getStore();
+  const filePath = path.join(DECISIONS_DIR, fname);
+  if (!st.exists(filePath)) {
+    return json(res, 404, errorResponse('FILE_NOT_FOUND', `Category file ${fname} not found`));
+  }
+
+  return withFileLock(filePath, () => {
+    let content = st.readFile(filePath);
+    const header = models.parseCategoryHeader(content);
+    if (header.status === 'ACTIVE') {
+      return json(res, 200, { ok: true, action: 'already_active', file: fname });
+    }
+    content = models.activateCategoryHeader(content);
+    content = models.appendAuditTrail(content, 'activate', fname);
+    safeWriteSync(filePath, content, undefined, {
+      operation: 'activate', entityType: 'decision_category', entityId: fname,
+      user: 'webapp', summary: `Category activated: ${header.name}`,
+    });
+
+    // Update the index file Category Registry table
+    withFileLock(DECISIONS_FILE, () => {
+      let indexContent = st.readFile(DECISIONS_FILE);
+      const rowRe = new RegExp(`(\\|[^|]*\\[${models.escRx(fname)}\\][^|]*\\|[^|]*\\|)\\s*DEFERRED\\s*(\\|)\\s*NO\\s*\\|`);
+      indexContent = indexContent.replace(rowRe, '$1 ACTIVE $2 YES |');
+      safeWriteSync(DECISIONS_FILE, indexContent, undefined, {
+        operation: 'update', entityType: 'decision_index', entityId: fname,
+        user: 'webapp', summary: `Category registry updated: ${fname} -> ACTIVE`,
+      });
+    });
+
+    sseNotify('decision_update', { action: 'activate_category', file: fname, name: header.name });
+    return json(res, 200, { ok: true, action: 'activated', file: fname, name: header.name, stack: header.stack });
   });
 }
 
@@ -1122,6 +1258,7 @@ const ROUTES = {
   'POST /api/reevaluate':    apiReevaluate,
   'GET /api/decisions':      apiGetDecisions,
   'POST /api/decisions':     apiPostDecision,
+  'POST /api/decisions/activate-category': apiPostActivateCategory,
   'POST /api/command':       apiPostCommand,
   'GET /api/command':        apiGetCommand,
   'GET /api/progress':       apiGetProgress,

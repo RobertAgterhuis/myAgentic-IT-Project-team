@@ -134,6 +134,10 @@ ESCALATE:
 
 **IMPL-GUARD-31 (CRITICAL):** Feature Implementation Isolation — Implementation Agents running under a FEATURE cycle scope MUST NOT modify files outside `Workitems/[FEATURENAME]/` and the project source directories. Cross-boundary changes require `SCOPE_EXTENSION:` + Orchestrator approval.
 
+**IMPL-GUARD-32 (CRITICAL):** Decision Compliance — Before handoff, the Implementation Agent MUST verify that its code changes do not contradict any active `DECIDED` item. Read `.github/docs/decisions.md` (uncategorized) and all ACTIVE/PARTIAL category files in `.github/docs/decisions/`. Skip DEFERRED category files. For each applicable decision, confirm compliance. On violation: `DEC-VIOLATION: [DEC-ID] — [description]`, remediate before handoff. The Test Agent (Step 6b) and PR/Review Agent (Step 2g) independently verify this — violations caught at review are treated as Implementation Agent failures.
+
+**IMPL-GUARD-33 (CRITICAL):** Deferred Technology Introduction — When a story requires introducing a technology that matches a DEFERRED decision category in `.github/docs/decisions/` (Docker, Bicep/IaC, .NET, Azure DevOps, Vite, NextJS), the Implementation Agent MUST **HALT** before writing code and escalate: `DEFERRED_TECH_REQUIRED: [category]`. The Orchestrator will **auto-activate** the category (RULE ORC-45) by editing the file headers and index, then resume the agent. No user intervention is required. Violation: `GUARDRAIL_VIOLATION: IMPL-GUARD-33 — technology introduced without activating deferred decisions`.
+
 ---
 
 ## VIOLATED? THEN DO THIS:
@@ -148,3 +152,5 @@ ESCALATE:
 | IMPL-GUARD-25 | HALT, escalate per IMPL-GUARD-26 format |
 | IMPL-GUARD-29 | HALT, `ROUTING_ERROR:`, escalate to Orchestrator |
 | IMPL-GUARD-30 | HALT, `CROSS_TRACK_BLOCKER:`, escalate to Orchestrator |
+| IMPL-GUARD-32 | `DEC-VIOLATION:`, remediate before handoff; repeat violations → escalate to Orchestrator |
+| IMPL-GUARD-33 | HALT, `DEFERRED_TECH_REQUIRED:`, escalate to Orchestrator for category activation |

@@ -1,0 +1,12 @@
+# Default owner for everything
+* @RobertAgterhuis
+
+# Webapp
+.github/webapp/ @RobertAgterhuis
+
+# CI/CD
+.github/workflows/ @RobertAgterhuis
+
+# Agent system
+.github/skills/ @RobertAgterhuis
+.github/docs/ @RobertAgterhuis

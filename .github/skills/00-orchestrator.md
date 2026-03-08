@@ -725,10 +725,13 @@ CREATE|AUDIT [DISCIPLINE] [project]
   ↓ [ONBOARDING_COMPLETE]
   → Phase agents for specified discipline
   ↓ [Critic + Risk validation]
+  → Questionnaire Agent (MANDATORY per G-GLOB-56 — generation + document workflows)
   → Synthesis Agent (mode: PARTIAL)
   ↓ [department report APPROVED]
   → Optional: GitHub Integration Agent to publish stories from this report
 ```
+
+> **IMPORTANT:** The Questionnaire Agent activation between Critic + Risk and Synthesis is MANDATORY for both CREATE and AUDIT modes, including partial cycles (per G-GLOB-56 and ORC-25). It must NEVER be skipped even when no QUESTIONNAIRE_REQUEST items exist.
 
 ### Combining partial cycles:
 Multiple partial cycles on the same project are automatically combined:
@@ -832,15 +835,15 @@ CREATE|AUDIT [DISC1] [DISC2] [project]
 | `AUDIT [project]` command received | **Create session-state.json immediately per ORC-46** (status: ONBOARDING); activate Onboarding Agent (full scope, AUDIT mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
 | `CREATE [project]` command received | **Create session-state.json immediately per ORC-46** (status: ONBOARDING); activate Onboarding Agent (full scope, CREATE mode); start intake flow; NO Phase 1 before ONBOARDING_COMPLETE |
 | `REFRESH ONBOARDING` command received | Activate Onboarding Agent in maintenance mode (steps 3+4 only: scan + tooling check); partially update `.github/docs/onboarding/onboarding-output.md` (intake answers from the original onboarding process remain intact); report ONBOARDING_REFRESHED to active Sprint Gate if running; on conflicts with existing sprint: escalate as `SCOPE_DECISION` |
-| `AUDIT BUSINESS [project]` command received | Store scope `PARTIAL:BUSINESS` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 1 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `AUDIT TECH [project]` command received | Store scope `PARTIAL:TECH` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 2 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `AUDIT UX [project]` command received | Store scope `PARTIAL:UX` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 3 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `AUDIT MARKETING [project]` command received | Store scope `PARTIAL:MARKETING` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 4 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
+| `AUDIT BUSINESS [project]` command received | Store scope `PARTIAL:BUSINESS` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 1 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `AUDIT TECH [project]` command received | Store scope `PARTIAL:TECH` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 2 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `AUDIT UX [project]` command received | Store scope `PARTIAL:UX` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 3 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `AUDIT MARKETING [project]` command received | Store scope `PARTIAL:MARKETING` in session-state; activate Onboarding Agent (limited scope, AUDIT mode); start Phase 4 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
 | `AUDIT SYNTHESIS` command received | Load session-state; inventory available phase outputs; activate Synthesis Agent with all available input; produce Master + Blocker Matrix only if all 4 phases are present |
-| `CREATE BUSINESS [project]` command received | Store scope `PARTIAL:BUSINESS` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 1 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `CREATE TECH [project]` command received | Store scope `PARTIAL:TECH` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 2 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `CREATE UX [project]` command received | Store scope `PARTIAL:UX` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 3 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
-| `CREATE MARKETING [project]` command received | Store scope `PARTIAL:MARKETING` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 4 agents; activate Synthesis (PARTIAL) after Critic/Risk PASSED |
+| `CREATE BUSINESS [project]` command received | Store scope `PARTIAL:BUSINESS` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 1 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `CREATE TECH [project]` command received | Store scope `PARTIAL:TECH` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 2 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `CREATE UX [project]` command received | Store scope `PARTIAL:UX` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 3 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
+| `CREATE MARKETING [project]` command received | Store scope `PARTIAL:MARKETING` in session-state; activate Onboarding Agent (limited scope, CREATE mode); start Phase 4 agents; after Critic/Risk PASSED activate Questionnaire Agent (MANDATORY per G-GLOB-56); then activate Synthesis (PARTIAL) |
 | `CREATE SYNTHESIS` command received | Load session-state; inventory available phase outputs; activate Synthesis Agent with all available input; produce Master + Blocker Matrix only if all 4 phases are present |
 | Canva API auth failed in Brand & Assets Agent | Document as `CANVA_API_ERROR`; set status to `PARTIAL`; continue to Storybook Agent with available data; notify user |
 | `canva_api_token` missing in session-state | Brand & Assets Agent status `SKIPPED_NO_TOKEN`; report informatively at Sprint Gate; NO blocking |

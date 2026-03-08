@@ -86,7 +86,30 @@ AUDIT [project] → Onboarding Agent → intake validation → .github/docs/onbo
 AUDIT BUSINESS|TECH|UX|MARKETING [project] → Partial audit per discipline
 AUDIT [DISC1] [DISC2] [project] → Combination audit
 AUDIT SYNTHESIS → Combines all available phase outputs
-Note: AUDIT mode uses the same phase sequence but agents analyze existing software instead of designing new solutions.
+Note: AUDIT mode uses the IDENTICAL phase sequence as CREATE — including mandatory Questionnaire Agent activation after every phase Critic + Risk validation (per G-GLOB-56). Agents analyze existing software instead of designing new solutions, but all post-phase workflows (Critic/Risk → Questionnaire Agent → Official Documents) apply equally.
+
+AUDIT phase sequence (identical to CREATE except agents analyze existing code):
+  Orchestrator
+    ↓ [IMMEDIATELY creates session-state.json per ORC-46]
+    ↓ [Activates Onboarding Agent]
+    ↓ [Questionnaire Agent: load existing answers from BusinessDocs/ → inject into phase-agent contexts]
+  Phase 1 — Requirements & Strategy: Business Analyst → Domain Expert → Sales Strategist → Financial Analyst → Product Manager
+    ↓ [CRITIC + RISK validation]
+    ↓ [Questionnaire Agent: generate questionnaires for all INSUFFICIENT_DATA: items → BusinessDocs/Phase1-Business/Questionnaires/]
+    ↓ [Questionnaire Agent: update official documents → BusinessDocs/OfficialDocuments/]
+  Phase 2 — Architecture & Design: Software Architect → Senior Developer → DevOps Engineer → Security Architect → Data Architect → Legal Counsel
+    ↓ [CRITIC + RISK validation]
+    ↓ [Questionnaire Agent: generate questionnaires → BusinessDocs/Phase2-Tech/Questionnaires/]
+    ↓ [Questionnaire Agent: update official documents → BusinessDocs/OfficialDocuments/]
+  Phase 3 — Experience Design: UX Researcher → UX Designer → UI Designer → Accessibility Specialist → Content Strategist → Localization Specialist
+    ↓ [CRITIC + RISK validation]
+    ↓ [Questionnaire Agent: generate questionnaires → BusinessDocs/Phase3-UX/Questionnaires/]
+    ↓ [Questionnaire Agent: update official documents → BusinessDocs/OfficialDocuments/]
+  Phase 4 — Brand & Growth: Brand Strategist → Growth Marketer → CRO Specialist
+    ↓ [CRITIC + RISK validation]
+    ↓ [Questionnaire Agent: generate questionnaires → BusinessDocs/Phase4-Marketing/Questionnaires/]
+    ↓ [Questionnaire Agent: update official documents → BusinessDocs/OfficialDocuments/]
+  Synthesis Agent → Master Report + Department Reports + Cross-Team Blocker Matrix
 
 === ON-DEMAND COMMANDS (both modes) ===
 

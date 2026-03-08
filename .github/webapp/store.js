@@ -22,6 +22,11 @@ const path = require('path');
  * @property {(filePath: string) => number} mtime — returns ms-since-epoch
  */
 
+/* ── Backup constants (SP-R2-006-006) ─────────────────────────── */
+
+const BACKUPS_DIR_NAME = '.backups';
+const MAX_BACKUPS_PER_FILE = 10;
+
 /* ── FileStore ────────────────────────────────────────────────── */
 
 class FileStore {
@@ -33,9 +38,35 @@ class FileStore {
     return fs.readFileSync(filePath, encoding || 'utf8');
   }
 
+  /**
+   * Snapshot-on-write: before overwriting, copy the previous version to
+   * `.backups/<basename>/<timestamp>`. Retains the last MAX_BACKUPS_PER_FILE
+   * snapshots per file (oldest pruned). Complies with G-OPS-AUDIT-03.
+   */
+  _createBackup(filePath) {
+    if (!fs.existsSync(filePath)) return;
+    const dir    = path.dirname(filePath);
+    const base   = path.basename(filePath);
+    const bkDir  = path.join(dir, BACKUPS_DIR_NAME, base);
+    if (!fs.existsSync(bkDir)) fs.mkdirSync(bkDir, { recursive: true });
+
+    const stamp  = new Date().toISOString().replace(/[:.]/g, '-');
+    const bkPath = path.join(bkDir, stamp);
+    fs.copyFileSync(filePath, bkPath);
+
+    // Prune oldest beyond limit
+    const files = fs.readdirSync(bkDir).sort();
+    while (files.length > MAX_BACKUPS_PER_FILE) {
+      const oldest = files.shift();
+      try { fs.unlinkSync(path.join(bkDir, oldest)); } catch {}
+    }
+  }
+
   writeFile(filePath, data, encoding) {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    // SP-R2-006-006: backup previous version before overwrite
+    this._createBackup(filePath);
     // Atomic write: temp-file-then-rename (IMPL-CONSTRAINT-007)
     const tmpPath = filePath + '.tmp.' + process.pid + '.' + Date.now();
     try {
@@ -101,6 +132,8 @@ class InMemoryStore {
     this._files = new Map();
     // _dirs: Set<string> — tracks created directories
     this._dirs = new Set();
+    // _backups: Map<string, Array<{ timestamp: string, data: string }>>
+    this._backups = new Map();
     if (initialFiles) {
       for (const [filePath, data] of Object.entries(initialFiles)) {
         this._files.set(path.resolve(filePath), { data, mtime: Date.now() });
@@ -136,6 +169,14 @@ class InMemoryStore {
   writeFile(filePath, data, _encoding) {
     const resolved = path.resolve(filePath);
     this._ensureParentDirs(filePath);
+    // SP-R2-006-006: snapshot-on-write backup (mirrors FileStore)
+    const existing = this._files.get(resolved);
+    if (existing) {
+      const bkList = this._backups.get(resolved) || [];
+      bkList.push({ timestamp: new Date().toISOString(), data: existing.data });
+      while (bkList.length > MAX_BACKUPS_PER_FILE) bkList.shift();
+      this._backups.set(resolved, bkList);
+    }
     this._files.set(resolved, { data, mtime: Date.now() });
   }
 
@@ -182,10 +223,18 @@ class InMemoryStore {
 
 let _defaultStore = new FileStore();
 
+/**
+ * Return the active Store singleton.
+ * @returns {FileStore|InMemoryStore}
+ */
 function getStore() {
   return _defaultStore;
 }
 
+/**
+ * Replace the active Store singleton (used for test injection).
+ * @param {FileStore|InMemoryStore} store
+ */
 function setStore(store) {
   _defaultStore = store;
 }
@@ -195,4 +244,6 @@ module.exports = {
   InMemoryStore,
   getStore,
   setStore,
+  BACKUPS_DIR_NAME,
+  MAX_BACKUPS_PER_FILE,
 };

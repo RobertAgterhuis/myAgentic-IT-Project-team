@@ -12,12 +12,18 @@ const schemas         = require('./schemas');
 const models          = require('./models');
 const { attachSecretWarnings } = require('./utils/secret-utils');
 const { errorResponse, statusToCode } = require('./utils/errors');
+const { VALIDATION: V, RESPONSES: R, STATIC: S } = require('./strings');
 
 const _cache = new FileCache();
 
 /* ── SSE Client Registry (SP-R2-004-005) ──────────────────────── */
 const _sseClients = new Set();
 
+/**
+ * Broadcast a Server-Sent Event to all connected clients.
+ * @param {string} eventType - SSE event name (e.g. 'file_change', 'progress').
+ * @param {object} data - Payload to JSON-serialize into the event.
+ */
 function sseNotify(eventType, data) {
   const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const client of _sseClients) {
@@ -36,6 +42,13 @@ const _metrics = {
 };
 const METRICS_MAX_SAMPLES = 1000;
 
+/**
+ * Record an HTTP request metric for observability.
+ * @param {string} method - HTTP method (GET, POST, etc.).
+ * @param {string} pathname - Request path.
+ * @param {number} durationMs - Response time in milliseconds.
+ * @param {number} statusCode - HTTP response status code.
+ */
 function recordMetric(method, pathname, durationMs, statusCode) {
   _metrics.requestCount++;
   if (statusCode >= 400) _metrics.errorCount++;
@@ -49,12 +62,23 @@ function recordMetric(method, pathname, durationMs, statusCode) {
   if (ep.times.length > METRICS_MAX_SAMPLES) ep.times.shift();
 }
 
+/**
+ * Compute a percentile value from a pre-sorted array.
+ * @param {number[]} sorted - Sorted numeric array.
+ * @param {number} p - Percentile (0–100).
+ * @returns {number} The value at the given percentile.
+ */
 function percentile(sorted, p) {
   if (sorted.length === 0) return 0;
   const idx = Math.ceil(p / 100 * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
 }
 
+/**
+ * Compute p50, p95, and p99 percentiles from response time samples.
+ * @param {number[]} times - Unsorted array of response times in ms.
+ * @returns {{ p50: number, p95: number, p99: number }}
+ */
 function computePercentiles(times) {
   const sorted = [...times].sort((a, b) => a - b);
   return { p50: percentile(sorted, 50), p95: percentile(sorted, 95), p99: percentile(sorted, 99) };
@@ -83,6 +107,13 @@ const SSE_HEARTBEAT_MS = 30000;  // 30s keep-alive
 
 /* ── Utilities ────────────────────────────────────────────────── */
 
+/**
+ * Resolve a relative path within a base directory, blocking path traversal.
+ * @param {string} base - The allowed base directory.
+ * @param {string} relative - User-supplied relative path.
+ * @returns {string} Resolved absolute path.
+ * @throws {{ status: 403, errorCode: 'PATH_TRAVERSAL' }} If the path escapes base.
+ */
 function safePath(base, relative) {
   const absBase  = path.resolve(base);
   const resolved = path.resolve(base, relative);
@@ -93,6 +124,10 @@ function safePath(base, relative) {
   return resolved;
 }
 
+/**
+ * Apply standard security response headers (CSP, X-Frame-Options, etc.).
+ * @param {http.ServerResponse} res - The HTTP response object.
+ */
 function setSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -103,6 +138,12 @@ function setSecurityHeaders(res) {
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
 }
 
+/**
+ * Write data to a file via the Store, invalidate cache, bump metrics, and emit SSE.
+ * @param {string} filePath - Absolute path to write.
+ * @param {string} data - Content to write.
+ * @param {string} [encoding] - File encoding (default: utf8).
+ */
 function safeWriteSync(filePath, data, encoding) {
   getStore().writeFile(filePath, data, encoding);
   _cache.invalidate(filePath);
@@ -111,6 +152,12 @@ function safeWriteSync(filePath, data, encoding) {
   sseNotify('file_change', { file: relative, timestamp: new Date().toISOString() });
 }
 
+/**
+ * Send a JSON response with security headers and no-store cache.
+ * @param {http.ServerResponse} res - The HTTP response.
+ * @param {number} status - HTTP status code.
+ * @param {object} data - Payload to serialize.
+ */
 function json(res, status, data) {
   const body = JSON.stringify(data);
   setSecurityHeaders(res);
@@ -122,6 +169,12 @@ function json(res, status, data) {
   res.end(body);
 }
 
+/**
+ * Read the full request body as a UTF-8 string, enforcing a 1 MB limit.
+ * @param {http.IncomingMessage} req - The incoming request.
+ * @returns {Promise<string>} The request body text.
+ * @throws {{ status: 413 }} If the body exceeds MAX_BODY bytes.
+ */
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -137,6 +190,12 @@ function readBody(req) {
 }
 
 /* ── Content sanitization (IMPL-CONSTRAINT-002) ───────────────── */
+/**
+ * Escape markdown structural syntax in user-supplied text to prevent injection.
+ * Neutralizes headings, horizontal rules, table rows, and Q-ID patterns.
+ * @param {string} text - Raw user input.
+ * @returns {string} Sanitized text safe for embedding in markdown documents.
+ */
 function sanitizeMarkdown(text) {
   if (typeof text !== 'string') return text;
   return text
@@ -146,6 +205,12 @@ function sanitizeMarkdown(text) {
     .replace(/^\|/gm, '\\|')                       // Escape table row syntax
     .replace(/^(\s*>\s*#{1,6})\s/gm, '$1\\');      // Escape headings inside blockquotes
 }
+/**
+ * Neutralize fake question-ID patterns (Q-nn-nnnn) in user text.
+ * Replaces standard hyphens with non-breaking hyphens to prevent parser confusion.
+ * @param {string} text - Raw user input.
+ * @returns {string} Text with Q-ID patterns broken.
+ */
 function sanitizeQID(text) {
   // Specifically neutralize fake question ID patterns in user text
   if (typeof text !== 'string') return text;
@@ -162,6 +227,11 @@ const SECRET_PATTERNS = [
   { name: 'Bearer Token',       re: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/i },
 ];
 
+/**
+ * Scan text for common secret/credential patterns.
+ * @param {string} text - Text to scan.
+ * @returns {string[]} Names of detected secret patterns (empty if none).
+ */
 function detectSecrets(text) {
   if (typeof text !== 'string') return [];
   const found = [];
@@ -171,6 +241,12 @@ function detectSecrets(text) {
   return found;
 }
 
+/**
+ * Check multiple fields in a request body for secret patterns.
+ * @param {object} body - Parsed request body.
+ * @param {string[]} fieldsToCheck - Field names to scan.
+ * @returns {string[]} Deduplicated list of detected pattern names.
+ */
 function checkSecretsInBody(body, fieldsToCheck) {
   const warnings = [];
   for (const field of fieldsToCheck) {
@@ -185,12 +261,26 @@ function checkSecretsInBody(body, fieldsToCheck) {
   return [...new Set(warnings)];
 }
 
+/**
+ * Assert that a value is a string within a maximum length.
+ * @param {*} val - Value to check.
+ * @param {string} name - Field name for error messages.
+ * @param {number} [maxLen=1000] - Maximum allowed length.
+ * @throws {{ status: 400, errorCode: 'INVALID_INPUT' }} If validation fails.
+ */
 function assertString(val, name, maxLen = 1000) {
   if (typeof val !== 'string') throw Object.assign(new Error(`${name} must be a string`), { status: 400, errorCode: 'INVALID_INPUT' });
   if (val.length > maxLen) throw Object.assign(new Error(`${name} exceeds max length (${maxLen})`), { status: 400, errorCode: 'INVALID_INPUT' });
 }
 
 const _writeLocks = new Map();
+/**
+ * Execute a function under a per-path write lock to prevent concurrent writes.
+ * Locks are chained — if a lock is already held, the function waits for it.
+ * @param {string} filePath - Path used as the lock key.
+ * @param {function(): Promise<*>} fn - Async function to execute under the lock.
+ * @returns {Promise<*>} The return value of fn.
+ */
 async function withFileLock(filePath, fn) {
   const key = path.resolve(filePath);
   // Chain on the previous lock's promise to avoid race conditions (IMPL-CONSTRAINT-010)
@@ -211,6 +301,12 @@ const LOG_LEVEL = (process.env.LOG_LEVEL || 'info').toLowerCase();
 const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
 const CURRENT_LOG_LEVEL = LOG_LEVELS[LOG_LEVEL] ?? 2;
 
+/**
+ * Emit a structured JSON log entry to stdout (or stderr for errors).
+ * @param {'error'|'warn'|'info'|'debug'} level - Log severity.
+ * @param {string} message - Log message identifier.
+ * @param {object} [fields] - Additional key-value pairs to include.
+ */
 function structuredLog(level, message, fields = {}) {
   if ((LOG_LEVELS[level] ?? 2) > CURRENT_LOG_LEVEL) return;
   const entry = {
@@ -317,10 +413,10 @@ async function apiGetSession(_req, res) {
 }
 
 function validateSaveUpdates(updates) {
-  if (!Array.isArray(updates) || updates.length === 0 || updates.length > 200) return 'updates must be 1–200 items';
+  if (!Array.isArray(updates) || updates.length === 0 || updates.length > 200) return V.UPDATES_RANGE;
   for (const u of updates) {
-    if (!models.Q_ID_RE.test(u.questionId)) return `Invalid Q-ID: ${u.questionId}`;
-    if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return `Invalid status: ${u.status}`;
+    if (!models.Q_ID_RE.test(u.questionId)) return V.invalidQID(u.questionId);
+    if (!['OPEN', 'ANSWERED', 'DEFERRED'].includes(u.status)) return V.invalidStatus(u.status);
   }
   return null;
 }
@@ -371,7 +467,7 @@ async function apiReevaluate(req, res) {
     path.join(SESSION_DIR, 'reevaluate-trigger.json'),
     JSON.stringify({ requested_at: models.isoNow(), scope, source: 'questionnaire-webapp', status: 'PENDING' }, null, 2)
   );
-  json(res, 200, { ok: true, scope, message: `Trigger written. Type REEVALUATE ${scope} in Copilot chat.` });
+  json(res, 200, { ok: true, scope, message: R.reevaluateTrigger(scope) });
 }
 
 /* ── Decisions parser — reads via store, delegates to models ──── */
@@ -395,7 +491,7 @@ const DECISION_SECRET_FIELDS = ['text', 'notes', 'answer', 'reason'];
 
 function validateDecisionBody(body) {
   assertString(body.action, 'action', 50);
-  if (body.id && !models.DEC_ID_RE.test(body.id)) return 'Invalid decision ID format';
+  if (body.id && !models.DEC_ID_RE.test(body.id)) return V.INVALID_DEC_ID;
   for (const f of DECISION_TEXT_FIELDS) { if (body[f]) assertString(body[f], f, f === 'scope' ? 200 : 2000); }
   return null;
 }
@@ -409,9 +505,9 @@ function detectDecisionSecrets(body) {
 }
 
 function validateDecisionCreateFields(body) {
-  if (!body.type || !body.priority || !body.scope || !body.text) return 'Missing type, priority, scope, or text';
-  if (!['DECIDED', 'OPEN_QUESTION'].includes(body.type)) return 'Invalid type';
-  if (!['HIGH', 'MEDIUM', 'LOW'].includes(body.priority)) return 'Invalid priority';
+  if (!body.type || !body.priority || !body.scope || !body.text) return V.MISSING_CREATE_FIELDS;
+  if (!['DECIDED', 'OPEN_QUESTION'].includes(body.type)) return V.INVALID_TYPE;
+  if (!['HIGH', 'MEDIUM', 'LOW'].includes(body.priority)) return V.INVALID_PRIORITY;
   return null;
 }
 
@@ -429,28 +525,28 @@ function handleDecisionCreate(body, content) {
 }
 
 function mutateAnswer(body, content) {
-  if (!body.id || !body.answer) return { error: 'Missing id or answer' };
+  if (!body.id || !body.answer) return { error: V.MISSING_ID_OR_ANSWER };
   return { content: models.answerOpenQuestion(content, body.id, body.answer) };
 }
 function mutateDecide(body, content) {
-  if (!body.id || !body.answer) return { error: 'Missing id or answer' };
+  if (!body.id || !body.answer) return { error: V.MISSING_ID_OR_ANSWER };
   content = models.answerOpenQuestion(content, body.id, body.answer);
   return { content: models.moveToDecided(content, body.id) };
 }
 function mutateDefer(body, content) {
-  if (!body.id) return { error: 'Missing id' };
+  if (!body.id) return { error: V.MISSING_ID };
   return { content: models.deferOpenQuestion(content, body.id, body.reason || '') };
 }
 function mutateExpire(body, content) {
-  if (!body.id) return { error: 'Missing id' };
+  if (!body.id) return { error: V.MISSING_ID };
   return { content: models.expireDecidedItem(content, body.id, body.reason || '') };
 }
 function mutateReopen(body, content) {
-  if (!body.id) return { error: 'Missing id' };
+  if (!body.id) return { error: V.MISSING_ID };
   return { content: models.reopenItem(content, body.id) };
 }
 function mutateEdit(body, content) {
-  if (!body.id) return { error: 'Missing id' };
+  if (!body.id) return { error: V.MISSING_ID };
   return { content: models.editDecidedRow(content, body.id, { priority: body.priority, scope: body.scope, text: body.text, notes: body.notes }) };
 }
 
@@ -459,7 +555,7 @@ const PAST_TENSE = { answer: 'answered', decide: 'decided', defer: 'deferred', e
 
 function handleDecisionMutate(body, content) {
   const handler = DECISION_HANDLERS[body.action];
-  if (!handler) return { error: `Unknown action: ${body.action}` };
+  if (!handler) return { error: R.unknownAction(body.action) };
   const outcome = handler(body, content);
   if (outcome.error) return outcome;
   content = models.appendAuditTrail(outcome.content, body.action, body.id);
@@ -566,7 +662,7 @@ async function apiPostCommand(req, res) {
   if (cmdSecrets.length > 0) structuredLog('warn', 'secret_pattern_in_command', { patterns: cmdSecrets, command: body.command });
 
   const cmd = body.command.trim().toUpperCase();
-  if (!isValidCommand(cmd)) return json(res, 400, errorResponse('UNKNOWN_COMMAND', `Unknown command: ${body.command}`));
+  if (!isValidCommand(cmd)) return json(res, 400, errorResponse('UNKNOWN_COMMAND', R.unknownCommand(body.command)));
 
   getStore().mkdirp(SESSION_DIR);
   const entry = buildCommandEntry(body);
@@ -574,7 +670,7 @@ async function apiPostCommand(req, res) {
   entry.clipboard_text = buildClipboardText(entry);
   appendToCommandQueue(entry);
 
-  const cmdResponse = { ok: true, clipboard_text: entry.clipboard_text, brief_saved: !!entry.brief_saved, message: `Command queued. Paste in Copilot Chat: ${entry.clipboard_text}` };
+  const cmdResponse = { ok: true, clipboard_text: entry.clipboard_text, brief_saved: !!entry.brief_saved, message: R.commandQueued(entry.clipboard_text) };
   attachSecretWarnings(cmdResponse, cmdSecrets);
   json(res, 200, cmdResponse);
 }
@@ -904,8 +1000,8 @@ async function apiGetHealth(_req, res) {
 const VALID_ANALYTICS_EVENTS = ['page_view', 'tab_switch', 'command_launch', 'questionnaire_save', 'decision_update', 'error_displayed', 'feature_usage', 'session_start', 'session_end'];
 
 function validateAnalyticsEvent(evt) {
-  if (!evt || typeof evt !== 'object') return 'Event must be an object';
-  if (!VALID_ANALYTICS_EVENTS.includes(evt.event)) return `Unknown event type: ${evt.event}`;
+  if (!evt || typeof evt !== 'object') return V.EVENT_MUST_BE_OBJECT;
+  if (!VALID_ANALYTICS_EVENTS.includes(evt.event)) return R.unknownEvent(evt.event);
   if (evt.properties && typeof evt.properties !== 'object') return 'Properties must be an object';
   return null;
 }
@@ -913,7 +1009,7 @@ function validateAnalyticsEvent(evt) {
 async function apiPostAnalytics(req, res) {
   const body = await parseBody(req);
   if (!Array.isArray(body.events) || body.events.length === 0 || body.events.length > 100) {
-    return json(res, 400, errorResponse('VALIDATION_ERROR', 'events must be 1–100 items'));
+    return json(res, 400, errorResponse('VALIDATION_ERROR', V.EVENTS_RANGE));
   }
   const errors = [];
   const valid = [];
@@ -959,7 +1055,7 @@ try {
 } catch { /* index.html not found — static serving will return 404 */ }
 
 function serveStatic(_req, res) {
-  if (!cachedHtml) { res.writeHead(404); return res.end('Not found'); }
+  if (!cachedHtml) { res.writeHead(404); return res.end(S.NOT_FOUND); }
   setSecurityHeaders(res);
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': cachedHtml.length });
   res.end(cachedHtml);

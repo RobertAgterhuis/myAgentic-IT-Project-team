@@ -1161,6 +1161,60 @@
   </div>
 
 <script>
+/* ── UI Strings (centralized for maintainability) ──── */
+const STRINGS = {
+  // Error / recovery
+  somethingWrong:      'Something went wrong',
+  tryAgain:            'Please try again.',
+  requestFailed:       'Request failed',
+  couldNotLoad:        'Could not load data',
+  checkServer:         'Check that the server is running.',
+  connectionLost:      'Connection lost \u2014 server may be down. Retrying automatically.',
+  serverUnreachable:   'Server unreachable \u2014 retrying automatically',
+  serverRestored:      'Server connection restored',
+  // Toast / status
+  dataRefreshed:       'Data updated externally \u2014 refreshed',
+  noChanges:           'No changes to save',
+  answerRequired:      'Enter an answer first',
+  answerRequiredDecide:'Enter an answer first before deciding',
+  scopeTextRequired:   'Scope and text are required',
+  fieldRequired:       (name) => `${name} is required`,
+  answerEmpty:         'Answer is empty \u2014 consider filling it in before marking ANSWERED',
+  answerFieldReq:      'An answer is required',
+  answerFieldReqDecide:'An answer is required before saving or deciding',
+  answerEmptyDecide:   'An answer is required before deciding',
+  exportSuccess:       'Session exported successfully',
+  exportFailed:        (msg) => 'Export failed: ' + msg,
+  copiedClipboard:     'Copied to clipboard',
+  cmdQueued:           'Command queued \u2014 paste in Copilot Chat to start',
+  cmdPaste:            'Paste CONTINUE in Copilot Chat to resume',
+  savedCount:          (n) => `Saved ${n} answer(s)`,
+  answerSaved:         (id) => 'Answer saved for ' + id,
+  decisionClosed:      (id) => `Decision closed: ${id}`,
+  decisionDeferred:    (id) => `Decision deferred: ${id}`,
+  decisionExpired:     (id) => `Decision expired: ${id}`,
+  decisionReopened:    (id) => `Decision reopened: ${id}`,
+  decisionCreated:     (id) => `Decision created: ${id}`,
+  decisionUpdated:     (id) => `Decision updated: ${id}`,
+  // Reevaluate
+  reevalCreated:       (scope) => `Reevaluation trigger created (scope: ${scope}). Now type REEVALUATE ${scope} in Copilot chat.`,
+  // Empty states
+  noQuestionnaires:    'No questionnaires found.',
+  noQuestionnairesYet: 'No questionnaires yet',
+  noDecisionsYet:      'No decisions yet',
+  noMatchFilters:      'No decisions match filters',
+  noActiveSession:     'No active session',
+  // Page / tab
+  pageTitle:           (tab) => (tab || 'Manager') + ' \u2014 Q&D Manager',
+  switchedTab:         (tab) => 'Switched to ' + tab.replace('commandcenter', 'Command Center') + ' tab',
+  // Connection
+  serverConnected:     'Server connected',
+  justNow:             'just now',
+  agoSuffix:           's ago',
+  liveBadge:           'Live',
+  pollingBadge:        'Polling',
+};
+
 /* ── State ───────────────────────────────────────────── */
 let questionnaires = [];
 let decisions      = { open: [], decided: [], deferred: [] };
@@ -1209,7 +1263,7 @@ async function api(method, url, body, signal) {
   const r = await fetch(url, opts);
   const d = await r.json();
   if (!r.ok) {
-    const err = new Error(d.message || d.error || 'Request failed');
+    const err = new Error(d.message || d.error || STRINGS.requestFailed);
     err.code = d.code || 'UNKNOWN';
     err.recovery = d.recovery || '';
     err.status = r.status;
@@ -1237,8 +1291,8 @@ async function apiWithRetry(method, url, body, { maxRetries = 2, signal } = {}) 
 
 /** Show a structured error message (What + Why + Action) and announce to screen readers. */
 function showError(e, context) {
-  const what = context ? context + ': ' + (e.message || 'Something went wrong') : (e.message || 'Something went wrong');
-  const action = e.recovery || 'Please try again.';
+  const what = context ? context + ': ' + (e.message || STRINGS.somethingWrong) : (e.message || STRINGS.somethingWrong);
+  const action = e.recovery || STRINGS.tryAgain;
   const msg = what + ' \u2014 ' + action;
   toast(msg, 't-err');
   announceError(msg);
@@ -1286,7 +1340,7 @@ async function load(silent) {
     questionnaires = qData.questionnaires;
     decisions = dData;
     if (silent && lastDecHash && newDecHash !== lastDecHash) {
-      toast('Data updated externally \u2014 refreshed', 't-info');
+      toast(STRINGS.dataRefreshed, 't-info');
     }
 
     // Detect pipeline transitions and show toasts (compare BEFORE overwriting progress)
@@ -1328,7 +1382,7 @@ async function load(silent) {
     if (decLoader) decLoader.classList.add('hidden');
   } catch (e) {
     if (!silent) {
-      const errMsg = (e.message || 'Could not load data') + ' \u2014 ' + (e.recovery || 'Check that the server is running.');
+      const errMsg = (e.message || STRINGS.couldNotLoad) + ' \u2014 ' + (e.recovery || STRINGS.checkServer);
       const loader = document.getElementById('loader');
       if (loader) loader.textContent = errMsg;
       const decLoader = document.getElementById('decLoader');
@@ -1339,7 +1393,7 @@ async function load(silent) {
       _consecutiveFails++;
       updateConnectionStatus();
       if (silentFailCount >= MAX_SILENT_FAILS) {
-        const msg = 'Connection lost \u2014 server may be down. Retrying automatically.';
+        const msg = STRINGS.connectionLost;
         toast(msg, 't-err');
         announceError(msg);
         silentFailCount = 0;
@@ -1380,23 +1434,23 @@ function updateConnectionStatus() {
   if (sseBadge) {
     sseBadge.classList.toggle('hidden', !_sseConnected && _consecutiveFails < 3);
     sseBadge.className = 'sse-badge ' + (_sseConnected ? 'live' : 'polling');
-    sseBadge.textContent = _sseConnected ? 'Live' : 'Polling';
+    sseBadge.textContent = _sseConnected ? STRINGS.liveBadge : STRINGS.pollingBadge;
   }
   if (dot) {
     const connected = _consecutiveFails < 3;
     dot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
-    dot.title = connected ? 'Server connected' : 'Server unreachable';
+    dot.title = connected ? STRINGS.serverConnected : 'Server unreachable';
   }
   if (refresh && _lastRefreshTime) {
     const ago = Math.round((Date.now() - _lastRefreshTime.getTime()) / 1000);
-    refresh.textContent = ago < 5 ? 'just now' : ago + 's ago';
+    refresh.textContent = ago < 5 ? STRINGS.justNow : ago + STRINGS.agoSuffix;
   }
   if (banner) {
     const wasVisible = banner.classList.contains('visible');
     banner.classList.toggle('visible', _consecutiveFails >= 3);
     /* Announce connection status changes to screen readers (SP-R2-005-005) */
     if (!wasVisible && _consecutiveFails >= 3) announceError('Server unreachable — retrying automatically');
-    else if (wasVisible && _consecutiveFails < 3) announceStatus('Server connection restored');
+    else if (wasVisible && _consecutiveFails < 3) announceStatus(STRINGS.serverRestored);
   }
 }
 
@@ -1446,7 +1500,7 @@ function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;
 function renderSidebar() {
   const el = document.getElementById('sidebar');
   if (!questionnaires.length) {
-    el.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-muted)">No questionnaires found.</div>';
+    el.innerHTML = '<div style="padding:20px;font-size:13px;color:var(--text-muted)">' + STRINGS.noQuestionnaires + '</div>';
     return;
   }
   const phases = {};
@@ -1484,7 +1538,7 @@ function renderStats() {
       document.getElementById('hStats').innerHTML = `<span><span aria-hidden="true">&#9203;</span> Command queued: <span class="stat-val">${esc(p.command.command || '—')}</span></span><span style="color:var(--warning)">Waiting for Copilot Chat</span>`;
       document.getElementById('hSub').textContent = 'Paste the copied command in Copilot Chat to start the Orchestrator';
     } else {
-      document.getElementById('hStats').innerHTML = '<span>No active session</span>';
+      document.getElementById('hStats').innerHTML = '<span>' + STRINGS.noActiveSession + '</span>';
       document.getElementById('hSub').textContent = 'Command Center — Launch a command to begin';
     }
     return;
@@ -1639,7 +1693,7 @@ async function switchTab(tab) {
   try { sessionStorage.setItem('activeTab', tab); } catch {}
   const hash = TAB_HASH_MAP[tab];
   if (hash && location.hash !== hash) history.pushState(null, '', hash);
-  document.title = (TAB_TITLES[tab] || 'Manager') + ' \u2014 Q&D Manager';
+  document.title = STRINGS.pageTitle(TAB_TITLES[tab]);
   document.querySelectorAll('.tab').forEach(t => {
     const sel = t.dataset.tab === tab;
     t.classList.toggle('active', sel);
@@ -1650,7 +1704,7 @@ async function switchTab(tab) {
   document.getElementById('panelDecisions').classList.toggle('hidden', tab !== 'decisions');
   document.getElementById('panelCommandCenter').classList.toggle('hidden', tab !== 'commandcenter');
   /* Announce active tab to screen readers (SP-R2-005-005) */
-  announceStatus('Switched to ' + tab.replace('commandcenter', 'Command Center') + ' tab');
+  announceStatus(STRINGS.switchedTab(tab));
   document.getElementById('btnSaveAll').classList.toggle('hidden', tab !== 'questionnaires');
   document.getElementById('btnNewDecision').classList.toggle('hidden', tab !== 'decisions' && tab !== 'questionnaires');
   document.getElementById('btnReeval').classList.toggle('hidden', tab === 'commandcenter');
@@ -1725,7 +1779,7 @@ function renderDecisions() {
     const total = decisions.open.length + decisions.decided.length + decisions.deferred.length;
     el.innerHTML = `<div class="dec-empty">
       <div class="empty-icon" style="font-size:48px;opacity:.4;" aria-hidden="true">&#9878;</div>
-      <div class="empty-title" style="margin:12px 0 6px;font-size:16px;font-weight:600;color:var(--text);">${total ? 'No decisions match filters' : 'No decisions yet'}</div>
+      <div class="empty-title" style="margin:12px 0 6px;font-size:16px;font-weight:600;color:var(--text);">${total ? STRINGS.noMatchFilters : STRINGS.noDecisionsYet}</div>
       <div style="color:var(--text-sec);font-size:14px;">${total ? 'Try adjusting the search or filter criteria.' : 'Click <strong>+ New Decision</strong> to create one, or agents will add open questions during analysis.'}</div>
     </div>`;
     return;
@@ -1847,18 +1901,18 @@ async function confirmAndExecute(id, action, title, text, successMsg, showReason
 
 async function answerDecision(id) {
   const ta = document.getElementById('decAns-' + id);
-  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, 'An answer is required'); toast('Enter an answer first', 't-info'); return; }
+  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.answerFieldReq); toast(STRINGS.answerRequired, 't-info'); return; }
   setFieldError(ta, '');
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'answer', id, answer: ta.value.trim() });
-    toast(`Answer saved for ${id}`, 't-ok');
+    toast(STRINGS.answerSaved(id), 't-ok');
     await load();
   } catch (e) { showError(e, 'Could not save answer'); }
 }
 
 async function decideDecision(id) {
   const ta = document.getElementById('decAns-' + id);
-  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, 'An answer is required before deciding'); toast('Enter an answer first before deciding', 't-info'); return; }
+  if (!ta || !ta.value.trim()) { if (ta) setFieldError(ta, STRINGS.answerEmptyDecide); toast(STRINGS.answerRequiredDecide, 't-info'); return; }
   setFieldError(ta, '');
   const decision = decisions.open.find(d => d.id === id);
   const r = await confirmAction('Decide & Close', `Move ${id} to Decided Items? This action is visible to all agents.`, false, 'Decide & close');
@@ -1866,7 +1920,7 @@ async function decideDecision(id) {
   const priority = decision?.priority;
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'decide', id, answer: ta.value.trim() });
-    toast(`Decision closed: ${id}`, 't-ok');
+    toast(STRINGS.decisionClosed(id), 't-ok');
     await load();
     if (priority === 'HIGH') {
       const re = await confirmAction('Trigger Reevaluation?', `${id} was a HIGH priority decision. Would you like to trigger a reevaluation so agents pick up this change?`, false, 'Trigger reevaluation');
@@ -1876,15 +1930,15 @@ async function decideDecision(id) {
 }
 
 async function deferDecision(id) {
-  return confirmAndExecute(id, 'defer', 'Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, `Decision deferred: ${id}`, true, 'Defer decision');
+  return confirmAndExecute(id, 'defer', 'Defer Decision', `Defer ${id}? The Orchestrator will ignore it until scope triggers.`, STRINGS.decisionDeferred(id), true, 'Defer decision');
 }
 
 async function expireDecision(id) {
-  return confirmAndExecute(id, 'expire', 'Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, `Decision expired: ${id}`, true, 'Expire decision');
+  return confirmAndExecute(id, 'expire', 'Expire Decision', `Expire ${id}? The Orchestrator will ignore it entirely.`, STRINGS.decisionExpired(id), true, 'Expire decision');
 }
 
 async function reopenDecision(id) {
-  return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, `Decision reopened: ${id}`, false, 'Reopen decision');
+  return confirmAndExecute(id, 'reopen', 'Reopen Decision', `Reopen ${id} as an open question?`, STRINGS.decisionReopened(id), false, 'Reopen decision');
 }
 
 function openEditDecision(id) {
@@ -1904,11 +1958,11 @@ async function saveEditDecision() {
   const scope    = document.getElementById('edScope').value.trim();
   const text     = document.getElementById('edText').value.trim();
   const notes    = document.getElementById('edNotes').value.trim();
-  if (!scope || !text) { toast('Scope and text are required', 't-info'); return; }
+  if (!scope || !text) { toast(STRINGS.scopeTextRequired, 't-info'); return; }
   try {
     await apiWithRetry('POST', '/api/decisions', { action: 'edit', id, priority, scope, text, notes });
     closeModal('editDecOverlay');
-    toast(`Decision updated: ${id}`, 't-ok');
+    toast(STRINGS.decisionUpdated(id), 't-ok');
     await load();
   } catch (e) { showError(e, 'Could not update decision'); }
 }
@@ -1919,14 +1973,14 @@ async function createDecision() {
   const scope    = document.getElementById('ndScope').value.trim();
   const text     = document.getElementById('ndText').value.trim();
   const notes    = document.getElementById('ndNotes').value.trim();
-  if (!scope || !text) { toast('Scope and text are required', 't-info'); return; }
+  if (!scope || !text) { toast(STRINGS.scopeTextRequired, 't-info'); return; }
   try {
     const r = await apiWithRetry('POST', '/api/decisions', { action: 'create', type, priority, scope, text, notes });
     closeModal('newDecOverlay');
     document.getElementById('ndScope').value = '';
     document.getElementById('ndText').value = '';
     document.getElementById('ndNotes').value = '';
-    toast(`Decision created: ${r.id}`, 't-ok');
+    toast(STRINGS.decisionCreated(r.id), 't-ok');
     switchTab('decisions');
     await load();
   } catch (e) { showError(e, 'Could not create decision'); }
@@ -1955,7 +2009,7 @@ async function saveOne(file, qId) {
   try {
     await apiWithRetry('POST', '/api/save', { file, updates: [{ questionId: qId, answer, status }] });
     dirty.delete(file + '::' + qId);
-    toast('Answer saved for ' + qId, 't-ok');
+    toast(STRINGS.answerSaved(qId), 't-ok');
     await load();
   } catch (e) { showError(e, 'Save failed'); }
 }
@@ -1972,11 +2026,11 @@ async function saveFileAll(file) {
       updates.push({ questionId: x.id, answer: d.answer, status: d.status });
     }
   }
-  if (!updates.length) { toast('No changes to save', 't-info'); return; }
+  if (!updates.length) { toast(STRINGS.noChanges, 't-info'); return; }
   try {
     await apiWithRetry('POST', '/api/save', { file, updates });
     updates.forEach(u => dirty.delete(file + '::' + u.questionId));
-    toast(`Saved ${updates.length} answer(s)`, 't-ok');
+    toast(STRINGS.savedCount(updates.length), 't-ok');
     await load();
   } catch (e) { showError(e, 'Save failed'); }
 }
@@ -1997,7 +2051,7 @@ async function saveAll() {
       n += updates.length;
     } catch (e) { showError(e, 'Save failed for ' + file); return; }
   }
-  if (n) toast(`Saved ${n} answer(s)`, 't-ok');
+  if (n) toast(STRINGS.savedCount(n), 't-ok');
   await load();
 }
 
@@ -2008,7 +2062,7 @@ async function doReeval() {
   const scope = document.getElementById('reevalScope').value;
   try {
     await apiWithRetry('POST', '/api/reevaluate', { scope });
-    toast(`Reevaluation trigger created (scope: ${scope}). Now type REEVALUATE ${scope} in Copilot chat.`, 't-ok');
+    toast(STRINGS.reevalCreated(scope), 't-ok');
   } catch (e) { showError(e, 'Reevaluation failed'); }
 }
 
@@ -2166,8 +2220,8 @@ function renderPipeline() {
   if (contBtn) {
     contBtn.addEventListener('click', () => {
       navigator.clipboard.writeText('CONTINUE').then(() => {
-        toast('Copied to clipboard', 't-ok');
-      }).catch(() => toast('Paste CONTINUE in Copilot Chat to resume', 't-info'));
+        toast(STRINGS.copiedClipboard, 't-ok');
+      }).catch(() => toast(STRINGS.cmdPaste, 't-info'));
     });
   }
 }
@@ -2310,7 +2364,7 @@ async function launchCommand() {
       </div>`;
     document.getElementById('btnCopyClip').addEventListener('click', copyClipboard);
 
-    toast('Command queued \u2014 paste in Copilot Chat to start', 't-ok');
+    toast(STRINGS.cmdQueued, 't-ok');
 
     // Collapse the form into an expandable details element
     const form = document.getElementById('cmdForm');
@@ -2336,7 +2390,7 @@ function copyClipboard() {
   const text = lastClipboard || document.getElementById('clipText')?.textContent || '';
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
-    toast('Copied to clipboard', 't-ok');
+    toast(STRINGS.copiedClipboard, 't-ok');
     const btn = document.getElementById('btnCopyClip');
     if (btn) { btn.textContent = '\u2705 Copied!'; setTimeout(() => { btn.textContent = '\uD83D\uDCCB Copy'; }, 2000); }
   }).catch(() => {
@@ -2348,7 +2402,7 @@ function copyClipboard() {
     try {
       ta.select();
       document.execCommand('copy');
-      toast('Copied to clipboard', 't-ok');
+      toast(STRINGS.copiedClipboard, 't-ok');
     } finally {
       document.body.removeChild(ta);
     }
@@ -2635,8 +2689,8 @@ document.getElementById('btnExport').addEventListener('click', async () => {
     a.download = 'session-export-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast('Session exported successfully', 't-ok');
-  } catch (e) { toast('Export failed: ' + e.message, 't-err'); }
+    toast(STRINGS.exportSuccess, 't-ok');
+  } catch (e) { toast(STRINGS.exportFailed(e.message), 't-err'); }
 });
 document.getElementById('helpClose').addEventListener('click', closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', e => {
@@ -2781,7 +2835,7 @@ document.getElementById('main').addEventListener('change', e => {
 document.getElementById('decMain').addEventListener('focusout', e => {
   const ta = e.target.closest('textarea[id^="decAns-"]');
   if (ta && !ta.value.trim()) {
-    setFieldError(ta, 'An answer is required before saving or deciding');
+    setFieldError(ta, STRINGS.answerFieldReqDecide);
   } else if (ta) {
     setFieldError(ta, '');
   }
@@ -3032,7 +3086,7 @@ initFontSize();
 const hashTab = HASH_TAB_MAP[location.hash];
 if (hashTab) activeTab = hashTab;
 if (activeTab !== 'commandcenter') switchTab(activeTab);
-else { const h = TAB_HASH_MAP[activeTab]; if (h && location.hash !== h) history.replaceState(null, '', h); document.title = (TAB_TITLES[activeTab] || 'Manager') + ' \u2014 Q&D Manager'; }
+else { const h = TAB_HASH_MAP[activeTab]; if (h && location.hash !== h) history.replaceState(null, '', h); document.title = STRINGS.pageTitle(TAB_TITLES[activeTab]); }
 load();
 startPolling();
 connectSSE();

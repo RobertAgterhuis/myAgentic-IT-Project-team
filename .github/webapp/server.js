@@ -991,6 +991,7 @@ function buildSessionSummary(session) {
     current_phase: session.current_phase || null,
     current_agent: session.current_agent || null,
     current_step: session.current_step || null,
+    agent_started_at: session.agent_started_at || null,
     initiated_at: session.initiated_at,
     last_updated: session.last_updated,
     blockers: session.blockers || [],

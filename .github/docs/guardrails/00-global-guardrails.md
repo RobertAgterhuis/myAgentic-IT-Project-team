@@ -74,6 +74,34 @@
 
 ---
 
+## 7. AGENT PROGRESS PROTOCOL (MANDATORY — prevents frozen UI)
+
+> **Context:** The web UI reads `session-state.json` via SSE file-change events. If no agent writes to this file during execution, the UI appears stuck for the entire duration of an agent's work (10–30+ minutes). Every agent MUST write progress updates to keep the UI responsive.
+
+| Rule | Required action |
+|---|---|
+| G-GLOB-60 | At the **START** of execution, update `session-state.json` fields `current_step` and `last_updated`. Set `current_step` to a description of the first step you are performing (e.g. `"Analyzing business model from onboarding output"`). |
+| G-GLOB-61 | At every **major milestone** within your work (e.g. completing a section, starting a new analysis area, writing a deliverable file), update `current_step` to reflect the new activity and update `last_updated` to the current ISO 8601 timestamp. A "major milestone" is any transition between distinct logical steps in your workflow — aim for at minimum one update per 3–5 minutes of work. |
+| G-GLOB-62 | Updates MUST be **targeted writes** — read `session-state.json`, update ONLY `current_step` and `last_updated`, write back. Do NOT modify any other fields (those are owned by the Orchestrator). |
+| G-GLOB-63 | The `current_step` text MUST be **concise** (max 80 characters) and **human-readable** — it is displayed directly in the web UI pipeline view. Examples: `"Mapping domain entities"`, `"Writing sprint plan section"`, `"Validating security requirements"`. |
+| G-GLOB-64 | If an agent encounters an error or is blocked mid-execution, update `current_step` to reflect the blocked state (e.g. `"BLOCKED: waiting for predecessor output"`) before escalating. This ensures the UI shows the blocked status in real-time rather than appearing frozen. |
+| G-GLOB-65 | Progress writes MUST NOT interfere with the Orchestrator's state ownership. Agents write ONLY `current_step` + `last_updated`. All other session-state fields (`status`, `current_agent`, `completed_agents`, `phase_outputs`, etc.) remain exclusively Orchestrator-managed. |
+
+**Implementation pattern for agents:**
+```
+1. Read .github/docs/session/session-state.json
+2. Update current_step to describe current activity
+3. Update last_updated to current ISO 8601 timestamp
+4. Write the file back
+```
+
+**Minimum progress updates per agent type:**
+- **Phase agents** (producers): at least 3 updates — start, mid-analysis, writing deliverable
+- **Critic + Risk agents** (validators): at least 2 updates — start validation, writing report
+- **Lightweight agents** (Questionnaire, KPI, Documentation): at least 1 update — start
+
+---
+
 ## ESCALATION PATH
 
 ```

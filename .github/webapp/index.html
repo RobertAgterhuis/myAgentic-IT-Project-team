@@ -628,6 +628,8 @@
     }
     .pipe-agent.agent-done { border-color: var(--success); background: var(--success-light); color: var(--success); font-weight: 600; }
     .pipe-agent-step { display: block; font-size: var(--text-caption); font-weight: 400; color: var(--text-sec); margin-top: 2px; font-style: italic; }
+    .pipe-agent-elapsed { display: inline-block; font-size: 11px; font-weight: 600; color: var(--primary); margin-left: 8px; opacity: 0.85; }
+    .pipe-agent-updated { display: inline-block; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
 
     /* Pipeline progress bar */
     .pipe-progress { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
@@ -1850,6 +1852,18 @@ const _esc = document.createElement('span');
 function esc(s) { _esc.textContent = s || ''; return _esc.innerHTML; }
 function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;').replace(/\t/g,'&#9;'); }
 
+function formatElapsed(isoStr) {
+  if (!isoStr) return '';
+  const diffMs = Date.now() - new Date(isoStr).getTime();
+  if (diffMs < 0) return '0s';
+  const secs = Math.floor(diffMs / 1000);
+  if (secs < 60) return secs + 's';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return mins + 'm ' + (secs % 60) + 's';
+  const hrs = Math.floor(mins / 60);
+  return hrs + 'h ' + (mins % 60) + 'm';
+}
+
 /* ── Sidebar ─────────────────────────────────────────── */
 function renderSidebar() {
   const el = document.getElementById('sidebar');
@@ -2670,7 +2684,9 @@ function renderPipeline() {
       const dotCls = agent.status === 'done' ? 'dot-done' : agent.status === 'active' ? 'dot-active' : 'dot-pending';
       const agentCls = agent.status === 'done' ? 'agent-done' : agent.status === 'active' ? 'agent-active' : '';
       const stepText = agent.status === 'active' && session.current_step ? `<span class="pipe-agent-step">${esc(session.current_step)}</span>` : '';
-      h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}${stepText}</div>`;
+      const elapsedText = agent.status === 'active' && session.agent_started_at ? `<span class="pipe-agent-elapsed">${formatElapsed(session.agent_started_at)}</span>` : '';
+      const updatedText = agent.status === 'active' && session.last_updated ? `<span class="pipe-agent-updated">updated ${formatElapsed(session.last_updated)} ago</span>` : '';
+      h += `<div class="pipe-agent ${agentCls}"><span class="pipe-agent-dot ${dotCls}"></span>${esc(agent.name)}${stepText}${elapsedText}${updatedText}</div>`;
     }
 
     h += `</div></div>`;

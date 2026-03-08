@@ -319,7 +319,7 @@ Excluded directories: `.github/`, `build/`, `out/`, `dist/`, `coverage/`, `node_
 **RULE ORC-30: Checkpoint-and-Yield Protocol (MANDATORY — prevents network timeouts)**
 The Orchestrator MUST complete exactly **one agent per conversation turn**. After each agent completes its handoff, the Orchestrator:
 1. Writes the agent output to disk (per phase_outputs in session-state.json)
-2. Updates `session-state.json`: adds the completed agent to `completed_agents`, sets `current_agent` to the **next** agent's filename (e.g. `"02-domain-expert"` after `01-business-analyst` completes), updates `last_updated`. This ensures the web UI immediately reflects the upcoming agent.
+2. Updates `session-state.json`: adds the completed agent to `completed_agents`, sets `current_agent` to the **next** agent's filename (e.g. `"02-domain-expert"` after `01-business-analyst` completes), sets `agent_started_at` to the current ISO 8601 timestamp, sets `current_step` to `"Waiting for [Next Agent Name] to start"`, updates `last_updated`. This ensures the web UI immediately reflects the upcoming agent.
 3. Updates `.github/docs/session/pipeline-progress.json` for the web UI. Schema: `{ "active": boolean, "command": string, "phases": [{ "name": string, "status": string, "agents": [{ "name": string, "status": string }] }] }`. Written by Orchestrator, consumed by web UI `/api/progress` endpoint.
 4. **Yields back to the user** with a concise status message:
    ```
@@ -327,7 +327,9 @@ The Orchestrator MUST complete exactly **one agent per conversation turn**. Afte
    Next: [Next Agent Name]
    Type CONTINUE (or press Enter) to proceed.
    ```
-5. On the next user turn (CONTINUE or Enter), the Orchestrator reads `session-state.json`, determines the next agent, and activates it. Before invoking the agent, the Orchestrator MUST verify that `current_agent` in `session-state.json` matches the agent about to run — if not (e.g. manual edit or recovery), update `current_agent` and `last_updated` first.
+5. On the next user turn (CONTINUE or Enter), the Orchestrator reads `session-state.json`, determines the next agent, and activates it. Before invoking the agent, the Orchestrator MUST verify that `current_agent` in `session-state.json` matches the agent about to run — if not (e.g. manual edit or recovery), update `current_agent`, `agent_started_at`, and `last_updated` first.
+
+**Note:** Once an agent is activated, it is responsible for updating `current_step` and `last_updated` during its execution per the Agent Progress Protocol (G-GLOB-60–65 in `/.github/docs/guardrails/00-global-guardrails.md`). This keeps the web UI pipeline view responsive.
 
 **Why this rule exists:** Without yielding, the Orchestrator attempts to run all agents in a single LLM generation turn. For large projects with detailed briefs, this causes the response to exceed network timeout limits (typically 60–120 seconds), resulting in partial output, skipped agents, or direct file creation by the wrong agent.
 
@@ -952,6 +954,7 @@ The Orchestrator MUST create `session-state.json` **immediately** upon receiving
      "current_phase": "ONBOARDING",
      "current_agent": "25-onboarding-agent",
      "current_step": "Waiting for Onboarding Agent to start",
+     "agent_started_at": "[ISO 8601]",
      "completed_phases": [],
      "completed_agents": [],
      "phase_outputs": { "onboarding": null },

@@ -170,6 +170,15 @@ Every agent MUST produce a **Handoff Checklist** at the end of its output:
 2. Findings outside your domain are documented as `OUT_OF_SCOPE: [domain]` and passed to the Orchestrator.
 3. Never make a recommendation outside your area of competence.
 
+### AGENT PROGRESS PROTOCOL (MANDATORY — prevents frozen UI)
+The web UI reads `session-state.json` via SSE file-change events. Without progress writes during agent execution, the UI appears stuck for 10–30+ minutes.
+
+1. At the **START** of execution, update `session-state.json` fields `current_step` (describe your first activity, max 80 chars) and `last_updated` (ISO 8601 timestamp).
+2. At every **major milestone** (completing a section, starting new analysis, writing deliverables), update `current_step` and `last_updated` again. Aim for at minimum one update per 3–5 minutes of work.
+3. Write ONLY `current_step` + `last_updated`. All other session-state fields remain Orchestrator-managed.
+4. If blocked mid-execution, update `current_step` to reflect the blocked state before escalating.
+5. Refer to `/.github/docs/guardrails/00-global-guardrails.md` Section 7 (G-GLOB-60–65) for the full protocol.
+
 ---
 
 ## SKILLS, GUARDRAILS & CONTRACTS INDEX

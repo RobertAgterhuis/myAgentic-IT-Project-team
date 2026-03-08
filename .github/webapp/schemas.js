@@ -34,6 +34,8 @@ function validateSessionState(data) {
   str(data.status, 'status', errors);
   opt(data.current_phase, 'current_phase', 'string', errors);
   opt(data.current_agent, 'current_agent', 'string', errors);
+  opt(data.current_step, 'current_step', 'string', errors);
+  opt(data.agent_started_at, 'agent_started_at', 'string', errors);
   opt(data.initiated_at, 'initiated_at', 'string', errors);
   opt(data.last_updated, 'last_updated', 'string', errors);
   if (data.completed_phases !== undefined && !Array.isArray(data.completed_phases)) {

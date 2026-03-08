@@ -17,7 +17,9 @@ This contract defines:
 ## SESSION STATE FILE
 
 **Location:** `.github/docs/session/session-state.json`
-**Owner:** Only the Orchestrator writes to this file. The Orchestrator **creates** this file immediately upon receiving a command (per ORC-46 in `.github/skills/00-orchestrator.md`) with `status: "ONBOARDING"`. The Onboarding Agent **updates** it to `status: "ONBOARDING_COMPLETE"` at the end of onboarding. Other agents submit state updates **to** the Orchestrator via their HANDOFF CHECKLIST.
+**Owner:** The Orchestrator is the primary owner of this file. The Orchestrator **creates** this file immediately upon receiving a command (per ORC-46 in `.github/skills/00-orchestrator.md`) with `status: "ONBOARDING"`. The Onboarding Agent **updates** it to `status: "ONBOARDING_COMPLETE"` at the end of onboarding. Other agents submit structural state updates **to** the Orchestrator via their HANDOFF CHECKLIST.
+
+**Per-Agent Progress Writes (G-GLOB-60–65):** All agents MUST update `current_step` and `last_updated` during execution to keep the web UI responsive. These are the ONLY two fields agents may write directly — all other fields remain Orchestrator-managed. See `/.github/docs/guardrails/00-global-guardrails.md` Section 7 for the full protocol.
 
 ---
 
@@ -41,7 +43,8 @@ This contract defines:
 
   "current_phase": "ONBOARDING | PHASE-1 | PHASE-2 | PHASE-3 | PHASE-4 | SYNTHESIS | PHASE-5 | null",
   "current_agent": "string — agent filename without extension | null",
-  "current_step": "string — free-text description of what the active agent is doing | null",
+  "current_step": "string — free-text description of what the active agent is doing (max 80 chars) | null",
+  "agent_started_at": "ISO 8601 — timestamp when the current agent was activated | null",
 
   "completed_phases": ["ONBOARDING", "PHASE-1"],
   "completed_agents": ["25-onboarding-agent", "01-business-analyst"],
@@ -319,6 +322,28 @@ Choose:
 
 ## STATE UPDATE PROTOCOL (FOR AGENTS)
 
+### During Execution: Progress Writes (MANDATORY per G-GLOB-60–65)
+
+Every agent MUST update `session-state.json` during execution to keep the web UI pipeline view responsive. Without these writes, the UI appears frozen for the entire agent execution duration (10–30+ minutes).
+
+**Permitted fields for agent writes:**
+| Field | Description |
+|-------|-------------|
+| `current_step` | Concise (max 80 chars) human-readable description of current activity |
+| `last_updated` | ISO 8601 timestamp of the update |
+
+**All other fields are Orchestrator-managed and MUST NOT be modified by agents.**
+
+**When to write:**
+1. At the START of execution (set `current_step` to first activity)
+2. At every major milestone (completing a section, starting new analysis area)
+3. When writing deliverable files
+4. When blocked or encountering errors
+
+**Minimum updates:** Phase agents: 3+; Validators: 2+; Lightweight agents: 1+
+
+### At Handoff: Structural Updates
+
 Every agent reports at the end of their HANDOFF CHECKLIST:
 
 ```markdown
@@ -331,7 +356,7 @@ Every agent reports at the end of their HANDOFF CHECKLIST:
 - Next agent (suggestion): [name]
 ```
 
-The Orchestrator processes this and writes the state update to `session-state.json`.
+The Orchestrator processes this and writes the structural state update to `session-state.json` (advancing `current_agent`, `completed_agents`, etc.).
 
 ---
 

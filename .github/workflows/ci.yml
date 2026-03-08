@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Check source file syntax
         run: |
@@ -31,6 +31,7 @@ jobs:
           node -c webapp/store.js
           node -c webapp/cache.js
           node -c webapp/schemas.js
+          node -c webapp/mcp-server.js
 
   test:
     name: Tests
@@ -45,7 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: .github/package-lock.json
 
@@ -98,7 +99,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: .github/package-lock.json
 

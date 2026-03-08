@@ -10,6 +10,7 @@
   },
   "scripts": {
     "start": "node webapp/server.js",
+    "start:mcp": "node webapp/mcp-server.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -21,5 +22,8 @@
     "eslint": "^10.0.3",
     "jsdom": "^28.1.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
   }
 }

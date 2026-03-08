@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-green.svg)](https://nodejs.org/)
-[![Tests: 506 passing](https://img.shields.io/badge/Tests-506%20passing-brightgreen.svg)](#testing)
+[![Tests: 576 passing](https://img.shields.io/badge/Tests-576%20passing-brightgreen.svg)](#testing)
 [![Coverage: 95%+](https://img.shields.io/badge/Coverage-95%25%2B-brightgreen.svg)](#testing)
 [![ESLint: 0 errors](https://img.shields.io/badge/ESLint-0%20errors-brightgreen.svg)](#code-quality)
 
@@ -31,12 +31,13 @@ A **multi-agent system** of 38 specialized AI agents that creates complete, prod
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Node.js ≥ 18 (zero external dependencies) |
+| Runtime | Node.js ≥ 18 (zero external dependencies for web UI) |
 | Server | Native `http` module, localhost only (127.0.0.1:3000) |
+| MCP Server | [Model Context Protocol](https://modelcontextprotocol.io/) via stdio transport |
 | Data | File-based JSON/Markdown storage with atomic writes |
 | Testing | [Vitest](https://vitest.dev/) + [@vitest/coverage-v8](https://vitest.dev/guide/coverage) |
 | Linting | [ESLint 9](https://eslint.org/) (flat config, 7 rules) |
-| AI Agents | [GitHub Copilot](https://github.com/features/copilot) agents in VS Code |
+| AI Agents | [GitHub Copilot](https://github.com/features/copilot) agents in VS Code, Visual Studio, JetBrains |
 | License | MIT |
 
 ---
@@ -49,7 +50,7 @@ A **multi-agent system** of 38 specialized AI agents that creates complete, prod
 | **GitHub Copilot** | Active subscription (Individual, Business, or Enterprise) |
 | **VS Code** | Agents run as Copilot Agents in the VS Code editor |
 | **Git** | Local installation for repository management |
-| **Node.js ≥ 14** | For the Questionnaire & Decisions Manager web UI (`node .github/webapp/server.js`) |
+| **Node.js ≥ 18** | For the Command Center web UI and MCP server |
 
 ---
 
@@ -86,6 +87,50 @@ CREATE MyProject
 
 ---
 
+## MCP Server (Cross-IDE Integration)
+
+The system includes an **MCP (Model Context Protocol) server** that exposes the Command Center functionality to any MCP-compatible IDE — VS Code, Visual Studio, JetBrains, and others.
+
+### Setup
+
+**VS Code** — The `.vscode/mcp.json` configuration is included. The MCP server appears automatically in the Copilot tools panel.
+
+**Other IDEs** — Configure an MCP stdio server with:
+```json
+{
+  "command": "node",
+  "args": [".github/webapp/mcp-server.js"]
+}
+```
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_project_status` | Session state, pipeline progress, and command queue summary |
+| `get_progress` | Detailed phase completion and current agent info |
+| `list_questionnaires` | All questionnaires with completion statistics |
+| `get_questionnaire` | Full contents of a specific questionnaire |
+| `save_answers` | Save answers to questionnaire questions |
+| `list_decisions` | All decisions grouped by status |
+| `create_decision` | Create a new open question or operational decision |
+| `answer_decision` | Answer an open question |
+| `decide_question` | Finalize an answered question (move to decided) |
+| `queue_command` | Queue a command for the orchestrator |
+| `get_command_queue` | Full command queue history |
+| `get_help` | Help topics and documentation |
+| `get_audit_log` | Recent mutation audit trail entries |
+
+### MCP Resources
+
+| URI | Description |
+|-----|-------------|
+| `agentic://session-state` | Current session state as JSON |
+| `agentic://decisions` | All decisions as JSON |
+| `agentic://command-queue` | Command queue as JSON |
+
+---
+
 ## Available Commands
 
 | Command | Purpose |
@@ -105,6 +150,8 @@ CREATE MyProject
 ## Project Structure
 
 ```
+.vscode/
+  mcp.json                    ← MCP server configuration for VS Code
 .github/
   copilot-instructions.md     ← System instructions (Orchestrator entry point)
   package.json                ← Dev dependencies and npm scripts
@@ -124,7 +171,7 @@ CREATE MyProject
     decisions.md              ← YOUR decisions & open questions (edit this directly)
     mode-guide.md             ← CREATE vs AUDIT mode guide
     README.md                 ← Full documentation hub
-  webapp/                     ← Questionnaire & Decisions Manager web UI
+  webapp/                     ← Command Center web UI + MCP server
   help/                       ← Help content files for the web UI
   tests/
     unit/                     ← Unit tests (models, cache, schemas, sanitization, etc.)
@@ -187,8 +234,8 @@ npm run test:coverage
 npm run test:watch
 ```
 
-The test suite includes **506 tests** across 20 files with **95%+ statement coverage**:
-- **Unit tests** — models, sanitization, cache, schemas, audit trail, file locking, backup strategy
+The test suite includes **576 tests** across 21 files with **95%+ statement coverage**:
+- **Unit tests** — models, sanitization, cache, schemas, audit trail, file locking, backup strategy, MCP server
 - **Integration tests** — API endpoints, SSE, store caching, decisions round-trip, regression suite
 - Coverage thresholds enforced at 70% (statements, branches, functions, lines)
 

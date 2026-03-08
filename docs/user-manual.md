@@ -259,6 +259,7 @@ A: The default is 30 SP per 2-week sprint (configurable via decisions).
 
 ### Tests fail after pulling updates
 ```bash
+cd .github
 npm install          # Update dev dependencies
 npm test             # Re-run tests
 npm run lint         # Check for lint issues

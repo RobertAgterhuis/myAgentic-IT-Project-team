@@ -6,8 +6,8 @@
  * any code that reads/writes files through the Store layer. */
 
 const path = require('path');
-const { InMemoryStore, setStore, getStore } = require('../../.github/webapp/store');
-const { FileCache } = require('../../.github/webapp/cache');
+const { InMemoryStore, setStore, getStore } = require('../../webapp/store');
+const { FileCache } = require('../../webapp/cache');
 
 describe('FileCache with InMemoryStore (mock-store injection)', () => {
   let store;
@@ -77,7 +77,7 @@ describe('FileCache with InMemoryStore (mock-store injection)', () => {
   });
 
   it('readJSON applies validator from schemas', () => {
-    const { validateSessionState } = require('../../.github/webapp/schemas');
+    const { validateSessionState } = require('../../webapp/schemas');
     const filePath = path.resolve('/fake/session.json');
     store.writeFile(filePath, JSON.stringify({
       session_id: 'test-001',

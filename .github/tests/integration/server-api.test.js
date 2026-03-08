@@ -5,11 +5,11 @@
 
 const http = require('http');
 const path = require('path');
-const { InMemoryStore, setStore } = require('../../.github/webapp/store');
-const { server, _cache } = require('../../.github/webapp/server');
+const { InMemoryStore, setStore } = require('../../webapp/store');
+const { server, _cache } = require('../../webapp/server');
 
 // Compute the same paths the server module uses internally
-const WEBAPP_DIR    = path.resolve(__dirname, '../../.github/webapp');
+const WEBAPP_DIR    = path.resolve(__dirname, '../../webapp');
 const PROJECT_ROOT  = path.resolve(WEBAPP_DIR, '..', '..');
 const BUSINESS_DOCS = path.join(PROJECT_ROOT, 'BusinessDocs');
 const GITHUB_DOCS   = path.join(PROJECT_ROOT, '.github', 'docs');
@@ -854,7 +854,7 @@ describe('GET /api/analytics', () => {
 /* ── computePercentiles unit ──────────────────────────────────── */
 
 describe('computePercentiles', () => {
-  const { computePercentiles } = require('../../.github/webapp/server');
+  const { computePercentiles } = require('../../webapp/server');
 
   it('returns zeroes for empty array', () => {
     const r = computePercentiles([]);
@@ -873,7 +873,7 @@ describe('computePercentiles', () => {
 /* ── recordMetric unit ────────────────────────────────────────── */
 
 describe('recordMetric', () => {
-  const { recordMetric, _metrics } = require('../../.github/webapp/server');
+  const { recordMetric, _metrics } = require('../../webapp/server');
 
   it('increments request count', () => {
     const before = _metrics.requestCount;
@@ -1325,7 +1325,7 @@ describe('Save validation boundary', () => {
 /* ── Branch coverage: structuredLog level filtering ──────────── */
 
 describe('structuredLog level filtering', () => {
-  const { structuredLog } = require('../../.github/webapp/server');
+  const { structuredLog } = require('../../webapp/server');
 
   it('suppresses debug messages at default info level', () => {
     // Should not throw — just silently returns

@@ -10,10 +10,10 @@
 
 const http = require('http');
 const path = require('path');
-const { InMemoryStore, setStore } = require('../../.github/webapp/store');
-const { server, _cache } = require('../../.github/webapp/server');
+const { InMemoryStore, setStore } = require('../../webapp/store');
+const { server, _cache } = require('../../webapp/server');
 
-const WEBAPP_DIR    = path.resolve(__dirname, '../../.github/webapp');
+const WEBAPP_DIR    = path.resolve(__dirname, '../../webapp');
 const PROJECT_ROOT  = path.resolve(WEBAPP_DIR, '..', '..');
 const BUSINESS_DOCS = path.join(PROJECT_ROOT, 'BusinessDocs');
 const GITHUB_DOCS   = path.join(PROJECT_ROOT, '.github', 'docs');

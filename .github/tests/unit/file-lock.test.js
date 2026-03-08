@@ -3,7 +3,7 @@
  * Pattern: test async functions and concurrency primitives.
  * Demonstrates testing withFileLock for correct serialization. */
 
-const { withFileLock } = require('../../.github/webapp/server');
+const { withFileLock } = require('../../webapp/server');
 
 describe('withFileLock — concurrency', () => {
   it('serializes concurrent writes to the same path', async () => {

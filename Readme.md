@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-green.svg)](https://nodejs.org/)
-[![Tests: 366 passing](https://img.shields.io/badge/Tests-366%20passing-brightgreen.svg)](#testing)
+[![Tests: 506 passing](https://img.shields.io/badge/Tests-506%20passing-brightgreen.svg)](#testing)
 [![Coverage: 95%+](https://img.shields.io/badge/Coverage-95%25%2B-brightgreen.svg)](#testing)
 [![ESLint: 0 errors](https://img.shields.io/badge/ESLint-0%20errors-brightgreen.svg)](#code-quality)
 
@@ -107,6 +107,9 @@ CREATE MyProject
 ```
 .github/
   copilot-instructions.md     ← System instructions (Orchestrator entry point)
+  package.json                ← Dev dependencies and npm scripts
+  vitest.config.mjs           ← Test configuration
+  eslint.config.mjs           ← Lint configuration
   skills/                     ← 38 agent skill files (00-orchestrator … 37-scope-change-agent)
   docs/
     contracts/                ← Output contracts per deliverable type
@@ -123,6 +126,9 @@ CREATE MyProject
     README.md                 ← Full documentation hub
   webapp/                     ← Questionnaire & Decisions Manager web UI
   help/                       ← Help content files for the web UI
+  tests/
+    unit/                     ← Unit tests (models, cache, schemas, sanitization, etc.)
+    integration/              ← Integration tests (API, SSE, store, regression suite)
 
 BusinessDocs/                 ← Questionnaires + official business documents (generated per phase)
 docs/                         ← GitHub Pages site: user manual, technical manual, data dictionary, brand guidelines
@@ -167,8 +173,11 @@ For the full guide including all agents, FAQ, troubleshooting, and ground rules,
 
 ## Testing
 
+All dev tooling lives inside `.github/`. Run commands from that directory:
+
 ```bash
-# Run all tests
+cd .github
+npm install   # first time only
 npm test
 
 # Run with coverage report
@@ -178,7 +187,7 @@ npm run test:coverage
 npm run test:watch
 ```
 
-The test suite includes **366 tests** across 19 files with **95%+ statement coverage**:
+The test suite includes **506 tests** across 20 files with **95%+ statement coverage**:
 - **Unit tests** — models, sanitization, cache, schemas, audit trail, file locking, backup strategy
 - **Integration tests** — API endpoints, SSE, store caching, decisions round-trip, regression suite
 - Coverage thresholds enforced at 70% (statements, branches, functions, lines)
@@ -186,7 +195,7 @@ The test suite includes **366 tests** across 19 files with **95%+ statement cove
 ## Code Quality
 
 ```bash
-# Run ESLint
+cd .github
 npm run lint
 ```
 

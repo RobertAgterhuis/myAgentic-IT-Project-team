@@ -550,12 +550,11 @@ All file paths are computed relative to the repository root. The server expects 
 ### Localhost (Production)
 
 ```bash
-# Install dependencies (only needed once)
+# Install dependencies (only needed once, from .github/ directory)
+cd .github
 npm install
 
-# Start the server
-npm start
-# or directly:
+# Start the server (from repo root)
 node .github/webapp/server.js
 ```
 
@@ -621,7 +620,7 @@ Detected patterns generate warnings (not rejections) — users are informed but 
 ### Test Structure
 
 ```
-tests/
+.github/tests/
   unit/
     audit-trail.test.js       — AuditTrail class
     backup-strategy.test.js    — Backup-on-write behavior
@@ -639,7 +638,10 @@ tests/
 
 ### Running Tests
 
+All dev commands run from the `.github/` directory:
+
 ```bash
+cd .github
 npm test                  # All tests
 npm run test:coverage     # With coverage report
 npm run test:watch        # Watch mode
@@ -648,7 +650,7 @@ npx vitest run tests/unit # Only unit tests
 
 ### Coverage Thresholds
 
-Configured in `vitest.config.mjs`:
+Configured in `.github/vitest.config.mjs`:
 - Statements: ≥ 70%
 - Branches: ≥ 70%
 - Functions: ≥ 70%
@@ -672,11 +674,12 @@ Actual coverage: **95%+ statements**.
 git clone https://github.com/RobertAgterhuis/myAgentic-IT-Project-team.git
 cd myAgentic-IT-Project-team
 
-# Install
+# Install (tooling lives in .github/)
+cd .github
 npm install
 
 # Verify
-npm test        # Should show 366 passing
+npm test        # Should show 506 passing
 npm run lint    # Should show 0 errors
 
 # Develop

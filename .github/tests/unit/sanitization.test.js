@@ -4,7 +4,7 @@
  * These tests validate content sanitization edge cases beyond
  * what the co-located server.test.js covers. */
 
-const { sanitizeMarkdown, sanitizeQID } = require('../../.github/webapp/server');
+const { sanitizeMarkdown, sanitizeQID } = require('../../webapp/server');
 
 describe('sanitizeMarkdown — edge cases', () => {
   it('handles multi-line content with mixed markdown syntax', () => {

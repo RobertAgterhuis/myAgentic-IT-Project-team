@@ -60,18 +60,27 @@
       "milestones_created": 7
     },
     "reevaluation": {
-      "report": ".github/docs/reevaluate/reevaluation-report-2.md",
+      "report": ".github/docs/reevaluate/reevaluation-report-3.md",
+      "previous_report": ".github/docs/reevaluate/reevaluation-report-2.md",
       "scope": ["TECH", "UX"],
       "trigger": "MANUAL_COMMAND",
+      "version": 3,
       "delta_summary": {
-        "resolved": 22,
-        "new": 5,
-        "changed": 24,
-        "unchanged": 58,
+        "resolved": 34,
+        "new": 6,
+        "changed": 5,
+        "unchanged": 4,
         "scope_reduction_pct": 44,
         "original_sp": 348.5,
         "revised_sp": 188,
-        "sprints": 7
+        "sprints": 7,
+        "sprints_completed": 7,
+        "residual_sp": 11,
+        "risk_aggregate": 14,
+        "risk_profile": "LOW",
+        "kpi_met": 14,
+        "kpi_partial": 1,
+        "kpi_total": 15
       }
     }
   },

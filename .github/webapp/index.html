@@ -137,7 +137,7 @@
     }
     .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .header-logo { font-size: var(--text-h1); filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
-    .header-title { font-size: var(--text-h4); font-weight: 700; white-space: nowrap; color: var(--header-text); letter-spacing: -.2px; }
+    .header-title { font-size: var(--text-h4); font-weight: 700; white-space: nowrap; color: var(--header-text); letter-spacing: -.2px; margin: 0; }
     .header-subtitle { font-size: var(--text-sm); color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .header-stats { display: flex; gap: 18px; font-size: var(--text-sm); color: rgba(255,255,255,.8); flex-shrink: 0; }
     .stat-val { font-weight: 700; color: #ffffff; }
@@ -224,11 +224,11 @@
     /* ── Main ───────────────────────────────────────── */
     .main { flex: 1; overflow-y: auto; padding: 24px; transition: background var(--motion-normal) var(--ease-default); }
     .main-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
-    .main-title { font-size: var(--text-h2); font-weight: 700; letter-spacing: -.3px; }
+    .main-title { font-size: var(--text-h2); font-weight: 700; letter-spacing: -.3px; margin: 0; }
     .main-meta { font-size: var(--text-body); color: var(--text-sec); margin-top: 2px; }
 
     /* ── Section divider ───────────────────────────── */
-    .section-divider { font-size: var(--text-body); font-weight: 700; color: var(--text-sec); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -.1px; }
+    .section-divider { font-size: var(--text-body); font-weight: 700; color: var(--text-sec); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -.1px; line-height: var(--leading-normal); }
 
     /* ── Card ───────────────────────────────────────── */
     .card {
@@ -435,7 +435,7 @@
     /* Command launcher cards */
     .cmd-section-title {
       font-size: var(--text-caption); font-weight: 800; text-transform: uppercase;
-      letter-spacing: .8px; color: var(--text-muted); margin: 18px 0 8px;
+      letter-spacing: .8px; color: var(--text-muted); margin: 18px 0 8px; line-height: var(--leading-normal);
     }
     .cmd-section-title:first-child { margin-top: 0; }
     .cmd-btn {
@@ -872,7 +872,7 @@
     <div class="header-left">
       <span class="header-logo" aria-hidden="true">&#128203;</span>
       <div>
-        <div class="header-title">Agentic System — Command Center</div>
+        <h1 class="header-title">Agentic System — Command Center</h1>
         <div class="header-subtitle" id="hSub">Loading&hellip;</div>
       </div>
     </div>
@@ -939,7 +939,7 @@
   <!-- ── Command Center panel ──────────────── -->
   <div class="cmd-layout" id="panelCommandCenter" role="tabpanel" aria-labelledby="tab-cc">
     <nav class="cmd-sidebar" id="cmdSidebar" aria-label="Command navigation">
-      <div class="cmd-section-title">Create New Solution</div>
+      <h2 class="cmd-section-title">Create New Solution</h2>
       <button class="cmd-btn" data-cmd="CREATE">
         <span class="cmd-btn-icon" aria-hidden="true">&#128640;</span>
         <div><div class="cmd-btn-label">CREATE</div><div class="cmd-btn-sub">Full solution — all 4 phases</div></div>
@@ -965,7 +965,7 @@
         <div><div class="cmd-btn-label">CREATE SYNTHESIS</div><div class="cmd-btn-sub">Combine all phase outputs</div></div>
       </button>
 
-      <div class="cmd-section-title">Audit Existing Software</div>
+      <h2 class="cmd-section-title">Audit Existing Software</h2>
       <button class="cmd-btn" data-cmd="AUDIT">
         <span class="cmd-btn-icon" aria-hidden="true">&#128270;</span>
         <div><div class="cmd-btn-label">AUDIT</div><div class="cmd-btn-sub">Full audit — all 4 phases</div></div>
@@ -987,7 +987,7 @@
         <div><div class="cmd-btn-label">AUDIT MARKETING</div><div class="cmd-btn-sub">Phase 4 only</div></div>
       </button>
 
-      <div class="cmd-section-title">On-Demand Commands</div>
+      <h2 class="cmd-section-title">On-Demand Commands</h2>
       <button class="cmd-btn" data-cmd="FEATURE">
         <span class="cmd-btn-icon" aria-hidden="true">&#10024;</span>
         <div><div class="cmd-btn-label">FEATURE</div><div class="cmd-btn-sub">New feature — full cycle</div></div>
@@ -1583,7 +1583,7 @@ function renderQ(q) {
   const firstUnanswered = q.questions.find(x => x.status !== 'ANSWERED');
 
   let h = `<div class="main-header">
-    <div><div class="main-title">${esc(q.agent)}</div>
+    <div><h2 class="main-title">${esc(q.agent)}</h2>
     <div class="main-meta">${esc(q.phase)} &middot; ${esc(q.version)} &middot; Generated: ${esc(q.generated)}</div></div>
     <button class="btn btn-success btn-sm" data-saveall="${escAttr(q.file)}"><span aria-hidden="true">&#128190;</span> Save All Changes</button>
   </div>`;
@@ -1601,7 +1601,7 @@ function renderQ(q) {
       if (currentSection) h += '</div>'; // close previous collapsible
       currentSection = x.section;
       /* Collapsible section (SP-R2-004-004) */
-      h += `<div class="section-divider section-toggle" data-section="${escAttr(currentSection)}">${esc(currentSection)}</div>`;
+      h += `<h3 class="section-divider section-toggle" data-section="${escAttr(currentSection)}">${esc(currentSection)}</h3>`;
       h += `<div class="section-content">`;
     }
     const k  = q.file + '::' + x.id;
@@ -2201,7 +2201,7 @@ function renderPipeline() {
 
   // Sprint info
   if (p.sprints && p.sprints.length) {
-    h += `<div class="pipe-sprints"><div class="cmd-section-title" style="margin:20px 0 10px;">Sprints</div>`;
+    h += `<div class="pipe-sprints"><h3 class="cmd-section-title" style="margin:20px 0 10px;">Sprints</h3>`;
     for (const sp of p.sprints) {
       const spBadge = sp.status === 'DONE' ? 'b-decided' : sp.status === 'IN_PROGRESS' ? 'b-open' : 'b-def';
       h += `<div class="pipe-sprint-card">

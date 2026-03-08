@@ -893,3 +893,549 @@ describe('recordMetric', () => {
     expect(_metrics.perEndpoint['GET /api/unique-test'].count).toBe(1);
   });
 });
+
+/* ── Branch coverage: Progress with rich session data ─────────── */
+
+describe('GET /api/progress — rich session branches', () => {
+  it('marks agents done from object phase_outputs (hasAgentOutputAsObject)', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: ['ONBOARDING', 'PHASE-1'],
+      completed_agents: [],
+      current_phase: 'PHASE-3',
+      current_agent: '10-ux-researcher',
+      phase_outputs: {
+        'phase-2': { '05': 'path/to/architect.md', '06': 'path/to/dev.md' },
+      },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    const p2 = r.json.phases.find(p => p.key === 'PHASE-2');
+    // Agents 05 and 06 should be 'done' via phase_outputs
+    const a05 = p2.agents.find(a => a.id === '05');
+    const a06 = p2.agents.find(a => a.id === '06');
+    expect(a05.status).toBe('done');
+    expect(a06.status).toBe('done');
+  });
+
+  it('marks onboarding done from string phase output (hasOnboardingOutput)', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: [],
+      completed_agents: [],
+      current_phase: 'PHASE-1',
+      current_agent: '01-business-analyst',
+      phase_outputs: { onboarding: '.github/docs/onboarding/onboarding-output.md' },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    const onb = r.json.phases.find(p => p.key === 'ONBOARDING');
+    expect(onb.agents[0].status).toBe('done');
+  });
+
+  it('marks PHASE-5 active when sprint_backlog has sprints', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: ['ONBOARDING', 'PHASE-1', 'PHASE-2', 'PHASE-3', 'PHASE-4', 'SYNTHESIS'],
+      current_phase: 'SYNTHESIS',
+      current_agent: null,
+      sprint_backlog: { total_sprints: 5, sprint_statuses: { 'SP-1': 'DONE', 'SP-2': 'IN_PROGRESS' } },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    const p5 = r.json.phases.find(p => p.key === 'PHASE-5');
+    expect(p5.status).toBe('active');
+    expect(r.json.sprints.total).toBe(5);
+    expect(r.json.sprints.statuses['SP-1']).toBe('DONE');
+  });
+
+  it('includes blockers and escalations in session summary', async () => {
+    const session = {
+      ...SESSION_STATE,
+      current_step: 'Step 3 of 5',
+      blockers: [{ id: 'B-1', description: 'Waiting for review' }],
+      open_human_escalations: [
+        { id: 'E-1', status: 'OPEN', description: 'Need clarification' },
+        { id: 'E-2', status: 'RESOLVED', description: 'Already handled' },
+      ],
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    expect(r.json.session.current_step).toBe('Step 3 of 5');
+    expect(r.json.session.blockers).toHaveLength(1);
+    // Only OPEN escalations are returned
+    expect(r.json.session.open_human_escalations).toHaveLength(1);
+    expect(r.json.session.open_human_escalations[0].status).toBe('OPEN');
+  });
+
+  it('handles corrupt session JSON gracefully', async () => {
+    const store = new InMemoryStore({ [SESSION_FILE]: '{bad json' });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    expect(r.json.active).toBe(false);
+    expect(r.json.session).toBeNull();
+  });
+
+  it('returns null sprints when session has no sprint_backlog', async () => {
+    const session = { ...SESSION_STATE };
+    delete session.sprint_backlog;
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    expect(r.status).toBe(200);
+    expect(r.json.sprints).toBeNull();
+  });
+
+  it('resolves agent active by id prefix match', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: [],
+      completed_agents: [],
+      current_phase: 'PHASE-1',
+      current_agent: '01',
+      phase_outputs: {},
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    const p1 = r.json.phases.find(p => p.key === 'PHASE-1');
+    const a01 = p1.agents.find(a => a.id === '01');
+    expect(a01.status).toBe('active');
+  });
+
+  it('resolves agent done from completed_agents by id only', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: [],
+      completed_agents: ['05'],
+      current_phase: 'PHASE-2',
+      current_agent: '06-senior-developer',
+      phase_outputs: {},
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    const p2 = r.json.phases.find(p => p.key === 'PHASE-2');
+    const a05 = p2.agents.find(a => a.id === '05');
+    expect(a05.status).toBe('done');
+    const a06 = p2.agents.find(a => a.id === '06');
+    expect(a06.status).toBe('active');
+  });
+
+  it('phase_outputs with "null" string does not mark agent done', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: [],
+      completed_agents: [],
+      current_phase: 'PHASE-2',
+      current_agent: '06-senior-developer',
+      phase_outputs: { 'phase-2': { '05': 'null' } },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    const p2 = r.json.phases.find(p => p.key === 'PHASE-2');
+    const a05 = p2.agents.find(a => a.id === '05');
+    expect(a05.status).toBe('pending');
+  });
+
+  it('onboarding "null" string does not mark agent done', async () => {
+    const session = {
+      ...SESSION_STATE,
+      completed_phases: [],
+      completed_agents: [],
+      current_phase: 'PHASE-1',
+      current_agent: '01-business-analyst',
+      phase_outputs: { onboarding: 'null' },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/progress');
+    const onb = r.json.phases.find(p => p.key === 'ONBOARDING');
+    expect(onb.agents[0].status).toBe('pending');
+  });
+});
+
+/* ── Branch coverage: Export with phase outputs ──────────────── */
+
+describe('GET /api/export — phase output branches', () => {
+  it('collects string phase outputs from files', async () => {
+    const outputPath = path.join(PROJECT_ROOT, '.github/docs/onboarding/onboarding-output.md');
+    const session = {
+      ...SESSION_STATE,
+      phase_outputs: { onboarding: '.github/docs/onboarding/onboarding-output.md' },
+    };
+    const store = new InMemoryStore({
+      [SESSION_FILE]: JSON.stringify(session),
+      [outputPath]: '# Onboarding Output\nContent here.',
+    });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/export');
+    expect(r.status).toBe(200);
+    expect(r.json.phase_outputs.onboarding).toContain('Onboarding Output');
+  });
+
+  it('collects object phase outputs from files', async () => {
+    const archFile = path.join(PROJECT_ROOT, '.github/docs/phase2/architect.md');
+    const session = {
+      ...SESSION_STATE,
+      phase_outputs: { 'phase-2': { '05': '.github/docs/phase2/architect.md' } },
+    };
+    const store = new InMemoryStore({
+      [SESSION_FILE]: JSON.stringify(session),
+      [archFile]: '# Architect Report',
+    });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/export');
+    expect(r.status).toBe(200);
+    expect(r.json.phase_outputs['phase-2']['05']).toContain('Architect Report');
+  });
+
+  it('skips null and "null" string phase outputs', async () => {
+    const session = {
+      ...SESSION_STATE,
+      phase_outputs: { 'phase-1': 'null', 'phase-3': null },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/export');
+    expect(r.status).toBe(200);
+    expect(r.json.phase_outputs).toEqual({});
+  });
+
+  it('skips null filePaths in object phase outputs', async () => {
+    const session = {
+      ...SESSION_STATE,
+      phase_outputs: { 'phase-2': { '05': null, '06': 'null', '07': '' } },
+    };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/export');
+    expect(r.status).toBe(200);
+    // No valid files → empty object (collectObjectPhaseOutput returns {})
+    expect(r.json.phase_outputs['phase-2']).toEqual({});
+  });
+
+  it('handles corrupt session JSON in export', async () => {
+    const store = new InMemoryStore({ [SESSION_FILE]: 'not-json' });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/export');
+    expect(r.status).toBe(200);
+    expect(r.json.session).toBeNull();
+    expect(r.json.phase_outputs).toEqual({});
+  });
+});
+
+/* ── Branch coverage: Command queue edge cases ───────────────── */
+
+describe('Command queue edge cases', () => {
+  it('handles corrupt command queue JSON', async () => {
+    const store = seedStore();
+    store.writeFile(COMMAND_QUEUE, 'not valid json{{{');
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/command');
+    expect(r.status).toBe(200);
+    expect(r.json.queue).toEqual([]);
+    expect(r.json.command).toBeNull();
+  });
+
+  it('wraps single-object command queue in array', async () => {
+    const store = seedStore();
+    store.writeFile(COMMAND_QUEUE, JSON.stringify({ command: 'CREATE', status: 'DONE' }));
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/command');
+    expect(r.status).toBe(200);
+    expect(r.json.queue).toHaveLength(1);
+    expect(r.json.queue[0].command).toBe('CREATE');
+  });
+
+  it('returns empty array for falsy queue content', async () => {
+    const store = seedStore();
+    store.writeFile(COMMAND_QUEUE, 'null');
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/command');
+    expect(r.status).toBe(200);
+    expect(r.json.queue).toEqual([]);
+  });
+
+  it('builds clipboard text without project', async () => {
+    const r = await req('POST', '/api/command', { command: 'CONTINUE' });
+    expect(r.status).toBe(200);
+    expect(r.json.clipboard_text).toBe('CONTINUE');
+  });
+
+  it('builds clipboard text with description', async () => {
+    const r = await req('POST', '/api/command', {
+      command: 'FEATURE',
+      project: 'MyProj',
+      description: 'Add login page',
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.clipboard_text).toContain('FEATURE');
+    expect(r.json.clipboard_text).toContain('MyProj');
+    expect(r.json.clipboard_text).toContain('Add login page');
+  });
+
+  it('skips brief save for empty/whitespace brief', async () => {
+    const r = await req('POST', '/api/command', {
+      command: 'CREATE',
+      project: 'Test',
+      brief: '   ',
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.brief_saved).toBe(false);
+  });
+});
+
+/* ── Branch coverage: Analytics edge cases ───────────────────── */
+
+describe('Analytics edge cases', () => {
+  it('rejects null event entries', async () => {
+    const r = await req('POST', '/api/analytics', {
+      events: [null],
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.accepted).toBe(0);
+    expect(r.json.rejected).toBe(1);
+  });
+
+  it('rejects event with non-object properties', async () => {
+    const r = await req('POST', '/api/analytics', {
+      events: [{ event: 'page_view', properties: 'not-object' }],
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.accepted).toBe(0);
+    expect(r.json.rejected).toBe(1);
+  });
+
+  it('rejects unknown event type', async () => {
+    const r = await req('POST', '/api/analytics', {
+      events: [{ event: 'invalid_event_type' }],
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.rejected).toBe(1);
+  });
+
+  it('handles corrupt existing analytics JSON', async () => {
+    const analyticsFile = path.join(GITHUB_DOCS, 'analytics-events.json');
+    const store = seedStore();
+    store.mkdirp(GITHUB_DOCS);
+    store.writeFile(analyticsFile, 'broken json!!!');
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('POST', '/api/analytics', {
+      events: [{ event: 'page_view', properties: {} }],
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.accepted).toBe(1);
+  });
+
+  it('handles corrupt analytics JSON on GET', async () => {
+    const analyticsFile = path.join(GITHUB_DOCS, 'analytics-events.json');
+    const store = seedStore();
+    store.mkdirp(GITHUB_DOCS);
+    store.writeFile(analyticsFile, '{corrupt}');
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/analytics');
+    expect(r.status).toBe(200);
+    expect(r.json.events).toEqual([]);
+  });
+
+  it('accepts mix of valid and invalid events', async () => {
+    const r = await req('POST', '/api/analytics', {
+      events: [
+        { event: 'page_view', properties: { page: 'home' } },
+        { event: 'FAKE_EVENT' },
+        { event: 'tab_switch' },
+      ],
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.accepted).toBe(2);
+    expect(r.json.rejected).toBe(1);
+  });
+});
+
+/* ── Branch coverage: Save validation boundary ───────────────── */
+
+describe('Save validation boundary', () => {
+  it('rejects updates exceeding 200 items', async () => {
+    const updates = Array.from({ length: 201 }, (_, i) => ({
+      questionId: `Q-05-${String(i + 1).padStart(3, '0')}`,
+      status: 'OPEN',
+      answer: '',
+    }));
+    const r = await req('POST', '/api/save', { file: Q_FILE_REL, updates });
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects non-array updates', async () => {
+    const r = await req('POST', '/api/save', { file: Q_FILE_REL, updates: 'not-array' });
+    expect(r.status).toBe(400);
+  });
+});
+
+/* ── Branch coverage: structuredLog level filtering ──────────── */
+
+describe('structuredLog level filtering', () => {
+  const { structuredLog } = require('../../.github/webapp/server');
+
+  it('suppresses debug messages at default info level', () => {
+    // Should not throw — just silently returns
+    expect(() => structuredLog('debug', 'suppressed_msg', { key: 'val' })).not.toThrow();
+  });
+
+  it('writes error to stderr', () => {
+    expect(() => structuredLog('error', 'test_error', { detail: 'x' })).not.toThrow();
+  });
+});
+
+/* ── Branch coverage: Audit endpoint with limit parameter ────── */
+
+describe('GET /api/audit', () => {
+  it('returns audit entries with default limit', async () => {
+    const r = await req('GET', '/api/audit');
+    expect(r.status).toBe(200);
+    expect(r.json).toHaveProperty('entries');
+    expect(r.json).toHaveProperty('limit', 50);
+  });
+
+  it('accepts custom limit parameter', async () => {
+    const r = await req('GET', '/api/audit?limit=10');
+    expect(r.status).toBe(200);
+    expect(r.json.limit).toBe(10);
+  });
+
+  it('clamps invalid limit to default', async () => {
+    const r = await req('GET', '/api/audit?limit=abc');
+    expect(r.status).toBe(200);
+    expect(r.json.limit).toBe(50);
+  });
+
+  it('clamps out-of-range limit to default', async () => {
+    const r = await req('GET', '/api/audit?limit=9999');
+    expect(r.status).toBe(200);
+    expect(r.json.limit).toBe(50);
+  });
+});
+
+/* ── Branch coverage: isValidCommand multi-part matching ──────── */
+
+describe('Command validation edge cases', () => {
+  it('accepts command with extra trailing words (project name)', async () => {
+    const r = await req('POST', '/api/command', { command: 'CREATE BUSINESS MyProject' });
+    expect(r.status).toBe(200);
+    expect(r.json.ok).toBe(true);
+  });
+
+  it('rejects multi-word unknown command', async () => {
+    const r = await req('POST', '/api/command', { command: 'UNKNOWN STUFF' });
+    expect(r.status).toBe(400);
+  });
+
+  it('accepts SCOPE CHANGE with description', async () => {
+    const r = await req('POST', '/api/command', { command: 'SCOPE CHANGE TECH', description: 'Pivot to serverless' });
+    expect(r.status).toBe(200);
+    expect(r.json.ok).toBe(true);
+  });
+});
+
+/* ── Branch coverage: Session validation warnings ────────────── */
+
+describe('GET /api/session — validation edge cases', () => {
+  it('still returns session when validation has warnings', async () => {
+    // Session with extra/imperfect fields still parses
+    const session = { ...SESSION_STATE, extra_field: 'unknown' };
+    const store = new InMemoryStore({ [SESSION_FILE]: JSON.stringify(session) });
+    setStore(store);
+    _cache.invalidateAll();
+
+    const r = await req('GET', '/api/session');
+    expect(r.status).toBe(200);
+    expect(r.json.session).toBeTruthy();
+  });
+});
+
+/* ── Branch coverage: Metrics edge cases ─────────────────────── */
+
+describe('Metrics edge cases', () => {
+  it('computes error_rate when requests > 0', async () => {
+    // Generate some requests to ensure requestCount > 0
+    await req('GET', '/api/health');
+    const r = await req('GET', '/api/metrics');
+    expect(r.status).toBe(200);
+    expect(typeof r.json.error_rate).toBe('number');
+    expect(r.json.request_count).toBeGreaterThan(0);
+  });
+});
+
+/* ── Branch coverage: Decision edge cases ────────────────────── */
+
+describe('Decision mutation edge cases', () => {
+  it('rejects defer without id', async () => {
+    const r = await req('POST', '/api/decisions', { action: 'defer' });
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects expire without id', async () => {
+    const r = await req('POST', '/api/decisions', { action: 'expire' });
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects reopen without id', async () => {
+    const r = await req('POST', '/api/decisions', { action: 'reopen' });
+    expect(r.status).toBe(400);
+  });
+
+  it('rejects edit without id', async () => {
+    const r = await req('POST', '/api/decisions', { action: 'edit' });
+    expect(r.status).toBe(400);
+  });
+});

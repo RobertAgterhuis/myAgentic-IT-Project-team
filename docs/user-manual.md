@@ -199,6 +199,30 @@ The web UI maintains a **Server-Sent Events** connection to the server for real-
 
 ---
 
+## MCP Integration (Cross-IDE)
+
+The system includes an **MCP (Model Context Protocol) server** that lets you use the Command Center tools directly from your IDE's AI assistant, without switching to the web UI.
+
+### Supported IDEs
+- **VS Code** — Works out of the box (`.vscode/mcp.json` is pre-configured)
+- **Visual Studio** — Add an MCP stdio server: `node .github/webapp/mcp-server.js`
+- **JetBrains IDEs** — Add an MCP stdio server: `node .github/webapp/mcp-server.js`
+
+### What You Can Do via MCP
+- Check project status and pipeline progress
+- Browse and answer questionnaires
+- Create, answer, and finalize decisions
+- Queue commands for the orchestrator
+- Read help documentation
+- View the mutation audit trail
+
+### How It Works
+The MCP server runs as a **stdio process** — the IDE launches it automatically when needed. It reads and writes the same files as the web UI, so both interfaces stay in sync.
+
+No additional setup is needed for VS Code. For other IDEs, configure an MCP server with command `node` and argument `.github/webapp/mcp-server.js`.
+
+---
+
 ## Accessibility Features
 
 The web UI is designed for WCAG 2.1 AA compliance:
@@ -218,10 +242,10 @@ The web UI is designed for WCAG 2.1 AA compliance:
 ## FAQ
 
 **Q: Can I run this without VS Code?**
-A: The web UI works in any browser, but the AI agents require VS Code with GitHub Copilot.
+A: The web UI works in any browser. The AI agents work in VS Code, Visual Studio, and JetBrains IDEs via MCP integration.
 
 **Q: Does any data leave my machine?**
-A: No. The server runs on `127.0.0.1` only. All data is stored locally in your repository as files.
+A: No. The server runs on `127.0.0.1` only. The MCP server uses stdio (no network). All data is stored locally in your repository as files.
 
 **Q: What happens if VS Code crashes mid-pipeline?**
 A: All progress is saved to `session-state.json`. Just reopen VS Code, start a new Copilot Chat, and type `CONTINUE`.

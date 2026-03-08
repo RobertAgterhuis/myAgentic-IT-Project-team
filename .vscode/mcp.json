@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "agentic-it-project-team": {
+      "type": "stdio",
+      "command": "node",
+      "args": [".github/webapp/mcp-server.js"]
+    }
+  }
+}

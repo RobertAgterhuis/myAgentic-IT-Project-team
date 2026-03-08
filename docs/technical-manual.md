@@ -60,7 +60,8 @@ This manual covers the server architecture, API reference, data model, configura
 
 ### Design Principles
 
-- **Zero runtime dependencies** — Only Node.js built-in modules (`http`, `fs`, `path`, `url`, `crypto`).
+- **Zero runtime dependencies** — Only Node.js built-in modules (`http`, `fs`, `path`, `url`, `crypto`) for the web UI.
+- **MCP integration** — MCP server uses `@modelcontextprotocol/sdk` for cross-IDE support via stdio transport.
 - **Store abstraction** — All filesystem I/O goes through the Store interface. `FileStore` for production, `InMemoryStore` for testing.
 - **Atomic writes** — `safeWriteSync()` writes to a temp file, then renames. A backup is created before overwriting existing files.
 - **Localhost only** — Server binds to `127.0.0.1:3000`. No external network exposure.
@@ -87,6 +88,46 @@ The main application module. Exports the HTTP server and key utilities.
 - `_cache` — FileCache instance
 - `_metrics` — Metrics state object
 - `_audit` — AuditTrail instance
+
+### mcp-server.js
+MCP (Model Context Protocol) server for cross-IDE integration. Exposes the Command Center functionality as MCP tools and resources via stdio transport.
+
+**Dependency:** `@modelcontextprotocol/sdk` (the only runtime npm dependency).
+
+**Transport:** stdio — launched automatically by the IDE via `.vscode/mcp.json` or equivalent IDE configuration.
+
+**Tools (13):**
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `get_project_status` | — | Session state, pipeline progress, command queue summary |
+| `get_progress` | — | Phase completion status, current agent, sprint info |
+| `list_questionnaires` | — | All questionnaires with completion stats (total/answered/open) |
+| `get_questionnaire` | `file` | Full parsed questionnaire with questions, answers, statuses |
+| `save_answers` | `file`, `updates[]` | Save answers (with secret detection and sanitization) |
+| `list_decisions` | — | Decisions grouped by status (open/decided/deferred) |
+| `create_decision` | `type`, `priority`, `scope`, `text`, `notes?` | Create open question or operational decision |
+| `answer_decision` | `id`, `answer` | Answer an open question |
+| `decide_question` | `id` | Finalize an answered question → decided |
+| `queue_command` | `command`, `project?`, `scope?`, `description?`, `brief?` | Queue orchestrator command |
+| `get_command_queue` | — | Full command queue history |
+| `get_help` | `topic?` | Help topic content, or table of contents if omitted |
+| `get_audit_log` | `limit?` | Recent audit trail entries (default 50, max 1000) |
+
+**Resources (3):**
+
+| URI | MIME Type | Description |
+|-----|-----------|-------------|
+| `agentic://session-state` | `application/json` | Current session state |
+| `agentic://decisions` | `application/json` | All decisions |
+| `agentic://command-queue` | `application/json` | Command queue |
+
+**Key implementation details:**
+- Reuses `models.js`, `store.js`, `cache.js`, `audit.js`, and `server.js` sanitization functions from the web UI
+- All file writes use the same `safeWrite()` atomic write pattern
+- Input sanitization (markdown injection, Q-ID neutralization, secret detection) is applied to all tool inputs
+- Path traversal is blocked via `safePath()` on all file parameters
+- Startup gated behind `if (require.main === module)` for test-safe importing
 
 ### store.js
 Storage abstraction layer.
@@ -625,6 +666,7 @@ Detected patterns generate warnings (not rejections) — users are informed but 
     audit-trail.test.js       — AuditTrail class
     backup-strategy.test.js    — Backup-on-write behavior
     file-lock.test.js          — Concurrent write safety
+    mcp-server.test.js         — MCP server tools + resources (70 tests)
     models-edge.test.js        — Model parsing edge cases
     sanitization.test.js       — Input sanitization
     ...

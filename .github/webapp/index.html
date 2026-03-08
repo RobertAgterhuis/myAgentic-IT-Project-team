@@ -50,8 +50,8 @@
       --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: rgba(99,102,241,.1);
       --primary-glow: rgba(99,102,241,.25);
       --accent: #8b5cf6; --accent-light: rgba(139,92,246,.1);
-      --success: #10b981; --success-light: rgba(16,185,129,.1);
-      --warning: #f59e0b; --warning-light: rgba(245,158,11,.1);
+      --success: #059669; --success-light: rgba(5,150,105,.1);
+      --warning: #d97706; --warning-light: rgba(217,119,6,.1);
       --danger: #ef4444; --danger-light: rgba(239,68,68,.1);
       --bg: #f4f6fb; --bg-subtle: #eef1f8;
       --surface: #ffffff; --surface-raised: #ffffff;
@@ -191,7 +191,7 @@
     .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
     .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 12px var(--primary-glow); }
     .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
-    .btn-success:hover { background: var(--success); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(16,185,129,.25); }
+    .btn-success:hover { background: var(--success); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(5,150,105,.25); }
     .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
     .btn-danger:hover { background: var(--danger); filter: brightness(1.1); }
     .btn-sm { padding: 5px 12px; font-size: var(--text-sm); }
@@ -475,6 +475,13 @@
       outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
     }
     .cmd-submit-row { display: flex; gap: 8px; margin-top: 16px; }
+
+    /* ── Contextual tooltips (DD-005) ───────────────── */
+    .tooltip-wrap { position: relative; display: inline-block; margin-left: 4px; vertical-align: middle; }
+    .tooltip-btn { background: none; border: 1px solid var(--border); border-radius: 50%; width: 18px; height: 18px; font-size: 11px; line-height: 16px; text-align: center; cursor: pointer; color: var(--text-sec); padding: 0; font-weight: 700; vertical-align: middle; }
+    .tooltip-btn:hover, .tooltip-btn:focus { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .tooltip-text { display: none; position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: max-content; max-width: 260px; padding: 8px 12px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); font-size: var(--text-caption); font-weight: 400; color: var(--text); z-index: var(--z-tooltip); line-height: 1.4; white-space: normal; }
+    .tooltip-wrap:hover .tooltip-text, .tooltip-btn:focus + .tooltip-text { display: block; }
 
     /* Clipboard box */
     .cmd-clipboard {
@@ -1236,6 +1243,7 @@ let progress       = null;        // pipeline progress data
 let activeCmd      = null;        // selected command in sidebar
 let lastClipboard  = '';          // last clipboard text shown
 let pollInterval   = 10000;       // adaptive: 3s active, 10s idle, 30s dormant
+const expandedSections = new Set(); // track expanded section keys for session persistence
 let silentFailCount = 0;          // consecutive silent polling failures
 const MAX_SILENT_FAILS = 5;       // show warning after this many
 let _consecutiveFails = 0;        // for connection status dot (3 = disconnect)
@@ -1604,8 +1612,10 @@ function renderQ(q) {
       if (currentSection) h += '</div>'; // close previous collapsible
       currentSection = x.section;
       /* Collapsible section (SP-R2-004-004) */
-      h += `<h3 class="section-divider section-toggle" data-section="${escAttr(currentSection)}">${esc(currentSection)}</h3>`;
-      h += `<div class="section-content">`;
+      const sKey = q.file + '::' + currentSection;
+      const isOpen = expandedSections.has(sKey);
+      h += `<h3 class="section-divider section-toggle${isOpen ? ' open' : ''}" data-section="${escAttr(currentSection)}" data-skey="${escAttr(sKey)}" role="button" tabindex="0" aria-expanded="${isOpen}">${esc(currentSection)}</h3>`;
+      h += `<div class="section-content${isOpen ? '' : ' collapsed'}">`;
     }
     const k  = q.file + '::' + x.id;
     const d  = dirty.get(k);
@@ -1653,14 +1663,21 @@ function renderQ(q) {
     ta.style.height = Math.max(72, ta.scrollHeight) + 'px';
   });
 
-  /* Collapsible section toggles (SP-R2-004-004) */
+  /* Collapsible section toggles (SP-R2-004-004 + DD-003) */
   main.querySelectorAll('.section-toggle').forEach(tog => {
-    tog.addEventListener('click', () => {
+    const toggle = () => {
       const content = tog.nextElementSibling;
       if (content && content.classList.contains('section-content')) {
+        const willOpen = content.classList.contains('collapsed');
         content.classList.toggle('collapsed');
+        tog.classList.toggle('open', willOpen);
+        tog.setAttribute('aria-expanded', String(willOpen));
+        const sKey = tog.dataset.skey;
+        if (sKey) { willOpen ? expandedSections.add(sKey) : expandedSections.delete(sKey); }
       }
-    });
+    };
+    tog.addEventListener('click', toggle);
+    tog.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
 
   /* Jump-to-next-unanswered (SP-R2-004-004) */
@@ -2300,18 +2317,18 @@ function selectCommand(cmd) {
 
   if (needsProject) {
     formHTML += `<div class="form-group">
-      <label for="cmdProject">Project Name</label>
+      <label for="cmdProject">Project Name <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-project">?</button><span class="tooltip-text" role="tooltip" id="tip-project">A short identifier for your project (e.g. MyApp). Used to name the session and output folder.</span></span></label>
       <input type="text" id="cmdProject" placeholder="e.g. MyApp, TaskTracker" maxlength="200">
     </div>
     <div class="form-group">
-      <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span></label>
+      <label for="cmdBrief">Project Brief <span style="font-weight:400;color:var(--text-sec)">(optional — saved as file, not sent to chat)</span> <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-brief">?</button><span class="tooltip-text" role="tooltip" id="tip-brief">Paste your full requirements here. Saved to BusinessDocs/project-brief.md so agents can read it without overloading the chat context.</span></span></label>
       <textarea id="cmdBrief" class="brief-area" placeholder="Paste your full project requirements here.&#10;This will be saved to BusinessDocs/project-brief.md so the Onboarding Agent can read it — it will NOT be included in the Copilot Chat command, preventing context overload and network timeouts."></textarea>
       <div id="briefSizeWarn" class="hidden" style="font-size:12px;color:var(--warning);margin-top:4px;"><span aria-hidden="true">&#9888;</span> Brief is large (&gt;50 KB). It will still be saved, but consider trimming to essential requirements.</div>
     </div>`;
   }
   if (needsScope) {
     formHTML += `<div class="form-group">
-      <label for="cmdScope">Scope / Dimension</label>
+      <label for="cmdScope">Scope / Dimension <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-scope">?</button><span class="tooltip-text" role="tooltip" id="tip-scope">Select which discipline to target: BUSINESS, TECH, UX, MARKETING, or ALL for a full re-evaluation.</span></span></label>
       <select id="cmdScope">
         ${cmd === 'REEVALUATE' ? '<option value="ALL">ALL</option>' : ''}
         <option value="BUSINESS">BUSINESS</option>
@@ -2324,7 +2341,7 @@ function selectCommand(cmd) {
   }
   if (needsDesc) {
     formHTML += `<div class="form-group">
-      <label for="cmdDesc">${cmd === 'FEATURE' ? 'Feature Name & Description' : 'Description'}</label>
+      <label for="cmdDesc">${cmd === 'FEATURE' ? 'Feature Name & Description' : 'Description'} <span class="tooltip-wrap"><button type="button" class="tooltip-btn" aria-describedby="tip-desc">?</button><span class="tooltip-text" role="tooltip" id="tip-desc">${cmd === 'FEATURE' ? 'Provide a short name followed by a description, e.g. "Dark Mode: Add system-wide dark theme toggle".' : 'Describe the change, issue, or scope adjustment in detail.'}</span></span></label>
       <textarea id="cmdDesc" placeholder="${cmd === 'FEATURE' ? 'e.g. Dark Mode: Add system-wide dark theme toggle' : 'Describe the change or issue...'}" maxlength="2000"></textarea>
     </div>`;
   }
@@ -2574,6 +2591,8 @@ function isInputFocused() {
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (dirty.size) saveAll(); }
   if (e.key === 'Escape') {
+    /* Dismiss tooltip if a tooltip button is focused (DD-005) */
+    if (document.activeElement?.classList.contains('tooltip-btn')) { document.activeElement.blur(); }
     if (_focusTrapOverlay) {
       const id = _focusTrapOverlay.id;
       if (id === 'confirmOverlay') {

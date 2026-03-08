@@ -152,5 +152,12 @@
       "tab": "decisions"
     },
     "timestamp": "2026-03-08T10:47:55.631Z"
+  },
+  {
+    "event": "tab_switch",
+    "properties": {
+      "tab": "decisions"
+    },
+    "timestamp": "2026-03-08T11:19:51.956Z"
   }
 ]

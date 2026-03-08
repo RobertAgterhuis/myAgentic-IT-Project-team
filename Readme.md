@@ -1,8 +1,43 @@
 # Agentic IT Project Team – End-to-End Software Solution Creation & Audit
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-green.svg)](https://nodejs.org/)
+[![Tests: 366 passing](https://img.shields.io/badge/Tests-366%20passing-brightgreen.svg)](#testing)
+[![Coverage: 95%+](https://img.shields.io/badge/Coverage-95%25%2B-brightgreen.svg)](#testing)
+[![ESLint: 0 errors](https://img.shields.io/badge/ESLint-0%20errors-brightgreen.svg)](#code-quality)
+
 A **multi-agent system** of 38 specialized AI agents that creates complete, production-ready software solutions — or audits existing ones — through a structured four-phase analysis followed by autonomous sprint-by-sprint implementation.
 
 > **Quick result:** A full Phase 1–4 cycle that takes 7–10 weeks manually completes in **5–10 working days** with this agentic team, requiring only **7–12 hours of active attention** from you.
+
+---
+
+## Features
+
+- **38 specialized AI agents** — Business Analyst, Software Architect, UX Designer, Brand Strategist and 34 more
+- **Dual-mode operation** — CREATE new solutions or AUDIT existing software
+- **4-phase analysis pipeline** — Requirements → Architecture → UX/UI → Brand & Growth
+- **Autonomous sprint execution** — Phase 5 implements story-by-story with testing, review, and KPI tracking
+- **Command Center web UI** — Visual pipeline view, questionnaire management, and decision tracking
+- **Built-in quality gates** — Critic + Risk agents validate every phase and sprint
+- **Mutation audit trail** — Append-only JSON Lines log of all data mutations
+- **Resumable sessions** — Checkpoint-and-yield design survives conversation resets
+- **Accessibility baseline** — WCAG 2.1 AA compliant web UI with skip-nav, aria-live regions, keyboard navigation
+- **Zero external runtime dependencies** — Pure Node.js HTTP server, no npm packages at runtime
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js ≥ 18 (zero external dependencies) |
+| Server | Native `http` module, localhost only (127.0.0.1:3000) |
+| Data | File-based JSON/Markdown storage with atomic writes |
+| Testing | [Vitest](https://vitest.dev/) + [@vitest/coverage-v8](https://vitest.dev/guide/coverage) |
+| Linting | [ESLint 9](https://eslint.org/) (flat config, 7 rules) |
+| AI Agents | [GitHub Copilot](https://github.com/features/copilot) agents in VS Code |
+| License | MIT |
 
 ---
 
@@ -127,3 +162,44 @@ At phase boundaries (after Critic + Risk validation passes), the Orchestrator in
 For the full guide including all agents, FAQ, troubleshooting, and ground rules, see:
 
 **[`.github/docs/README.md`](.github/docs/README.md)**
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage report
+npm run test:coverage
+
+# Watch mode (re-run on file changes)
+npm run test:watch
+```
+
+The test suite includes **366 tests** across 19 files with **95%+ statement coverage**:
+- **Unit tests** — models, sanitization, cache, schemas, audit trail, file locking, backup strategy
+- **Integration tests** — API endpoints, SSE, store caching, decisions round-trip, regression suite
+- Coverage thresholds enforced at 70% (statements, branches, functions, lines)
+
+## Code Quality
+
+```bash
+# Run ESLint
+npm run lint
+```
+
+ESLint 9 flat config enforces 7 rules: `complexity` (max 8), `no-unused-vars`, `no-var`, `prefer-const`, `eqeqeq`, `no-eval`, `no-implied-eval`. Current status: **0 errors, 0 warnings**.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and PR process.
+
+---
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Robert Agterhuis

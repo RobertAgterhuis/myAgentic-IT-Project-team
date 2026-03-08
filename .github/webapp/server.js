@@ -12,6 +12,7 @@ const schemas         = require('./schemas');
 const models          = require('./models');
 const { attachSecretWarnings } = require('./utils/secret-utils');
 const { errorResponse, statusToCode } = require('./utils/errors');
+const { AuditTrail }  = require('./audit');
 const { VALIDATION: V, RESPONSES: R, STATIC: S } = require('./strings');
 
 const _cache = new FileCache();
@@ -105,6 +106,10 @@ const ANALYTICS_FILE = path.join(GITHUB_DOCS, 'analytics-events.json');
 const MAX_BODY      = 1_048_576; // 1 MB
 const SSE_HEARTBEAT_MS = 30000;  // 30s keep-alive
 
+/* ── Mutation Audit Trail (SP-R2-007-005) ─────────────────────── */
+const AUDIT_DIR = path.join(GITHUB_DOCS, 'audit');
+const _audit = new AuditTrail({ logDir: AUDIT_DIR });
+
 /* ── Utilities ────────────────────────────────────────────────── */
 
 /**
@@ -139,17 +144,44 @@ function setSecurityHeaders(res) {
 }
 
 /**
- * Write data to a file via the Store, invalidate cache, bump metrics, and emit SSE.
+ * Build audit metadata from optional overrides and file path.
+ * @param {string} filePath - Absolute path of the written file.
+ * @param {object} [meta] - Optional audit overrides.
+ * @returns {object} Normalized audit entry fields.
+ */
+function buildAuditMeta(filePath, meta) {
+  const relative = path.relative(PROJECT_ROOT, filePath).replace(/\\/g, '/');
+  const defaults = {
+    operation: 'update',
+    entityType: relative.split('/').pop().replace(/\.\w+$/, ''),
+    entityId: null,
+    user: 'system',
+    summary: `File written: ${relative}`,
+  };
+  if (!meta) return defaults;
+  return {
+    operation: meta.operation || defaults.operation,
+    entityType: meta.entityType || defaults.entityType,
+    entityId: meta.entityId || defaults.entityId,
+    user: meta.user || defaults.user,
+    summary: meta.summary || defaults.summary,
+  };
+}
+
+/**
+ * Write data to a file via the Store, invalidate cache, bump metrics, emit SSE, and log audit.
  * @param {string} filePath - Absolute path to write.
  * @param {string} data - Content to write.
  * @param {string} [encoding] - File encoding (default: utf8).
+ * @param {object} [auditMeta] - Optional audit metadata { operation, entityType, entityId, user, summary }.
  */
-function safeWriteSync(filePath, data, encoding) {
+function safeWriteSync(filePath, data, encoding, auditMeta) {
   getStore().writeFile(filePath, data, encoding);
   _cache.invalidate(filePath);
   _metrics.fileOpsCount++;
   const relative = path.relative(PROJECT_ROOT, filePath).replace(/\\/g, '/');
   sseNotify('file_change', { file: relative, timestamp: new Date().toISOString() });
+  _audit.log(buildAuditMeta(filePath, auditMeta));
 }
 
 /**
@@ -447,7 +479,11 @@ async function apiSave(req, res) {
   await withFileLock(filePath, () => {
     let content = getStore().readFile(filePath);
     for (const u of body.updates) content = models.updateAnswerInContent(content, u.questionId, u.answer, u.status);
-    safeWriteSync(filePath, content);
+    safeWriteSync(filePath, content, undefined, {
+      operation: 'update', entityType: 'questionnaire',
+      entityId: body.updates.map(u => u.questionId).join(','),
+      user: 'webapp', summary: `Updated ${body.updates.length} answer(s) in ${body.file}`,
+    });
   });
 
   const uniqueWarnings = detectSaveSecrets(body.updates);
@@ -573,10 +609,16 @@ async function apiPostDecision(req, res) {
   if (!getStore().exists(DECISIONS_FILE)) return json(res, 404, errorResponse('DECISIONS_NOT_FOUND', 'decisions.md not found'));
 
   return withFileLock(DECISIONS_FILE, () => {
-    let content = getStore().readFile(DECISIONS_FILE);
+    const content = getStore().readFile(DECISIONS_FILE);
     const outcome = body.action === 'create' ? handleDecisionCreate(body, content) : handleDecisionMutate(body, content);
     if (outcome.error) return json(res, 400, errorResponse('INVALID_ACTION', outcome.error));
-    safeWriteSync(DECISIONS_FILE, outcome.content);
+    safeWriteSync(DECISIONS_FILE, outcome.content, undefined, {
+      operation: body.action === 'create' ? 'create' : 'update',
+      entityType: 'decision',
+      entityId: outcome.result.id || body.id,
+      user: 'webapp',
+      summary: `Decision ${body.action}: ${outcome.result.id || body.id}`,
+    });
     sseNotify('decision_update', { action: body.action, id: outcome.result.id || body.id });
     return json(res, 200, attachSecretWarnings(outcome.result, secretWarnings));
   });
@@ -1046,6 +1088,16 @@ async function apiGetAnalytics(_req, res) {
   json(res, 200, { events, total: events.length });
 }
 
+/* ── Audit Trail Endpoint (SP-R2-007-005) ─────────────────────── */
+
+async function apiGetAudit(req, res) {
+  const url = new URL(req.url, `http://${HOST}:${PORT}`);
+  const limitParam = parseInt(url.searchParams.get('limit'), 10);
+  const limit = (limitParam >= 1 && limitParam <= 1000) ? limitParam : 50;
+  const entries = _audit.read(limit);
+  json(res, 200, { entries, total: entries.length, limit });
+}
+
 /* ── Static file serving ──────────────────────────────────────── */
 
 let cachedHtml = null;
@@ -1080,6 +1132,7 @@ const ROUTES = {
   'GET /api/health':         apiGetHealth,
   'POST /api/analytics':     apiPostAnalytics,
   'GET /api/analytics':      apiGetAnalytics,
+  'GET /api/audit':          apiGetAudit,
   'GET /health':             (_req, res) => json(res, 200, { status: 'ok', uptime: Math.round(process.uptime()) }),
 };
 
@@ -1165,5 +1218,6 @@ if (typeof module !== 'undefined' && module.exports) {
     sanitizeMarkdown, sanitizeQID, detectSecrets, checkSecretsInBody,
     structuredLog, withFileLock, safePath, setSecurityHeaders, server,
     _cache, _sseClients, sseNotify, _metrics, recordMetric, computePercentiles,
+    _audit,
   };
 }

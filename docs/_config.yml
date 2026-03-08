@@ -1,0 +1,18 @@
+title: Agentic IT Project Team
+description: Multi-agent system for end-to-end software solution creation
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme
+
+markdown: kramdown
+highlighter: rouge
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

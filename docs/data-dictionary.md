@@ -1,3 +1,8 @@
+---
+layout: default
+title: Data Dictionary
+---
+
 # Data Dictionary — Agentic IT Project Team
 
 > Version 1.0 | Last updated: 2026-03-08 | Source: SP-R2-007-004
